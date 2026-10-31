@@ -1,0 +1,24 @@
+name: Bootstrap
+
+# One time: unpacks the uploaded project archive into the repository, then removes it.
+on:
+  push:
+    paths: ["rosso-ledger-source.tar.gz"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack project
+        run: |
+          [ -f rosso-ledger-source.tar.gz ] || exit 0
+          tar xzf rosso-ledger-source.tar.gz
+          git rm -q rosso-ledger-source.tar.gz
+          git add -A
+          git -c user.name=rosso-ledger-bot -c user.email=bot@users.noreply.github.com commit -m "Unpack project source"
+          git push
