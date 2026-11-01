@@ -20,7 +20,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from . import taxonomy
 
-MOVER_MIN_PCT = 1.0
+MOVER_MIN_PCT = 0.0             # any move counts; repricing must agree in direction
 MOVER_MIN_CARS = 5
 OUTLIER_LOW, OUTLIER_HIGH = 0.4, 2.5
 
@@ -98,6 +98,116 @@ def movers(stats: dict) -> list[dict]:
     return sorted(out, key=lambda s: abs(s["change_7d"]), reverse=True)
 
 
+# ---------------------------------------------------------------- market movers
+
+def _base_day(con, day: date, back: int = 7) -> str | None:
+    """The snapshot closest to `back` days ago (the earliest one while history is short)."""
+    days = [d for d in available_days(con) if d < day.isoformat()]
+    if not days:
+        return None
+    target = _d(day, back)
+    older = [d for d in days if d <= target]
+    return older[-1] if older else days[0]
+
+
+def new_listings(con, day: date, since: str) -> dict[str, set]:
+    """model_id -> vehicle keys first listed on or after `since`.
+
+    A car counts as new when its listing date is known to be recent: the marketplace's
+    own date (AutoTrader's days on site), or the day we first saw it, unless that was the
+    first day we read its source at all. Adding a site would otherwise make all of its
+    cars look newly listed."""
+    start = {r[0]: r[1] for r in con.execute(
+        "SELECT source, MIN(day) FROM runs WHERE status IN ('ok','degraded') GROUP BY source")}
+    first = defaultdict(lambda: None)
+    old = set()
+    for r in con.execute("""SELECT s.vehicle_key, s.model_id, s.source, s.first_seen,
+                                   CASE WHEN json_valid(s.raw) THEN json_extract(s.raw, '$.extra.listed_on') END AS listed_on
+                            FROM sightings s JOIN daily_asks a ON a.vehicle_key = s.vehicle_key AND a.day = ?""", (day.isoformat(),)):
+        when = r["listed_on"] or (r["first_seen"] if r["first_seen"] and r["first_seen"] > (start.get(r["source"]) or "") else None)
+        key = (r["model_id"], r["vehicle_key"])
+        if when is None:
+            old.add(key)
+        elif first[key] is None or when < first[key]:
+            first[key] = when
+    out = defaultdict(set)
+    for (mid, vk), when in first.items():
+        if (mid, vk) not in old and when and when >= since:
+            out[mid].add(vk)
+    return out
+
+
+def market_movers(con, day: date, stats: dict, covers: dict) -> dict:
+    """Biggest gainer and decliner by asking price, and the most active model.
+
+    Price moves compare the same cars on both days (the average change in their asks),
+    so a batch of cheaper cars arriving cannot pass for a falling market. Activity
+    counts cars newly listed, cars that left the market and auction sales."""
+    base = _base_day(con, day)
+    out = {"since": base, "gainer": None, "decliner": None, "active": None, "all": []}
+    if base is None:
+        return out
+    now, then = snapshot(con, day), snapshot(con, date.fromisoformat(base))
+    for mid, cars in now.items():
+        m = taxonomy.BY_ID.get(mid)
+        prev = then.get(mid, {})
+        same = [(cars[k] / prev[k] - 1) * 100 for k in cars.keys() & prev.keys() if prev[k]]
+        if not m or len(same) < 3:
+            continue
+        s = stats.get(mid) or {}
+        out["all"].append({"id": mid, "name": m.name, "family": m.family, "change": round(st.mean(same), 2),
+                           "same_cars": len(same), "repriced": sum(1 for x in same if abs(x) > 0.05),
+                           "listings": len(cars), "median": s.get("median"), "image": covers.get(mid)})
+    out["all"].sort(key=lambda x: x["change"], reverse=True)
+    moved = [x for x in out["all"] if x["repriced"]]
+    if moved:
+        if moved[0]["change"] > 0:
+            out["gainer"] = moved[0]
+        if moved[-1]["change"] < 0:
+            out["decliner"] = moved[-1]
+
+    new = new_listings(con, day, base)
+    gone = {mid: set(cars) - set(now.get(mid, {})) for mid, cars in then.items()}
+    sold = defaultdict(int)
+    for r in con.execute("""SELECT model_id, COUNT(*) FROM lots WHERE status='sold' AND substr(ends_at,1,10) > ? AND substr(ends_at,1,10) <= ?
+                            GROUP BY model_id""", (base, day.isoformat())):
+        sold[r[0]] = r[1]
+    act = []
+    for mid in set(new) | set(gone) | set(sold):
+        m = taxonomy.BY_ID.get(mid)
+        n, g, so = len(new.get(mid, ())), len(gone.get(mid, ())), sold.get(mid, 0)
+        if m and n + g + so:
+            act.append({"id": mid, "name": m.name, "family": m.family, "total": n + g + so, "new": n, "removed": g,
+                        "sold": so, "listings": len(now.get(mid, {})), "image": covers.get(mid)})
+    act.sort(key=lambda x: x["total"], reverse=True)
+    out["active"] = act[0] if act else None
+    out["activity"] = act[:12]
+    return out
+
+
+PREFERRED_HOUSES = ("RM Sotheby's", "Gooding Christie's", "Bonhams", "Bring a Trailer", "Broad Arrow", "Cars & Bids")
+
+
+def cover_photos(con) -> dict[str, str]:
+    """One photo per model, for cards that have none of their own (model insights, news).
+    Auction houses' own photography first, most recent sale first."""
+    out = {}
+    order = {h: i for i, h in enumerate(PREFERRED_HOUSES)}
+    rows = con.execute("""SELECT model_id, image_url, auction_house, ends_at FROM lots
+                          WHERE image_url IS NOT NULL AND model_id IS NOT NULL AND status IN ('sold','unsold','live','upcoming')
+                          ORDER BY ends_at DESC""").fetchall()
+    best = {}
+    for r in rows:
+        rank = (order.get(r["auction_house"], 99),)
+        if r["model_id"] not in best or rank < best[r["model_id"]][0]:
+            best[r["model_id"]] = (rank, r["image_url"])
+    out.update({k: v[1] for k, v in best.items()})
+    for r in con.execute("""SELECT model_id, MAX(image_url) FROM sightings WHERE image_url IS NOT NULL AND removed_on IS NULL
+                            AND marketplace != 'Ferrari Approved' GROUP BY model_id"""):
+        out.setdefault(r[0], r[1])
+    return out
+
+
 def history(con, model_id: str | None, day: date, days: int = 120) -> list[dict]:
     q = "SELECT day, price_usd FROM daily_asks WHERE day BETWEEN ? AND ?" + (" AND model_id=?" if model_id else "")
     args = [_d(day, days), day.isoformat()] + ([model_id] if model_id else [])
@@ -134,7 +244,9 @@ def overnight(con, day: date) -> dict:
     flat_b = {k: p for cars in b.values() for k, p in cars.items()}
     if not flat_b:
         return {"new": 0, "removed": 0, "repriced": 0, "total": 0}
-    new = len(flat_a.keys() - flat_b.keys())
+    # cars from a site we only started reading are not new listings
+    fresh = {vk for cars in new_listings(con, day, (day - timedelta(days=1)).isoformat()).values() for vk in cars}
+    new = len((flat_a.keys() - flat_b.keys()) & fresh)
     removed = len(flat_b.keys() - flat_a.keys())
     repriced = sum(1 for k in flat_a.keys() & flat_b.keys() if abs(flat_a[k] - flat_b[k]) > 1)
     return {"new": new, "removed": removed, "repriced": repriced, "total": new + removed + repriced}

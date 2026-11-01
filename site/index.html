@@ -119,7 +119,12 @@ section.block { padding-block: 56px; border-bottom: 1px solid var(--line); scrol
 
 /* movers */
 .movers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.mover { background: var(--surface); border: 1px solid var(--line); padding: 18px 18px 14px; text-decoration: none; display: grid; gap: 10px; transition: border-color .15s; }
+.mover { background: var(--surface); border: 1px solid var(--line); text-decoration: none; display: grid; grid-template-rows: auto 1fr; overflow: hidden; transition: border-color .15s; }
+.mover .mb { padding: 16px 18px 16px; display: grid; gap: 8px; align-content: start; }
+.mover:hover .ph img { transform: scale(1.03); }
+.mover .why { color: var(--muted); font-size: 13px; }
+.mover .split { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.mover .split b { color: var(--ink); font-family: var(--f-mono); font-weight: 500; }
 .mover:hover { border-color: var(--ink); }
 .mover-top { display: flex; justify-content: space-between; align-items: center; }
 .pos { font: 700 15px/1 var(--f-display); background: var(--ink); color: var(--surface); padding: 5px 7px; }
@@ -166,7 +171,8 @@ table.sheet { width: 100%; border-collapse: collapse; font-size: 14px; min-width
 /* news */
 .date { color: var(--muted); font-size: 12px; font-family: var(--f-mono); }
 .news { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-.news a { text-decoration: none; display: grid; gap: 6px; }
+.news a { text-decoration: none; display: grid; gap: 8px; align-content: start; }
+.news .ph { aspect-ratio: 16 / 10; border: 1px solid var(--line); }
 .news a:hover h3 { color: var(--rosso); }
 .empty { border: 1px dashed var(--line); padding: 26px; color: var(--muted); }
 
@@ -464,14 +470,20 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   const modelLink = id => `#model-${id}`;
   const familyName = f => f;
 
-  function moverCard(m, i) {
-    return `<a class="mover" href="${modelLink(m.id)}">
-      <div class="mover-top"><span class="pos">P${i + 1}</span><span class="eyebrow">7 day move</span></div>
-      <h3>${esc(m.name)}</h3>
-      <div class="big">${chg(m.change_7d)}</div>
-      ${spark((byId[m.id] || m).spark, m.direction === "down" ? "var(--down)" : "var(--up)")}
-      <div class="meta"><span>Median ask <b class="num">${money(m.median)}</b></span><span>${plural(m.listings, "listing")}</span></div>
-    </a>`;
+  // Market Movers: the biggest gainer and decliner by asking price, and the most active model.
+  function moverCard(kind, m, since) {
+    if (!m) {
+      const msg = kind === "gainer" ? "No model's asking prices rose" : kind === "decliner" ? "No model's asking prices fell" : "No listings added or removed";
+      return `<div class="mover"><div class="ph none"></div><div class="mb"><div class="eyebrow">${{ gainer: "Biggest gainer", decliner: "Biggest decline", active: "Most active" }[kind]}</div><p class="why" style="margin:0">${msg} since ${dateLong(since)}.</p></div></div>`;
+    }
+    const label = { gainer: "Biggest gainer", decliner: "Biggest decline", active: "Most active" }[kind];
+    const body = kind === "active"
+      ? `<div class="big num">${m.total}</div><div class="why">cars changed hands or hit the market since ${dateLong(since)}</div>
+         <div class="split"><span>New <b>${m.new}</b></span><span>Gone <b>${m.removed}</b></span><span>Sold at auction <b>${m.sold}</b></span></div>`
+      : `<div class="big">${chg(m.change)}</div><div class="why">Average change in asking price across the ${m.same_cars} cars listed on both days, since ${dateLong(since)}. ${m.repriced} repriced.</div>`;
+    return `<a class="mover" href="${modelLink(m.id)}">${photo(m.image, m.name, `<span class="chip" style="background:var(--surface)">${label}</span>`)}
+      <div class="mb"><h3>${esc(m.name)}</h3>${body}
+      <div class="meta"><span>${m.median ? "Median ask <b class=\"num\">" + money(m.median) + "</b>" : ""}</span><span>${plural(m.listings || 0, "listing")}</span></div></div></a>`;
   }
 
   // One photo per car, loaded from the source's own CDN. No referrer is sent (some CDNs refuse
@@ -580,7 +592,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   // ------------------------------------------------------------ views
   function viewOverview(scrollTo) {
     const b = D.brief;
-    const mv = D.movers;
+    const mm = D.market_movers || { since: null, all: [] };
     const nModels = D.models.length;
     const live = D.auctions.live;
     const ix = D.index;
@@ -603,7 +615,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       </div>
     </section>
     <div class="jump"><div class="wrap jump-scroll"><div class="jump-row" role="navigation" aria-label="Sections">
-      ${[["brief", "Market Brief"], ["movers", "Market Movers"], ["families", "Models"], ["insights", "Insights"], ["news-sec", "News"], ["auctions-sec", "Auctions"]]
+      ${[["brief", "Market Brief"], ["movers", "Market Movers"], ["auctions-sec", "Auctions"], ["families", "Models"], ["insights", "Insights"], ["news-sec", "News"]]
         .map(([id, t]) => `<button type="button" data-jump="${id}">${t}</button>`).join("")}
     </div></div></div>
 
@@ -624,11 +636,17 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     </div></section>
 
     <section class="block" id="movers"><div class="wrap">
-      <div class="sec-head"><div><div class="eyebrow">Market Movers</div><h2>Biggest price moves this week</h2></div></div>
-      ${mv.length ? `<div class="movers">${mv.slice(0, 3).map(moverCard).join("")}</div>
-        <details class="all-movers"><summary>See all movers (${mv.length})</summary>${modelsTable(mv, { rank: true })}</details>`
-        : '<div class="empty">No model moved 1% or more this week on genuine repricing. Asks are steady.</div>'}
-      <p class="rule">A mover is a model whose median asking price changed ${D.rules.mover_min_pct}% or more against a week ago, with at least ${D.rules.mover_min_cars} cars for sale on both days, and where the cars listed on both days mostly repriced in the same direction. A new batch of cheap cars arriving does not count.</p>
+      <div class="sec-head"><div><div class="eyebrow">Market Movers</div><h2>This week's movers</h2></div></div>
+      ${mm.since ? `<div class="movers">${moverCard("gainer", mm.gainer, mm.since)}${moverCard("decliner", mm.decliner, mm.since)}${moverCard("active", mm.active, mm.since)}</div>
+        ${mm.all.length ? `<details class="all-movers"><summary>Every model's move (${mm.all.length})</summary><div class="tbl-wrap"><table class="sheet"><thead><tr><th class="p">Pos</th><th>Model</th><th class="r">Same cars</th><th class="r">Repriced</th><th class="r">Median ask</th><th class="r">Change</th></tr></thead><tbody>
+          ${mm.all.map((x, i) => `<tr class="click" data-href="${modelLink(x.id)}"><td class="p">P${i + 1}</td><td class="name"><a href="${modelLink(x.id)}">${esc(x.name)}</a></td><td class="r num">${x.same_cars}</td><td class="r num">${x.repriced}</td><td class="r num">${money(x.median)}</td><td class="r">${chg(x.change)}</td></tr>`).join("")}</tbody></table></div></details>` : ""}`
+        : '<div class="empty">Movers appear after the second day of asking prices.</div>'}
+      <p class="rule">Price moves compare the same cars on both days, so a batch of cheaper cars arriving cannot pass for a falling market. Most active counts cars newly listed, cars that left the market and auction sales. A site we have just started reading does not count as new listings.</p>
+    </div></section>
+
+    <section class="block" id="auctions-sec"><div class="wrap">
+      <div class="sec-head"><div><div class="eyebrow">Live Auction Watch</div><h2>Notable auctions</h2></div><a class="link-more" href="#auctions">All auctions →</a></div>
+      ${live.length ? `<div class="lots">${live.slice(0, 6).map(lotCard).join("")}</div>` : '<div class="empty">No Ferrari lots are live right now.</div>'}
     </div></section>
 
     <section class="block" id="families"><div class="wrap">
@@ -641,18 +659,13 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
 
     <section class="block" id="insights"><div class="wrap">
       <div class="sec-head"><div><div class="eyebrow">Key Insights</div><h2>Signals worth watching</h2></div></div>
-      <div class="insights">${D.insights.map(i => `<div class="insight">${i.image ? `<a ${carLink(i)} style="display:block">${photo(i.image, i.headline)}</a>` : ""}<span class="tag">${esc(i.label)}</span><h3>${esc(i.headline)}</h3><p>${esc(i.body)}</p>
-        ${i.url ? `<a ${carLink(i)}>View lot →</a>` : i.model ? `<a href="${modelLink(i.model)}">${esc((byId[i.model] || {}).name || "Model")} prices →</a>` : ""}</div>`).join("")}</div>
+      <div class="insights">${D.insights.map(i => { const go = i.car || i.url ? carLink(i) : i.model ? `href="${modelLink(i.model)}"` : ""; return `<div class="insight">${go ? `<a ${go} style="display:block">` : "<div>"}${photo(i.image, i.headline)}${go ? "</a>" : "</div>"}<span class="tag">${esc(i.label)}</span><h3>${esc(i.headline)}</h3><p>${esc(i.body)}</p>
+        ${i.url ? `<a ${carLink(i)}>View lot →</a>` : i.model ? `<a href="${modelLink(i.model)}">${esc((byId[i.model] || {}).name || "Model")} prices →</a>` : ""}</div>`; }).join("")}</div>
     </div></section>
 
     <section class="block" id="news-sec"><div class="wrap">
       <div class="sec-head"><div><div class="eyebrow">Latest News</div><h2>Ferrari headlines</h2></div>${D.news.length ? '<a class="link-more" href="#news">All news →</a>' : ""}</div>
       ${newsList(D.news.slice(0, 4))}
-    </div></section>
-
-    <section class="block" id="auctions-sec"><div class="wrap">
-      <div class="sec-head"><div><div class="eyebrow">Live Auction Watch</div><h2>Notable auctions</h2></div><a class="link-more" href="#auctions">All auctions →</a></div>
-      ${live.length ? `<div class="lots">${live.slice(0, 6).map(lotCard).join("")}</div>` : '<div class="empty">No Ferrari lots are live right now.</div>'}
     </div></section>`;
 
     app.querySelectorAll("[data-jump]").forEach(btn => btn.addEventListener("click", () => {
@@ -665,7 +678,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
 
   function newsList(items) {
     if (!items.length) return '<div class="empty">Headlines appear here once news feeds are switched on in the pipeline settings. We show the headline, outlet and date, and link to the original story.</div>';
-    return `<div class="news">${items.map(n => `<a href="${esc(n.url)}" target="_blank" rel="noopener"><span class="date">${n.published ? dateLong(n.published) : ""} ${esc(n.outlet)}</span><h3>${esc(n.title)}</h3></a>`).join("")}</div>`;
+    return `<div class="news">${items.map(n => `<a href="${esc(n.url)}" target="_blank" rel="noopener">${photo(n.image, "")}<span class="date">${n.published ? dateLong(n.published) : ""} ${esc(n.outlet)}</span><h3>${esc(n.title)}</h3></a>`).join("")}</div>`;
   }
 
   function pageHead(crumb, title, sub, kpis) {

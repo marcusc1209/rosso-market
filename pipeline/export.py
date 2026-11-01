@@ -45,6 +45,8 @@ def _weekly(series: list[dict], key: str) -> list:
 def build(con, day: date, cfg: dict, health: list[dict]) -> dict:
     stats = A.model_stats(con, day)
     mv = A.movers(stats)
+    covers = A.cover_photos(con)
+    mm = A.market_movers(con, day, stats, covers)
     ovn = A.overnight(con, day)
     auc = A.auctions(con, day, stats)
     ins = A.insights(stats, auc, day, A.certified_split(con, day))
@@ -88,7 +90,18 @@ def build(con, day: date, cfg: dict, health: list[dict]) -> dict:
         families.append({"name": fam, "listings": n, "sold_12m": sold_12m, "models": [x["id"] for x in ms], "signal": signal, "change": change,
                          "slug": re.sub(r"[^a-z0-9]+", "-", fam.lower()).strip("-")})
 
-    news = [dict(r) for r in con.execute("SELECT title, url, outlet, published, image FROM news ORDER BY published DESC LIMIT 8")]
+    news = [dict(r) for r in con.execute("SELECT title, url, outlet, published, image FROM news ORDER BY published DESC LIMIT 12")]
+    # Every insight and headline gets a picture: its own, or the model's cover photo
+    for i in ins:
+        if not i.get("image") and covers.get(i.get("model")):
+            i["image"] = covers[i["model"]]
+    names = sorted(((m.name, m.id) for m in taxonomy.MODELS if m.id in covers), key=lambda x: -len(x[0]))
+    fallback = covers.get(next((m["id"] for m in sorted(models, key=lambda m: -m["listings"]) if covers.get(m["id"])), None))
+    for n in news:
+        if not n.get("image"):
+            t = " " + (n["title"] or "").lower() + " "
+            hit = next((mid for name, mid in names if f" {name.lower()} " in t or f" {name.lower()}," in t), None)
+            n["image"] = covers.get(hit) or fallback
 
     return {
         "brand": "Rosso Market",
@@ -97,6 +110,8 @@ def build(con, day: date, cfg: dict, health: list[dict]) -> dict:
         "sample": sample,
         "brief": br,
         "movers": mv,
+        "market_movers": mm,
+        "covers": covers,
         "models": models,
         "families": families,
         "index": [[p["day"], p["index"]] for p in index],
