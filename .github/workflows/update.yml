@@ -1,0 +1,39 @@
+name: Apply update
+
+# Applies a code change sent as a compressed patch (gzip, then base64).
+# Files under .github are never changed by this workflow.
+on:
+  workflow_dispatch:
+    inputs:
+      patch:
+        description: "Patch (git diff, gzip, base64)"
+        required: true
+      message:
+        description: "Commit message"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - name: Apply patch
+        env:
+          PATCH: ${{ inputs.patch }}
+        run: |
+          printf "%s" "$PATCH" | base64 -d | gunzip > /tmp/update.patch
+          git apply --index --exclude=".github/*" /tmp/update.patch
+          git status --short
+      - name: Test
+        run: pip install -r requirements.txt && python -m pytest -q tests
+      - name: Commit
+        env:
+          MSG: ${{ inputs.message }}
+        run: |
+          git -c user.name=rosso-market-bot -c user.email=bot@users.noreply.github.com commit -m "$MSG"
+          git push
