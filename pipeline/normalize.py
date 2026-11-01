@@ -20,7 +20,7 @@ _CURRENCY_HINTS = [
     (re.compile(r"¥|\bjpy\b", re.I), "JPY"),
     (re.compile(r"\$"), "USD"),
 ]
-_NUM = re.compile(r"(\d[\d,\.\s]*\d|\d)\s*(k|m|mm|million|thousand)?\b", re.I)
+_NUM = re.compile(r"(\d[\d,\.\s'\u2019]*\d|\d)\s*(k|m|mm|million|thousand)?\b", re.I)
 
 
 def detect_currency(text: str, default: str = "USD") -> str:
@@ -47,9 +47,10 @@ def parse_price(value, default_currency: str = "USD") -> Tuple[Optional[float], 
     if not m:
         return None, currency
     digits, suffix = m.group(1), (m.group(2) or "").lower()
-    digits = digits.replace(" ", "")
-    # European style 1.234.567 or 1.234,56
-    if digits.count(".") > 1 or (digits.count(".") == 1 and digits.count(",") == 1 and digits.index(".") < digits.index(",")):
+    digits = digits.replace(" ", "").replace("'", "").replace("\u2019", "")     # Swiss style CHF 75'000
+    # European style 1.234.567, 1.234,56 or 184.250 (a single dot followed by exactly three digits)
+    if (digits.count(".") > 1 or (digits.count(".") == 1 and digits.count(",") == 1 and digits.index(".") < digits.index(","))
+            or (digits.count(".") == 1 and "," not in digits and re.fullmatch(r"\d{1,3}\.\d{3}", digits))):
         digits = digits.replace(".", "").replace(",", ".")
     else:
         digits = digits.replace(",", "")

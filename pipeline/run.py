@@ -84,7 +84,8 @@ def run_source(con, name, source, ctx, day: date, fx: dict, cfg: dict) -> dict:
     try:
         for raw in source.fetch():
             fetched += 1
-            if raw.kind == "auction" and raw.ends_at is None and raw.status in ("sold", "unsold"):
+            if raw.kind == "auction" and raw.ends_at is None and raw.status in ("sold", "unsold") \
+                    and not (raw.extra or {}).get("keep_undated"):
                 known = con.execute("SELECT ends_at FROM lots WHERE uid=?", (f"{raw.source}:{raw.source_id}",)).fetchone()
                 if known is None and has_history:
                     raw.ends_at = f"{day.isoformat()}T12:00:00+00:00"

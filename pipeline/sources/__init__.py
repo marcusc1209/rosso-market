@@ -7,6 +7,7 @@ from .ferrari_approved import FerrariApproved
 from .rmsothebys import RMSothebys
 from .online_auctions import SothebysMotorsport, DupontLive
 from .mecum import Mecum
+from .broadarrow import BroadArrow
 
 ADAPTERS = {
     "bringatrailer": BringATrailer,
@@ -21,4 +22,5 @@ ADAPTERS = {
     "somo": SothebysMotorsport,
     "dupont_live": DupontLive,
     "mecum": Mecum,
+    "broadarrow": BroadArrow,
 }

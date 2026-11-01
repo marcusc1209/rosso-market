@@ -243,3 +243,78 @@ def test_rm_results_are_dated_by_their_auction_page(tmp_path):
     # a second source instance reads the cached date instead of fetching the page again
     src2 = RMSothebys("rmsothebys", {}, Context(fetcher=f, run_date=date(2026, 11, 1), con=con))
     assert src2.auction_end("https://rmsothebys.com/auctions/lf26/lots/other/") == "2026-10-31" and f.requests == 1
+
+
+# Broad Arrow lot pages, structure as served 2026-10-31 (scripts, images and links trimmed)
+def _ba_page(price_row: str, extra_spans: str = "") -> str:
+    return f"""<html><body><div class="vdp-header"><div class="section left"><div class="text-top">
+      <h1> 2003 Ferrari Enzo </h1>
+      <p class="lot-and-branch"><span> Lot 182 | </span><span> The Amelia Auction 2026 </span>
+        <span class="flag-icon flag-icon-us branch-country-flag"></span>{extra_spans}</p>
+      <div class="price-row mobile"><div class="custom-dropdown"><select><option>USD</option></select></div>{price_row}</div>
+    </div></div></div>
+    <script type="application/ld+json">{{"@type": "Car", "vehicleIdentificationNumber": "ZFFCW56A030133000",
+      "offers": {{"price": "151850000", "priceCurrency": "USD"}}}}</script></body></html>"""
+
+
+BA_EVENTS = """<a class="content-col show-past"><div class="event-info"><div class="title-top-wrap">
+  <h2 class="top">6 - 7 March 2026</h2><h2 class="mid">The Amelia Auction 2026</h2></div></div></a>
+  <a class="content-col show-past"><h2 class="top">24 - 25 May 2025</h2><h2 class="mid">The Concorso d’Eleganza Villa d’Este 2025</h2></a>
+  <a class="content-col active"><h2 class="top">7 November 2026</h2><h2 class="mid">The Zurich Auction 2026</h2></a>
+  <a class="content-col show-past"><h2 class="top">23 January - 1 February 2026</h2><h2 class="mid">Global Icons: Europe Online</h2></a>"""
+
+BA_URL = "https://www.broadarrowauctions.com/vehicles/am26_r0187/2003-ferrari-enzo"
+
+
+def test_broadarrow_events_and_name_matching():
+    from pipeline.sources.broadarrow import parse_events, find_event, parse_event_dates
+    ev = parse_events(BA_EVENTS)
+    assert find_event(ev, "The Amelia Auction 2026") == ("2026-03-06", "2026-03-07")
+    assert find_event(ev, "The Concorso d'Eleganza Villa d'Este Auction 2025") == ("2025-05-24", "2025-05-25")
+    assert find_event(ev, "The Zürich Auction 2026") == ("2026-11-07", "2026-11-07")
+    assert find_event(ev, "Global Icons: Europe Online") == ("2026-01-23", "2026-02-01")
+    assert parse_event_dates("30 September - 2 October 2026") == ("2026-09-30", "2026-10-02")
+
+
+def test_broadarrow_lot_pages():
+    from datetime import date
+    from pipeline.sources.broadarrow import parse_events, parse_lot
+    ev, today = parse_events(BA_EVENTS), date(2026, 11, 1)
+
+    rec, why = parse_lot(_ba_page('<span id="label">Sold Price:</span> <span id="convert_price">$15,185,000</span>'), BA_URL, ev, today)
+    assert why == "final" and rec.status == "sold" and rec.price == 15_185_000 and rec.currency == "USD"
+    assert rec.ends_at.startswith("2026-03-07") and rec.source_id == "am26_r0187" and rec.vin == "ZFFCW56A030133000"
+    assert rec.lot_number == "182" and rec.country == "US"          # the JSON-LD price (x10) is ignored
+
+    rec, _ = parse_lot(_ba_page("<span>$555,000</span>"), BA_URL, ev, today)
+    assert rec.status == "sold" and rec.price == 555_000
+    rec, _ = parse_lot(_ba_page('<span id="label">Sold Price:</span><span>CHF 75\'000</span>'), BA_URL, ev, today)
+    assert rec.price == 75_000 and rec.currency == "CHF"
+    rec, _ = parse_lot(_ba_page('<span id="label">Sold Price:</span><span>€184.250</span>'), BA_URL, ev, today)
+    assert rec.price == 184_250 and rec.currency == "EUR"
+
+    rec, _ = parse_lot(_ba_page("<span>Not Sold</span>"), BA_URL, ev, today)
+    assert rec.status == "unsold" and rec.price is None
+
+    for words in ("Sold After Auction", "Sold Before Auction", "Sold"):
+        rec, why = parse_lot(_ba_page(f"<span>{words}</span>"), BA_URL, ev, today)
+        assert rec is None and why == "sold, price not published"
+
+    # an estimate before the sale: upcoming, dated by the sale day on the page, estimate only
+    up = _ba_page('<span id="label">Estimate:</span><span>CHF 130\'000 - CHF 170\'000</span>',
+                  "<span>Saturday, 07 November 2026</span>")
+    rec, why = parse_lot(up, BA_URL, ev, today)
+    assert why == "upcoming" and rec.status == "upcoming" and rec.price is None
+    assert (rec.estimate_low, rec.estimate_high, rec.currency) == (130_000, 170_000, "CHF") and rec.ends_at.startswith("2026-11-07")
+    # the same estimate after the sale means no result was published
+    rec, why = parse_lot(_ba_page('<span id="label">Estimate:</span><span>$6,500,000 - $8,500,000</span>'), BA_URL, ev, today)
+    assert rec is None and why.startswith("past lot")
+
+
+def test_broadarrow_sitemap_keeps_only_ferrari_lots():
+    import gzip
+    from pipeline.sources.broadarrow import lot_urls
+    xml = ("<urlset><url><loc>https://www.broadarrowauctions.com/vehicles/am26_r0187/2003-ferrari-enzo</loc></url>"
+           "<url><loc>https://www.broadarrowauctions.com/vehicles/ql26_r0010/2025-bugatti-w16-mistral</loc></url>"
+           "<url><loc>https://www.broadarrowauctions.com/events</loc></url></urlset>").encode()
+    assert lot_urls(gzip.compress(xml)) == ["https://www.broadarrowauctions.com/vehicles/am26_r0187/2003-ferrari-enzo"]

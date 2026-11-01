@@ -133,12 +133,12 @@ sources:
     enabled: true
     lookback_days: 400
 
-  broadarrow:                      # unverified. JSON-LD present, but the price unit is unclear (cents?). Check before enabling
-    adapter: browser_json
-    enabled: false
-    kind: auction
-    label: Broad Arrow
-    start_urls: ["https://www.broadarrowauctions.com/vehicles/results?q[make]=Ferrari"]
+  broadarrow:                      # verified. Sitemap plus one page per lot (robots.txt bars the results search, asks 10 s between requests)
+    adapter: broadarrow
+    enabled: true
+    lot_pages: 80                  # pages read per run; finished lots and lots with no published price are never read twice
+    fetch:
+      min_interval_seconds: 10
 
   gooding:                         # unverified
     adapter: browser_json
