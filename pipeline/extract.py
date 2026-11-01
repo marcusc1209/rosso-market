@@ -246,8 +246,18 @@ def map_generic(d: dict, source: str, kind: str, base_url: str = "") -> Optional
         estimate_low=lo, estimate_high=hi,
         no_reserve=None if nr is None else bool(nr),
         bid_count=int(bids) if isinstance(bids, (int, float)) or (isinstance(bids, str) and bids.isdigit()) else None,
-        lot_number=_s(pick(d, "lot")), dealer_name=_s(pick(d, "dealer")), image_url=_s(pick(d, "image")),
+        lot_number=_s(pick(d, "lot")), dealer_name=_s(pick(d, "dealer")), image_url=_image(d),
     )
+
+
+def _image(d: dict):
+    from .images import first_image, find_image
+    for key in ALIASES["image"]:
+        if d.get(key):
+            got = first_image(d[key])
+            if got:
+                return got
+    return find_image(d)
 
 
 def _s(v):

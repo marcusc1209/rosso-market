@@ -31,6 +31,7 @@ from typing import Iterator, Optional
 
 from .base import Source
 from ..records import RawRecord, AUCTION
+from ..images import first_image, find_image, gooding as gooding_image, sized
 
 SEARCH = "https://api01.bonhams.com/search-proxy/multi_search?use_cache=true"
 SITE = "https://www.bonhams.com"
@@ -84,7 +85,7 @@ def map_lot(d: dict, source: str) -> Optional[RawRecord]:
         no_reserve=bool(flags.get("isWithoutReserve")) if "isWithoutReserve" in flags else None,
         lot_number=str(lot) if lot not in (None, "0") else None,
         country=(d.get("country") or {}).get("code"), location=(d.get("country") or {}).get("name"),
-        auction_house="Bonhams", seller_type="auction",
+        auction_house="Bonhams", seller_type="auction", image_url=sized(first_image(d.get("image")), width=640),
         extra={"auction": aid, "department": (d.get("department") or {}).get("name"), "price_basis": "with premium"},
     )
 
@@ -115,7 +116,7 @@ class Bonhams(Source):
         while page <= min(pages, int(self.cfg.get("max_pages", 20))):
             body = {"searches": [{"collection": "lots", "q": "ferrari", "query_by": "title",
                                   "filter_by": DEPARTMENTS, "sort_by": "hammerTime.timestamp:desc",
-                                  "exclude_fields": "footnotes,catalogDesc,styledDescription,images,image",
+                                  "exclude_fields": "footnotes,catalogDesc,styledDescription,images",
                                   "page": page, "per_page": size}]}
             res = (self.ctx.fetcher.post_json(SEARCH, body, headers={"X-TYPESENSE-API-KEY": key,
                                                                       "Origin": SITE, "Referer": SITE + "/search/"})

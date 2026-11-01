@@ -138,6 +138,7 @@ sources:
     enabled: true
     runner: home                   # answers GitHub's servers with an AWS WAF challenge (HTTP 202)
     lot_pages: 80                  # pages read per run; finished lots and lots with no published price are never read twice
+    image_backfill: 30             # stored results without a photo: pages re-read per run to add one
     fetch:
       min_interval_seconds: 10
 

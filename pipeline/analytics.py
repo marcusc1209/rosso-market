@@ -145,7 +145,7 @@ def overnight(con, day: date) -> dict:
 def _lot(r) -> dict:
     return {k: r[k] for k in ("uid", "title", "url", "auction_house", "status", "price_usd", "estimate_low_usd",
                               "estimate_high_usd", "no_reserve", "ends_at", "location", "model_id", "year", "mileage_mi",
-                              "lot_number", "bid_count")}
+                              "lot_number", "bid_count")} | {"image": r["image_url"]}
 
 
 def auctions(con, day: date, stats: dict) -> dict:
@@ -242,7 +242,7 @@ def insights(stats: dict, auc: dict, day: date, cert: dict) -> list[dict]:
         out.append({"label": "Top result", "headline": l["title"],
                     "body": f"The week's highest Ferrari sale: {_money(l['price_usd'])} at {l['auction_house']}"
                             + (f", against a median of {_money(l['auction_median'])} for the model at auction." if l.get("auction_median") else "."),
-                    "url": l["url"], "model": l["model_id"]})
+                    "url": l["url"], "model": l["model_id"], "image": l.get("image")})
     # sell through change
     cand = [(mid, v) for mid, v in auc["sell_through"].items() if v["closed_30d"] >= 4 and (v["closed_prior_60d"] or 0) >= 4]
     if cand:

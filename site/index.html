@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Rosso Market</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="Daily asking prices, auction results and market trends for every Ferrari for sale in the US and Canada.">
@@ -180,11 +181,27 @@ table.sheet { width: 100%; border-collapse: collapse; font-size: 14px; min-width
 .news a:hover h3 { color: var(--rosso); }
 .empty { border: 1px dashed var(--line); padding: 26px; color: var(--muted); }
 
-/* auctions */
-.lots { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
-.lot { background: var(--surface); border: 1px solid var(--line); padding: 16px; display: grid; gap: 10px; text-decoration: none; align-content: start; }
+/* auctions and listings: photo cards, like classic.com */
+.lots { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px; }
+.lot { background: var(--surface); border: 1px solid var(--line); display: grid; grid-template-rows: auto 1fr; text-decoration: none; overflow: hidden; transition: border-color .15s; }
 .lot:hover { border-color: var(--ink); }
-.lot h3 { font-size: 15px; }
+.lot:hover .ph img { transform: scale(1.03); }
+.lot .body { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
+.lot h3 { font-size: 15px; line-height: 1.3; }
+.ph { position: relative; aspect-ratio: 4 / 3; background: var(--chip); overflow: hidden; }
+.ph img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s ease; }
+.ph.none::after { content: "Photo unavailable"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font: 600 10px/1 var(--f-body); letter-spacing: .12em; text-transform: uppercase; }
+.ph .chips { position: absolute; left: 10px; top: 10px; right: 10px; min-height: 0; z-index: 1; }
+.ph .chip { background: var(--surface); }
+.lot .specs { color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: 2px 10px; }
+.thumb { width: 76px; padding: 6px 10px 6px 0 !important; }
+.thumb .ph { width: 76px; border: 1px solid var(--line); }
+.thumb .ph.none::after { content: ""; }
+.sec-tools { display: flex; justify-content: flex-end; margin: -8px 0 14px; }
+.view-switch { display: inline-flex; border: 1px solid var(--line); }
+.view-switch button { border: 0; background: var(--surface); padding: 6px 12px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--muted); }
+.view-switch button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.insight .ph { margin-bottom: 4px; aspect-ratio: 16 / 9; }
 .lot .house { color: var(--muted); font-size: 13px; }
 .lot .bid { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
 .lot .bid b { font: 500 20px/1 var(--f-mono); font-variant-numeric: tabular-nums; }
@@ -399,6 +416,42 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     </a>`;
   }
 
+  // One photo per car, loaded from the source's own CDN. No referrer is sent (some CDNs refuse
+  // other sites' referrers), and a broken or missing photo turns into a quiet placeholder.
+  function photo(url, alt, chips) {
+    const over = chips ? `<div class="chips">${chips}</div>` : "";
+    if (!url) return `<div class="ph none">${over}</div>`;
+    return `<div class="ph"><img src="${esc(url)}" alt="${esc(alt || "")}" loading="lazy" decoding="async" referrerpolicy="no-referrer"
+      onerror="this.parentNode.classList.add('none');this.remove()">${over}</div>`;
+  }
+
+  let VIEW = "photos";
+  try { VIEW = localStorage.getItem("rm-view") || "photos"; } catch (e) {}
+  // Photo grid by default, a table one tap away. The choice is remembered on this device.
+  function switchable(el, items, cards, table) {
+    const draw = () => {
+      el.innerHTML = `<div class="sec-tools"><div class="view-switch" role="group" aria-label="View">
+        <button type="button" data-v="photos" aria-pressed="${VIEW === "photos"}">Photos</button><button type="button" data-v="table" aria-pressed="${VIEW === "table"}">Table</button></div></div>`
+        + (VIEW === "table" ? table(items) : `<div class="lots">${items.map(cards).join("")}</div>`);
+      el.querySelectorAll("[data-v]").forEach(b => b.addEventListener("click", () => {
+        VIEW = b.dataset.v; try { localStorage.setItem("rm-view", VIEW); } catch (e) {}
+        draw();
+      }));
+    };
+    draw();
+  }
+
+  function listingCard(l) {
+    const chips = l.certified ? '<span class="chip sold">Ferrari Approved</span>' : "";
+    return `<a class="lot" href="${esc(l.url)}" target="_blank" rel="noopener">
+      ${photo(l.image, l.title, chips)}
+      <div class="body"><h3>${esc(l.title)}</h3>
+        <div class="specs">${[miles(l.mileage_mi), l.exterior_color].filter(Boolean).map(esc).join(" · ")}</div>
+        <div class="house">${esc(l.dealer_name || l.marketplace || "")}${l.location ? ", " + esc(l.location) : ""}</div>
+        <div class="bid"><div><div class="eyebrow">Asking</div><b>${money(l.price_usd)}</b></div><span>${esc(l.marketplace || "")}</span></div>
+      </div></a>`;
+  }
+
   function lotCard(l) {
     const chips = [];
     if (l.ending_soon) chips.push('<span class="chip hot">Ending soon</span>');
@@ -412,12 +465,16 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     else if (l.status === "sold") { label = "Sold for"; value = money(l.price_usd); }
     else { label = "High bid"; value = money(l.price_usd); }
     const est = l.status === "live" && l.estimate_low_usd ? ` Est. ${short(l.estimate_low_usd)} to ${short(l.estimate_high_usd)}` : "";
+    const done = l.status === "sold" || l.status === "unsold";
+    const when = !l.ends_at ? "" : done ? dateLong(l.ends_at.slice(0, 10)) : "Ends " + endET(l.ends_at);
+    const vs = l.status === "sold" && l.vs_ask_pct != null ? `<div style="font-size:12px">${chg(l.vs_ask_pct)} vs median ask</div>` : "";
     return `<a class="lot" href="${esc(l.url)}" target="_blank" rel="noopener">
-      <div class="chips">${chips.join("")}</div>
-      <h3>${esc(l.title)}</h3>
+      ${photo(l.image, l.title, chips.join(""))}
+      <div class="body"><h3>${esc(l.title)}</h3>
       <div class="house">${esc(l.auction_house)}${l.location ? ", " + esc(l.location) : ""}${l.lot_number ? ", lot " + esc(l.lot_number) : ""}</div>
-      <div class="bid"><div><div class="eyebrow">${label}</div><b>${value}</b></div><span>${l.status === "live" || l.status === "upcoming" ? "Ends " : ""}${endET(l.ends_at)}${est}</span></div>
-    </a>`;
+      ${l.mileage_mi ? `<div class="specs">${miles(l.mileage_mi)}</div>` : ""}
+      <div class="bid"><div><div class="eyebrow">${label}</div><b>${value}</b></div><span>${when}${est}${vs}</span></div>
+      </div></a>`;
   }
 
   function modelsTable(models, opts = {}) {
@@ -498,7 +555,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
 
     <section class="block" id="insights"><div class="wrap">
       <div class="sec-head"><div><div class="eyebrow">Key Insights</div><h2>Signals worth watching</h2></div></div>
-      <div class="insights">${D.insights.map(i => `<div class="insight"><span class="tag">${esc(i.label)}</span><h3>${esc(i.headline)}</h3><p>${esc(i.body)}</p>
+      <div class="insights">${D.insights.map(i => `<div class="insight">${i.image ? `<a href="${esc(i.url)}" target="_blank" rel="noopener" style="display:block">${photo(i.image, i.headline)}</a>` : ""}<span class="tag">${esc(i.label)}</span><h3>${esc(i.headline)}</h3><p>${esc(i.body)}</p>
         ${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">View lot →</a>` : i.model ? `<a href="${modelLink(i.model)}">${esc((byId[i.model] || {}).name || "Model")} prices →</a>` : ""}</div>`).join("")}</div>
     </div></section>
 
@@ -572,13 +629,21 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       : '<p class="flat">Asking price history starts once dealer inventory is collected daily. It fills in from the first week.</p>';
     document.getElementById("m-auc").innerHTML = auctionChart(detail.auction_points || [], `${m.name} auction results`);
     if ((detail.upcoming || []).length) { document.getElementById("m-up-sec").hidden = false; document.getElementById("m-up").innerHTML = detail.upcoming.map(lotCard).join(""); }
-    document.getElementById("m-list").innerHTML = detail.listings.length ? `<div class="tbl-wrap"><table class="sheet"><thead><tr><th>Car</th><th class="r">Mileage</th><th>Colour</th><th>Seller</th><th>Seen on</th><th class="r">Asking</th></tr></thead><tbody>
-      ${detail.listings.slice(0, 60).map(l => `<tr><td class="name"><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title)}</a>${l.certified ? ' <span class="chip sold">Approved</span>' : ""}</td>
+    const listTable = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Car</th><th class="r">Mileage</th><th>Colour</th><th>Seller</th><th>Seen on</th><th class="r">Asking</th></tr></thead><tbody>
+      ${items.map(l => `<tr><td class="thumb">${photo(l.image, "")}</td><td class="name"><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title)}</a>${l.certified ? ' <span class="chip sold">Approved</span>' : ""}</td>
       <td class="r num">${miles(l.mileage_mi)}</td><td>${esc(l.exterior_color || "")}</td><td>${esc(l.dealer_name || "")}${l.location ? `<div class="flat" style="font-size:12px">${esc(l.location)}</div>` : ""}</td><td>${esc(l.marketplace || "")}</td><td class="r num">${money(l.price_usd)}</td></tr>`).join("")}
-      </tbody></table></div>${detail.listings.length > 60 ? `<p class="flat">Showing the 60 lowest asks of ${detail.listings.length}.</p>` : ""}` : '<div class="empty">No cars listed right now.</div>';
-    document.getElementById("m-res").innerHTML = detail.results.length ? `<div class="tbl-wrap"><table class="sheet"><thead><tr><th>Lot</th><th>House</th><th>Closed</th><th class="r">Mileage</th><th>Result</th><th class="r">Price</th></tr></thead><tbody>
-      ${detail.results.map(r => `<tr><td class="name"><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a></td><td>${esc(r.auction_house)}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td><td class="r num">${miles(r.mileage_mi)}</td>
-      <td><span class="chip ${r.status}">${r.status === "sold" ? "Sold" : "Not sold"}</span></td><td class="r num">${money(r.price_usd)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">No auction results recorded yet.</div>';
+      </tbody></table></div>`;
+    const mList = document.getElementById("m-list");
+    if (detail.listings.length) {
+      switchable(mList, detail.listings.slice(0, 60), listingCard, listTable);
+      if (detail.listings.length > 60) mList.insertAdjacentHTML("beforeend", `<p class="flat">Showing the 60 lowest asks of ${detail.listings.length}.</p>`);
+    } else mList.innerHTML = '<div class="empty">No cars listed right now.</div>';
+    const resTable = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Lot</th><th>House</th><th>Closed</th><th class="r">Mileage</th><th>Result</th><th class="r">Price</th></tr></thead><tbody>
+      ${items.map(r => `<tr><td class="thumb">${photo(r.image, "")}</td><td class="name"><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a></td><td>${esc(r.auction_house)}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td><td class="r num">${miles(r.mileage_mi)}</td>
+      <td><span class="chip ${r.status}">${r.status === "sold" ? "Sold" : "Not sold"}</span></td><td class="r num">${money(r.price_usd)}</td></tr>`).join("")}</tbody></table></div>`;
+    const mRes = document.getElementById("m-res");
+    if (detail.results.length) switchable(mRes, detail.results, lotCard, resTable);
+    else mRes.innerHTML = '<div class="empty">No auction results recorded yet.</div>';
   }
 
   const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -600,7 +665,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     const houses = Object.entries(a.houses).sort((x, y) => (y[1].live + y[1].results_30d) - (x[1].live + x[1].results_30d));
     const sold = a.results.filter(r => r.status === "sold"), closed = a.results.filter(r => r.ends_at && r.ends_at.slice(0, 10) > daysAgo(30));
     const rate = closed.length ? Math.round(closed.filter(r => r.status === "sold").length / closed.length * 100) + "%" : "n/a";
-    app.innerHTML = pageHead("Auctions", "Auctions", "Live and recent Ferrari lots from Bring a Trailer, Cars &amp; Bids, Sotheby's Motorsport, duPont Registry Live, RM Sotheby's and Mecum. Times are US Eastern.",
+    app.innerHTML = pageHead("Auctions", "Auctions", "Live and recent Ferrari lots from Bring a Trailer, Cars &amp; Bids, PCARMARKET, Sotheby's Motorsport, duPont Registry Live, RM Sotheby's, Gooding Christie's, Bonhams, Broad Arrow and Mecum. Photos link to the original lot. Times are US Eastern.",
       [[a.live.length, "Live now"], [a.upcoming.length, "Upcoming"], [sold.length, "Sold, 90 days"], [rate, "Sell through, 30 days"]])
       + `<section class="block"><div class="wrap">
         <div class="tabs" role="tablist">${tabs.map(([k, l, arr], i) => `<button type="button" role="tab" id="tab-${k}" aria-selected="${i === 0}" data-tab="${k}">${l} (${arr.length})</button>`).join("")}</div>
@@ -611,11 +676,13 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     const show = k => {
       app.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === k));
       const arr = tabs.find(t => t[0] === k)[2];
-      document.getElementById("tab-body").innerHTML = !arr.length ? '<div class="empty">Nothing here right now.</div>' : k === "results"
-        ? `<div class="tbl-wrap"><table class="sheet"><thead><tr><th>Lot</th><th>House</th><th>Closed</th><th>Result</th><th class="r">Price</th><th class="r">vs median ask</th></tr></thead><tbody>
-          ${arr.map(r => `<tr><td class="name"><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a></td><td>${esc(r.auction_house)}</td><td class="num">${dateLong(r.ends_at.slice(0, 10))}</td>
-          <td><span class="chip ${r.status}">${r.status === "sold" ? "Sold" : "Not sold"}</span></td><td class="r num">${money(r.price_usd)}</td><td class="r">${r.status === "sold" ? chg(r.vs_ask_pct) : ""}</td></tr>`).join("")}</tbody></table></div>`
-        : `<div class="lots">${arr.map(lotCard).join("")}</div>`;
+      const body = document.getElementById("tab-body");
+      const table = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Lot</th><th>House</th><th>${k === "results" ? "Closed" : "Ends"}</th><th>Result</th><th class="r">Price</th><th class="r">vs median ask</th></tr></thead><tbody>
+          ${items.map(r => `<tr><td class="thumb">${photo(r.image, "")}</td><td class="name"><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a></td><td>${esc(r.auction_house)}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td>
+          <td>${r.status === "sold" || r.status === "unsold" ? `<span class="chip ${r.status}">${r.status === "sold" ? "Sold" : "Not sold"}</span>` : `<span class="chip">${r.status === "live" ? "Live" : "Upcoming"}</span>`}</td>
+          <td class="r num">${r.status === "upcoming" ? (r.estimate_low_usd ? short(r.estimate_low_usd) + " to " + short(r.estimate_high_usd) : "") : money(r.price_usd)}</td><td class="r">${r.status === "sold" ? chg(r.vs_ask_pct) : ""}</td></tr>`).join("")}</tbody></table></div>`;
+      if (!arr.length) body.innerHTML = '<div class="empty">Nothing here right now.</div>';
+      else switchable(body, arr, lotCard, table);
     };
     app.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => show(b.dataset.tab)));
     show("live"); window.scrollTo(0, 0);

@@ -40,6 +40,7 @@ from .. import db
 from ..normalize import parse_price
 from ..records import RawRecord, AUCTION
 from ..taxonomy import looks_like_car, other_make_first
+from ..images import first_image
 
 SITE = "https://www.pcarmarket.com"
 _YEAR = re.compile(r"\b(19[4-9]\d|20[0-3]\d)\b")
@@ -64,7 +65,9 @@ def parse_cards(html: str) -> list[dict]:
         bids = next((int(b.split()[0].replace(",", "")) for b in bits if re.match(r"^[\d,]+ Bids?$", b)), None)
         idx = bits.index(title) if title in bits else -1
         location = bits[idx + 1] if 0 <= idx < len(bits) - 1 and not re.match(r"^[\d,]+ Bids?$|^\$", bits[idx + 1]) else None
-        out.append({"href": a.get("href"), "title": title, "label": label, "value": after, "bids": bids, "location": location})
+        img = art.find("img") or a.find("img")
+        out.append({"href": a.get("href"), "title": title, "label": label, "value": after, "bids": bids, "location": location,
+                    "image": first_image(img.get("src") if img else None)})
     # the same card can appear twice on a page (image link and text link)
     seen, uniq = set(), []
     for c in out:
@@ -125,7 +128,8 @@ def to_record(card: dict, detail: dict, source: str) -> Optional[RawRecord]:
         year=int(year) if year and year.isdigit() else None, make="Ferrari" if make else None,
         model_text=detail.get("model"), vin=detail.get("vin"), mileage=miles, exterior_color=detail.get("color"),
         bid_count=card.get("bids"), location=card.get("location"), auction_house="PCARMARKET",
-        seller_type="auction", extra={"seller_type": detail.get("seller_type"), "price_basis": "with buyer fee",
+        seller_type="auction", image_url=card.get("image"),
+        extra={"seller_type": detail.get("seller_type"), "price_basis": "with buyer fee",
                                       "keep_undated": True},
     )
 
@@ -171,6 +175,7 @@ class PCarMarket(Source):
                 if row and row[0] in ("sold", "unsold") and row[1]:
                     rec = stored_record(row[2])            # finished result already stored with its date
                     if rec:
+                        rec.image_url = rec.image_url or card.get("image")
                         yield rec
                     continue
             detail = {}

@@ -27,6 +27,7 @@ from typing import Iterator, Optional
 from .base import Source
 from ..normalize import parse_price
 from ..records import RawRecord, AUCTION
+from ..images import first_image, find_image, gooding as gooding_image, sized
 
 API = "https://cdn.goodingco.com/graphql"
 SITE = "https://www.goodingco.com"
@@ -39,7 +40,7 @@ QUERY = """query GetVehiclesAndFilters($filtersInput: FiltersInput!, $pageNumber
     vehicles {
       objectID make hasReservePrice modelYear lowEstimate highEstimate uniqueEstimate salePrice
       auctionType auctionName lotNumber model auctionEndDate upcomingAuctionEndDate auctionStartDate
-      slug privateSalesPrice itemType title currency
+      slug privateSalesPrice itemType title currency cloudinaryImages { public_id }
     }
     hitsPerPage page nbPages nbHits
   }
@@ -95,6 +96,7 @@ def map_vehicle(v: dict, source: str, now: datetime) -> Optional[RawRecord]:
         no_reserve=(not reserve) if reserve is not None else None,
         lot_number=str(v["lotNumber"]) if v.get("lotNumber") is not None else None,
         location=v.get("auctionName"), auction_house="Gooding Christie's", seller_type="auction",
+        image_url=gooding_image(((v.get("cloudinaryImages") or [{}])[0] or {}).get("public_id")),
         extra={"auction": v.get("auctionName"), "auction_type": v.get("auctionType"), "price_basis": "with premium"},
     )
 

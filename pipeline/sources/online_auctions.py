@@ -28,6 +28,7 @@ from urllib.parse import urlencode
 
 from ..fetch import Blocked
 from ..records import RawRecord, AUCTION
+from ..images import first_image, find_image, gooding as gooding_image, sized
 
 QUERIES = [("live", "ending_soon"), ("upcoming", "ending_soon"), ("sold", "closed_date_desc")]
 
@@ -64,6 +65,7 @@ def map_somo(a: dict, source: str, qtype: str) -> RawRecord | None:
         status=status, ends_at=_iso(a.get("soldDate") if status == "sold" else a.get("endTime")),
         no_reserve=not a.get("hasReservePrice", True), lot_number=str(a.get("lotNumber") or "") or None,
         auction_house="Sotheby's Motorsport", seller_type="auction",
+        image_url=first_image(((v.get("files") or {}).get("titleImage"))),
         extra={"buyer_fee": a.get("buyerFeeGross"), "price_basis": "hammer"},
     )
 
@@ -88,7 +90,7 @@ def map_dupont(c: dict, source: str, qtype: str) -> RawRecord | None:
         model_text=str(v.get("model") or "").split("|")[0].strip() or None, location=c.get("location") or None,
         status=status, ends_at=_iso(out.get("soldAt") if status == "sold" and out.get("soldAt") else c.get("endTime")),
         no_reserve=None,   # hasReserve came back false on every card checked 2026-10-31, so it is not trusted
-        lot_number=str(c.get("lotNumber") or "") or None,
+        lot_number=str(c.get("lotNumber") or "") or None, image_url=first_image(c.get("image")),
         auction_house="duPont Registry Live", seller_type="auction", extra={"subtitle": c.get("subtitle"), "price_basis": "hammer"},
     )
 

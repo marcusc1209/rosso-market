@@ -44,6 +44,8 @@ from ..fetch import Blocked
 from ..normalize import parse_price
 from ..records import RawRecord, AUCTION
 from ..taxonomy import other_make_first
+from ..images import first_image
+from .pcarmarket import stored_record
 
 SITE = "https://www.broadarrowauctions.com"
 SITEMAP = SITE + "/sitemaps/bagauction/sitemap.xml.gz"
@@ -183,6 +185,7 @@ def parse_lot(html: str, url: str, events: dict, today: date, source: str = "bro
         ends_at=f"{day}T20:00:00+00:00" if day else None, estimate_low=est_lo, estimate_high=est_hi,
         lot_number=lot_no, vin=vin, mileage=mileage, country=country, location=event,
         auction_house="Broad Arrow", seller_type="auction",
+        image_url=first_image((soup.select_one('meta[property="og:image"]') or {}).get("content")),
         extra={"auction": event, "price_basis": "with premium", "keep_undated": True},
     )
     return rec, ("upcoming" if status == "upcoming" else "final")
@@ -234,3 +237,25 @@ class BroadArrow(Source):
                 self.log.debug("%s: %s", url, why)
                 continue
             yield rec
+        yield from self._backfill_photos(con)
+
+    def _backfill_photos(self, con) -> Iterator[RawRecord]:
+        """Results stored before photos were captured: read a few of their pages a run to add one."""
+        n = int(self.cfg.get("image_backfill", 30))
+        if con is None or n <= 0:
+            return
+        rows = con.execute("""SELECT uid, raw FROM lots WHERE source=? AND image_url IS NULL AND status IN ('sold','unsold')
+                              ORDER BY ends_at DESC LIMIT ?""", (self.name, n)).fetchall()
+        for uid, raw in rows:
+            old = stored_record(raw)
+            if old is None:
+                continue
+            try:
+                soup = BeautifulSoup(self._get(old.url), "html.parser")
+            except Exception as e:
+                self.log.info("photo backfill stopped: %s", e)
+                return
+            img = first_image((soup.select_one('meta[property="og:image"]') or {}).get("content"))
+            if img:
+                old.image_url = img
+                yield old

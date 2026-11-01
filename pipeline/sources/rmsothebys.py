@@ -30,6 +30,7 @@ from .. import db
 from ..fetch import Blocked
 from ..normalize import parse_price
 from ..records import RawRecord, AUCTION
+from ..images import first_image, find_image, gooding as gooding_image, sized
 
 API = "https://rmsothebys.com/api/search/SearchLots"
 SITE = "https://rmsothebys.com"
@@ -78,7 +79,8 @@ def map_item(x: dict, source: str, offer_status: str) -> RawRecord | None:
         title=title, price=price, currency=cur, price_text=None if is_range(value) else value, location=x.get("location"),
         country=x.get("countryCode"), status=status, estimate_low=est_lo, estimate_high=est_hi,
         lot_number=(x.get("lot") or None), no_reserve=("without reserve" in vtype) or None, auction_house="RM Sotheby's" + (" Private Sales" if private else ""),
-        seller_type="auction", extra={"auction": x.get("header"), "price_basis": "with premium", "private_sale": private},
+        seller_type="auction", image_url=first_image(x.get("crop") or x.get("crop2")),
+        extra={"auction": x.get("header"), "price_basis": "with premium", "private_sale": private},
     )
 
 

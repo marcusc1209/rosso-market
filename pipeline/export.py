@@ -150,11 +150,11 @@ def model_detail(con, model_id: str, day: date) -> dict:
     hist = A.history(con, model_id, day, 365)
     rows = con.execute("""
       SELECT a.vehicle_key, a.price_usd, s.title, s.url, s.mileage_mi, s.location, s.dealer_name, s.marketplace, s.certified,
-             s.exterior_color, s.year
+             s.exterior_color, s.year, MAX(s.image_url) AS image
       FROM daily_asks a JOIN sightings s ON s.vehicle_key = a.vehicle_key AND s.removed_on IS NULL
       WHERE a.day=? AND a.model_id=? GROUP BY a.vehicle_key ORDER BY a.price_usd""", (day.isoformat(), model_id)).fetchall()
     skip = clean.implausible_lots(con)
-    lots = [r for r in con.execute("""SELECT uid, title, url, auction_house, status, price_usd, ends_at, mileage_mi FROM lots
+    lots = [r for r in con.execute("""SELECT uid, title, url, auction_house, status, price_usd, ends_at, mileage_mi, image_url AS image FROM lots
                           WHERE model_id=? AND status IN ('sold','unsold') ORDER BY ends_at IS NULL, ends_at DESC LIMIT 80""",
                        (model_id,)) if r["uid"] not in skip][:60]
     # every dated result in the last three years, for the auction chart: [day, price, sold 1/0]
@@ -162,8 +162,8 @@ def model_detail(con, model_id: str, day: date) -> dict:
                          WHERE model_id=? AND status IN ('sold','unsold') AND price_usd > 0 AND ends_at IS NOT NULL
                            AND substr(ends_at,1,10) BETWEEN ? AND ? ORDER BY ends_at""",
                       (model_id, (day - timedelta(days=1095)).isoformat(), day.isoformat())).fetchall()
-    upcoming = con.execute("""SELECT title, url, auction_house, status, price_usd, estimate_low_usd, estimate_high_usd, ends_at, location
-                              FROM lots WHERE model_id=? AND status IN ('live','upcoming') AND last_seen >= ? ORDER BY ends_at""",
+    upcoming = con.execute("""SELECT title, url, auction_house, status, price_usd, estimate_low_usd, estimate_high_usd, ends_at, location,
+                                     image_url AS image FROM lots WHERE model_id=? AND status IN ('live','upcoming') AND last_seen >= ? ORDER BY ends_at""",
                            (model_id, (day - timedelta(days=1)).isoformat())).fetchall()
     return {"id": model_id, "history": [[p["day"], p["median"], p["n"]] for p in hist],
             "listings": [dict(r) for r in rows], "results": [{k: r[k] for k in r.keys() if k != "uid"} for r in lots],

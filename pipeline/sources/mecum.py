@@ -25,6 +25,7 @@ from urllib.parse import urlparse, parse_qs
 from .base import Source
 from ..fetch import Blocked
 from ..records import RawRecord, AUCTION
+from ..images import first_image, find_image, gooding as gooding_image, sized
 
 
 def map_hit(h: dict, source: str, now: float) -> RawRecord | None:
@@ -60,7 +61,7 @@ def map_hit(h: dict, source: str, now: float) -> RawRecord | None:
         year=int(year) if str(year or "").isdigit() else None, make="Ferrari",
         status=status, ends_at=datetime.fromtimestamp(end, tz=timezone.utc).isoformat() if end else None,
         no_reserve="No reserve" in labels, lot_number=h.get("lot_number_meta"),
-        location=auction, auction_house="Mecum", seller_type="auction",
+        location=auction, auction_house="Mecum", seller_type="auction", image_url=find_image(h),
         extra={"auction": auction, "price_basis": "with premium",
                **({"bid_goes_on_figure": bgo_number} if status == "unsold" else {})},
     )

@@ -119,6 +119,7 @@ def upsert(con, n: Normalized, day: date):
           ON CONFLICT(uid) DO UPDATE SET status=COALESCE(excluded.status, status), price_usd=CASE WHEN excluded.status IN ('sold','unsold','upcoming') THEN excluded.price_usd ELSE COALESCE(excluded.price_usd, price_usd) END,
             estimate_low_usd=COALESCE(excluded.estimate_low_usd, estimate_low_usd), estimate_high_usd=COALESCE(excluded.estimate_high_usd, estimate_high_usd),
             bid_count=COALESCE(excluded.bid_count, bid_count), ends_at=COALESCE(excluded.ends_at, ends_at), last_seen=excluded.last_seen,
+            image_url=COALESCE(excluded.image_url, image_url),
             vehicle_key=excluded.vehicle_key, model_id=excluded.model_id, raw=excluded.raw""",
             (n.uid, r.source, n.vehicle_key, n.model_id, n.year, r.title, r.url, r.auction_house, r.status, n.price_usd,
              n.estimate_low_usd, n.estimate_high_usd, None if r.no_reserve is None else int(r.no_reserve), r.bid_count, r.ends_at,
