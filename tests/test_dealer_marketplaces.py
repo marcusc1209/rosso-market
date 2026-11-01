@@ -86,3 +86,28 @@ def test_autotrader_ca_listing():
     assert r.mileage == 25343 and r.mileage_unit == "km" and r.location == "North York, ON" and r.vin is None
     assert r.image_url.endswith("/640x480.webp") and r.extra["photos"][0].endswith("/1280x960.webp")
     assert map_autotrader_ca({**x, "vehicle": {**x["vehicle"], "offerType": "N"}}, "x") is None
+
+
+def test_autotrader_switches_to_browser_when_page_has_no_listings():
+    import logging
+    from types import SimpleNamespace
+    from pipeline.sources.dealer_marketplaces import AutoTrader
+    body = '5:{"inventory":' + json.dumps({"773331441": AT_LISTING}) + ',"owners":' + json.dumps(OWNERS) + ',"totalResultCount":1}'
+    asked = []
+
+    class F:
+        def get(self, url):
+            asked.append(("plain", url))
+            return SimpleNamespace(text="<html><title>Autotrader</title><body>stub</body></html>")
+
+    class B:
+        def html(self, url):
+            asked.append(("browser", url))
+            return _page(body)
+
+    src = AutoTrader.__new__(AutoTrader)
+    src.name, src.cfg, src.log = "autotrader_us", {"browser_pause_seconds": 0}, logging.getLogger("t")
+    src.ctx = SimpleNamespace(fetcher=F(), browser=B(), run_date=date(2026, 11, 1))
+    out = list(src.fetch())
+    assert [r.vin for r in out] == ["ZFF79ALA2K0245448"]
+    assert [k for k, _ in asked] == ["plain", "browser"]

@@ -87,7 +87,7 @@ AT_SEARCH = (AT_SITE + "/cars-for-sale/ferrari?searchRadius=0&listingTypes=USED,
 
 def flight_data(html: str) -> str:
     """Join the Next.js flight chunks into one text."""
-    out, dec, html, i = [], json.JSONDecoder(), html or "", 0
+    out, dec, html, i = [], json.JSONDecoder(strict=False), html or "", 0
     while True:
         i = html.find(_PUSH, i)
         if i < 0:
@@ -106,7 +106,7 @@ def _object_after(text: str, key: str):
     if i < 0:
         return None
     try:
-        return json.JSONDecoder().raw_decode(text, i + len(key) + 3)[0]
+        return json.JSONDecoder(strict=False).raw_decode(text, i + len(key) + 3)[0]
     except ValueError:
         return None
 
@@ -170,10 +170,23 @@ class AutoTrader(_Marketplace):
         first, total, seen = 0, None, set()
         cap = int(self.cfg.get("max_pages", 40))
         for _ in range(cap):
-            inv, owners, n = parse_autotrader(self._html(AT_SEARCH.format(n=size, first=first)))
+            url = AT_SEARCH.format(n=size, first=first)
+            html = self._html(url)
+            inv, owners, n = parse_autotrader(html)
+            if not inv and not self.use_browser:
+                # Seen 2026-11-01 from the Mac: a plain request got status 200 and a page without
+                # the listings data. A real browser gets the full page, so switch for the rest of the run.
+                title = re.search(r"<title>([^<]{0,80})", html or "")
+                self.log.info("plain request returned no listings (%d bytes, title %r), switching to the browser",
+                              len(html or ""), title.group(1) if title else None)
+                self.use_browser = True
+                html = self._html(url)
+                inv, owners, n = parse_autotrader(html)
             total = n if n is not None else total
             if not inv:
-                self.log.warning("no listings at offset %d (layout changed or refused)", first)
+                title = re.search(r"<title>([^<]{0,80})", html or "")
+                self.log.warning("no listings at offset %d (%d bytes, title %r)", first, len(html or ""),
+                                 title.group(1) if title else None)
                 break
             for a in inv.values():
                 if str(a.get("id")) in seen:
