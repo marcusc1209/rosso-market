@@ -1,4 +1,4 @@
-<title>Rosso Ledger</title>
+<title>Rosso Market</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="Daily asking prices, auction results and market trends for every Ferrari for sale in the US and Canada.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -242,9 +242,9 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
 
 <header class="site-head">
   <div class="wrap head-row">
-    <a class="logo" href="#overview" aria-label="Rosso Ledger home">
-      <span class="logo-mark" aria-hidden="true">RL</span>
-      <span class="logo-word">Rosso <span>Ledger</span></span>
+    <a class="logo" href="#overview" aria-label="Rosso Market home">
+      <span class="logo-mark" aria-hidden="true">RM</span>
+      <span class="logo-word">Rosso <span>Market</span></span>
     </a>
     <nav class="main" aria-label="Main">
       <a href="#overview" data-nav="overview">Overview</a>
@@ -416,7 +416,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       <div class="hero-chart">${heroChart(ix)}</div>
       <div class="wrap">
         <div class="eyebrow"><span class="dot"></span>As of ${dateLong(D.as_of)}, ${esc(D.region)}</div>
-        <h1>Rosso<br><span>Ledger</span></h1>
+        <h1>Rosso<br><span>Market</span></h1>
         <p class="lede">Daily asking prices, auction results and market intelligence for every Ferrari for sale in the US and Canada, from the 308 to the SF90.</p>
         <div class="hero-index">
           <div><b>${ixLast ? ixLast.toFixed(1) : "n/a"}</b><small>Ask index, 90 days ago = 100</small></div>
@@ -621,7 +621,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   function viewPrivacy() {
     app.innerHTML = pageHead("Privacy", "Privacy", "")
       + `<section class="block"><div class="wrap"><div class="prose">
-        <p>Rosso Ledger does not ask you for an account and does not collect personal information. We do not use advertising or tracking cookies.</p>
+        <p>Rosso Market does not ask you for an account and does not collect personal information. We do not use advertising or tracking cookies.</p>
         <p>Our host keeps standard server logs, such as IP address and pages requested, for security and to keep the site running. If we add privacy friendly visitor counts later, this page will say so.</p>
         <p>Listings and auction results shown here are about cars, gathered from public pages and licensed data. We do not publish sellers' or buyers' personal details. Links take you to the original listing, where that site's own privacy policy applies.</p>
       </div></div></section>`;
@@ -645,9 +645,9 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   function buildFooter() {
     const h = D.health || [];
     document.getElementById("foot").innerHTML = `<div>
-      <a class="logo" href="#overview"><span class="logo-mark" aria-hidden="true">RL</span><span class="logo-word">Rosso <span>Ledger</span></span></a>
+      <a class="logo" href="#overview"><span class="logo-mark" aria-hidden="true">RM</span><span class="logo-word">Rosso <span>Market</span></span></a>
       <nav aria-label="Footer"><a href="#overview">Overview</a><a href="#takes">Market Takes</a><a href="#auctions">Auctions</a><a href="#news">News</a><a href="#methodology">Methodology</a><a href="#privacy">Privacy</a></nav>
-      <p style="margin-top:18px;max-width:60ch">Rosso Ledger is independent and is not affiliated with or endorsed by Ferrari S.p.A. Prices are asking prices and auction results gathered from public sources and licensed data feeds. They can contain errors and are not an offer or a valuation.</p>
+      <p style="margin-top:18px;max-width:60ch">Rosso Market is independent and is not affiliated with or endorsed by Ferrari S.p.A. Prices are asking prices and auction results gathered from public sources and licensed data feeds. They can contain errors and are not an offer or a valuation.</p>
       <p>Data as of ${dateLong(D.as_of)}.</p></div>
       <div><div class="eyebrow" style="margin-bottom:10px">Data sources, last run</div><div class="health">
       ${h.map(s => `<div><span>${esc(s.source)}${s.accepted != null ? ` <span class="num">(${s.accepted})</span>` : ""}</span><span class="state ${s.state}">${s.state}</span></div>`).join("") || "<div>No runs yet</div>"}</div></div>`;
