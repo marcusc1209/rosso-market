@@ -48,6 +48,10 @@ def map_item(x: dict, source: str, offer_status: str) -> RawRecord | None:
     if price is None or vtype not in ("sold", "asking", "bid to", "high bid", "") or is_range(value):
         price = None            # a range ("€275,000 - €300,000") is the estimate, never a result
     private = "PRIVATE" in str(x.get("header") or "").upper()
+    link = x.get("link") or ""
+    sealed = "SEALED" in str(x.get("header") or "").upper() or "sealed." in link or "/inventory/" in link
+    if private or sealed:
+        return None                # private sales and sealed bids publish no hammer price
     if offer_status == "Results":
         if price is None:
             return None            # result withheld: only the estimate is published
@@ -69,7 +73,6 @@ def map_item(x: dict, source: str, offer_status: str) -> RawRecord | None:
         cur = cur_est
     if status == "upcoming":
         price = None
-    link = x.get("link") or ""
     return RawRecord(
         source=source, kind=AUCTION, source_id=str(x.get("id") or link), url=link if link.startswith("http") else SITE + link,
         title=title, price=price, currency=cur, price_text=None if is_range(value) else value, location=x.get("location"),

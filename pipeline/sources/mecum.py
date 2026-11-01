@@ -37,6 +37,8 @@ def map_hit(h: dict, source: str, now: float) -> RawRecord | None:
     price = h.get("highest_bid_or_price") or None
     bgo_number = None
     if h.get("sold"):
+        if not price:
+            return None            # sold, price not published
         status = "sold"
     elif end and end > now:
         status = "upcoming"

@@ -241,3 +241,57 @@ def test_estimate_ranges_are_never_prices():
     assert is_price_range("\u20ac275,000 - \u20ac300,000 EUR") and not is_price_range("$275,000")
     withheld = {"publicName": "2017 Ferrari California T", "value": "\u20ac275,000 - \u20ac300,000 EUR", "valueType": "", "sold": True}
     assert map_item(withheld, "rmsothebys", "Results") is None
+
+
+FX_AUCTION = {"USD": 1.0, "GBP": 1.27, "EUR": 1.08}
+
+
+def _lot(**kw):
+    base = dict(source="x", kind=AUCTION, source_id="1", url="https://example.com/lot/1", title="2022 Ferrari Daytona SP3",
+                auction_house="Example House", status="sold", price=3_000_000.0)
+    base.update(kw)
+    return RawRecord(**base)
+
+
+@pytest.mark.parametrize("kw", [
+    dict(auction_house="RM Sotheby's Private Sales"),
+    dict(url="https://sealed.rmsothebys.com/auctions/s1226/lots/r0006-2024-ferrari-sf90-xx-spider/"),
+    dict(extra={"auction": "Sealed December"}),
+    dict(auction_house="Broad Arrow Private Treaty"),
+    dict(extra={"private_sale": True}),
+])
+def test_private_and_sealed_sales_are_never_counted(kw):
+    with pytest.raises(Reject, match="private or sealed"):
+        normalize(_lot(**kw), FX_AUCTION)
+
+
+def test_sold_without_price_is_dropped_and_upcoming_keeps_only_its_estimate():
+    with pytest.raises(Reject, match="sold without"):
+        normalize(_lot(price=None), FX_AUCTION)
+    n = normalize(_lot(status="upcoming", price=None, price_text="$3,000,000 - $3,500,000",
+                       estimate_low=3_000_000, estimate_high=3_500_000), FX_AUCTION)
+    assert n.price_usd is None and n.estimate_low_usd == 3_000_000 and n.estimate_high_usd == 3_500_000
+    n = normalize(_lot(status="upcoming", price=3_000_000.0), FX_AUCTION)
+    assert n.price_usd is None
+
+
+def test_a_result_replaces_an_earlier_price(tmp_path):
+    con = db.connect(tmp_path / "t.db")
+    db.upsert(con, normalize(_lot(status="live", price=2_000_000.0), FX_AUCTION), date(2026, 10, 1))
+    db.upsert(con, normalize(_lot(status="unsold", price=None), FX_AUCTION), date(2026, 10, 2))
+    assert tuple(con.execute("SELECT status, price_usd FROM lots").fetchone()) == ("unsold", None)
+
+
+def test_clean_applies_the_auction_policy_to_stored_rows(tmp_path):
+    from pipeline import clean
+    con = db.connect(tmp_path / "t.db")
+    rows = [("a:1", "RM Sotheby's Private Sales", "sold", 1_000_000, "https://rmsothebys.com/ps00/inventory/r1/"),
+            ("a:2", "RM Sotheby's", "sold", None, "https://rmsothebys.com/auctions/mo25/lots/r2/"),
+            ("a:3", "RM Sotheby's", "upcoming", 1_800_000, "https://rmsothebys.com/auctions/lf26/lots/r3/"),
+            ("a:4", "RM Sotheby's", "sold", 2_000_000, "https://rmsothebys.com/auctions/mo25/lots/r4/")]
+    for uid, house, status, price, url in rows:
+        con.execute("INSERT INTO lots (uid, source, model_id, title, auction_house, status, price_usd, url) VALUES (?,?,?,?,?,?,?,?)",
+                    (uid, "a", "f40", "1990 Ferrari F40", house, status, price, url))
+    out = clean.purge(con)
+    assert out["private_or_sealed"] == 1 and out["sold_without_price"] == 1 and out["upcoming_price_cleared"] == 1
+    assert [tuple(r) for r in con.execute("SELECT uid, price_usd FROM lots ORDER BY uid")] == [("a:3", None), ("a:4", 2_000_000)]

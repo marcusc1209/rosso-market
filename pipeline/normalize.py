@@ -211,6 +211,17 @@ def is_price_range(text) -> bool:
     return bool(text and _RANGE.search(str(text)))
 
 
+# Private sales, private treaty offers and sealed bid sales never publish a hammer
+# price, so they are not auction results and are left out entirely (any house).
+_PRIVATE = re.compile(r"private (sale|sales|treaty|offer)|\bsealed\b|/inventory/|//sealed\.", re.I)
+
+
+def is_private_or_sealed(raw) -> bool:
+    extra = raw.extra or {}
+    text = " ".join(str(x or "") for x in (raw.auction_house, raw.url, extra.get("auction"), extra.get("sale_type")))
+    return bool(extra.get("private_sale") or extra.get("sealed") or _PRIVATE.search(text))
+
+
 class Reject(Exception):
     pass
 
@@ -245,6 +256,13 @@ def normalize(raw: RawRecord, fx: dict, min_confidence: float = 0.5) -> Normaliz
     est_hi = to_usd(raw.estimate_high, raw.currency, fx)
 
     flags = []
+    if raw.kind == AUCTION:
+        if is_private_or_sealed(raw):
+            raise Reject("private or sealed sale: no public price")
+        if raw.status == "upcoming":
+            price, price_usd = None, None        # an upcoming lot has an estimate, never a price
+        if raw.status == "sold" and price_usd is None:
+            raise Reject("sold without a published price")
     if raw.kind != AUCTION and price_usd is None:
         raise Reject("listing without a price")
     if price_usd is not None and (price_usd < 10_000 or price_usd > 60_000_000):

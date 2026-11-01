@@ -53,6 +53,7 @@ def purge(con) -> dict:
             con.execute(f"DELETE FROM {table} WHERE uid=?", (uid,))
         counts[table] = len(bad)
     counts["estimate_as_price"] = _drop_estimate_prices(con)
+    counts.update(_apply_auction_policy(con))
     counts["reclassified"] = _reclassify(con)
     con.commit()
     if any(counts.values()):
@@ -76,6 +77,31 @@ def _drop_estimate_prices(con) -> int:
         con.execute("DELETE FROM lot_observations WHERE uid=?", (uid,))
         con.execute("DELETE FROM lots WHERE uid=?", (uid,))
     return len(bad)
+
+
+_PRIVATE_SQL = """(lower(auction_house) LIKE '%private%' OR url LIKE '%//sealed.%' OR url LIKE '%/inventory/%'
+                    OR lower(raw) LIKE '%"private_sale": true%' OR lower(raw) LIKE '%"auction": "sealed%')"""
+
+
+def _apply_auction_policy(con) -> dict:
+    """Private and sealed sales are dropped, sold lots without a price are dropped,
+    and upcoming lots keep their estimate but never a price."""
+    out = {}
+    for label, where, why in (
+        ("private_or_sealed", _PRIVATE_SQL, "purged: private or sealed sale, no public price"),
+        ("sold_without_price", "status='sold' AND price_usd IS NULL", "purged: sold without a published price"),
+    ):
+        rows = con.execute(f"SELECT uid, source, title FROM lots WHERE {where}").fetchall()
+        for uid, source, title in rows:
+            con.execute("INSERT INTO rejects (run_id, source, source_id, title, reason) VALUES (NULL, ?, ?, ?, ?)",
+                        (source, uid.split(":", 1)[-1], title, why))
+            con.execute("DELETE FROM lot_observations WHERE uid=?", (uid,))
+            con.execute("DELETE FROM lots WHERE uid=?", (uid,))
+        out[label] = len(rows)
+    out["upcoming_price_cleared"] = con.execute(
+        "UPDATE lots SET price_usd=NULL WHERE status='upcoming' AND price_usd IS NOT NULL").rowcount
+    con.execute("UPDATE lot_observations SET price_usd=NULL WHERE status='upcoming'")
+    return out
 
 
 def _reclassify(con) -> int:
