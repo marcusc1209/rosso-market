@@ -12,6 +12,7 @@ from .gooding import Gooding
 from .bonhams import Bonhams
 from .pcarmarket import PCarMarket
 from .dealer_marketplaces import AutoTrader, AutoTraderCA, DupontRegistry
+from .classiccars import ClassicCars
 
 ADAPTERS = {
     "bringatrailer": BringATrailer,
@@ -32,5 +33,6 @@ ADAPTERS = {
     "pcarmarket": PCarMarket,
     "autotrader": AutoTrader,
     "autotrader_ca": AutoTraderCA,
+    "classiccars": ClassicCars,
     "dupont_registry": DupontRegistry,
 }

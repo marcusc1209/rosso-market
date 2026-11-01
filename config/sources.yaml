@@ -78,6 +78,11 @@ sources:
     adapter: autotrader_ca
     enabled: true
     runner: home
+  classiccars:                     # verified 2026-11-01. ~180 classic and modern Ferraris from dealers and private sellers
+    adapter: classiccars
+    enabled: true
+    max_pages: 25
+    detail_pages: 150              # each listing page is read once, then reused
   cars_com:                        # off: every page, robots.txt included, sits behind a Cloudflare bot check
     adapter: browser_json
     enabled: false
