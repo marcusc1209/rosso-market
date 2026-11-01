@@ -17,6 +17,7 @@ import re
 from typing import Iterator
 
 from .base import Source
+from ..fetch import Blocked
 from ..records import RawRecord, LISTING
 
 BASE = "https://preowned.ferrari.com/en-US/r/north-america/used-ferrari/{country}/rfc"
@@ -64,14 +65,27 @@ def map_ad(a: dict, source: str, country: str) -> RawRecord:
 class FerrariApproved(Source):
     kind = LISTING
 
+    use_browser = False
+
     def fetch(self) -> Iterator[RawRecord]:
+        self.use_browser = bool(self.cfg.get("browser"))
         seen = set()
         for country in self.cfg.get("countries", ["usa", "canada"]):
             base = BASE.format(country=country)
             page, pages = 0, 1
             cap = int(self.cfg.get("max_pages", 200))
             while page < min(pages, cap):
-                html = self.ctx.fetcher.get(base, params={"pl": page}).text
+                url = f"{base}?pl={page}"
+                if not self.use_browser:
+                    try:
+                        html = self.ctx.fetcher.get(url).text
+                    except Blocked as e:
+                        # The site refuses plain requests from some networks (GitHub Actions got 403 on
+                        # 2026-10-31). A real browser usually gets through, so switch for the rest of the run.
+                        self.log.info("plain request refused (%s), switching to the browser", e)
+                        self.use_browser = True
+                if self.use_browser:
+                    html = self.ctx.browser.html(url)
                 ads, pages = parse_page(html)
                 if not ads:
                     break

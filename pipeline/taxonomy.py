@@ -133,6 +133,7 @@ MODELS: list[Model] = [
     M("330-gt-2-2", "330 GT 2+2", "Classics", "gt", (1964, 1967), (r"330 gt 2 2", r"330 2 2", r"330 gt\b", r"330 america"), tracked=False),
     M("400-412", "400 and 412", "Classics", "gt", (1976, 1989), (r"\b400i?\b", r"\b412\b"), tracked=False),
     M("250", "250 series", "Classics", "coupe", (1953, 1964), (r"\b250\b",), tracked=False),
+    M("classic-other", "Other classics before 1975", "Classics", "coupe", (1947, 1975), (r"\b(166|195|212|225|340|342|375|410|500 (trc|mondial|superfast)|625|750 monza|860 monza|290 mm|315 s|335 s|330 p|365 p|206 s|196 s|246 s)\b",), tracked=False),
 ]
 
 _COMPILED = [(m, [re.compile(p) for p in m.patterns]) for m in MODELS]
@@ -162,6 +163,7 @@ def resolve(title: str, year: Optional[int] = None, model_hint: Optional[str] = 
     """Map a free text title (plus optional structured model field) to a Model."""
     text = clean_title(" ".join(x for x in [model_hint or "", title or ""] if x))
     text = _MILE_PHRASE.sub(" ", text)          # "20k mile 2003 ferrari 360 spider": drop the mileage words
+    first_conflict = None
     for model, patterns in _COMPILED:
         for p in patterns:
             if p.search(text):
@@ -174,10 +176,15 @@ def resolve(title: str, year: Optional[int] = None, model_hint: Optional[str] = 
                     first, last = model.years
                     last = last or 2100
                     if year < first - 1 or year > last + 1:
-                        conf -= 0.6
-                        reasons.append(f"year {year} outside {first} to {model.years[1]}")
+                        # names repeat across eras ("250 GT Tour de France" 1956 vs F12tdf 2016,
+                        # "400 Superamerica" 1960 vs 575 Superamerica 2005): keep looking
+                        if first_conflict is None:
+                            first_conflict = Match(model, max(conf - 0.6, 0.0), reasons + [f"year {year} outside {first} to {model.years[1]}"])
+                        break
                 return Match(model, max(conf, 0.0), reasons)
-    return Match(None, 0.0, ["no pattern matched"])
+    if year is not None and year < 1975 and "ferrari" in text or (year and year < 1975 and text.startswith("dino")):
+        return Match(BY_ID["classic-other"], 0.8, ["pre 1975 Ferrari without its own model page"])
+    return first_conflict or Match(None, 0.0, ["no pattern matched"])
 
 
 def is_ferrari(title: str, make: Optional[str] = None) -> bool:

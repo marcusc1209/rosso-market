@@ -163,6 +163,8 @@ def main(argv=None):
                 log.warning("news feeds failed: %s", e)
         for _, _, ctx in sources:
             ctx.close()
+        from .fetch import Browser
+        Browser.shutdown()
     else:
         reports = [dict(source=r["source"], state=r["status"], detail=r["error"] or "", accepted=r["accepted"])
                    for r in con.execute("SELECT * FROM runs WHERE id IN (SELECT MAX(id) FROM runs GROUP BY source)")]

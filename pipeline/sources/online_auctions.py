@@ -21,6 +21,9 @@ from datetime import datetime, timezone
 from typing import Iterator
 
 from .base import Source
+from urllib.parse import urlencode
+
+from ..fetch import Blocked
 from ..records import RawRecord, AUCTION
 
 QUERIES = [("live", "ending_soon"), ("upcoming", "ending_soon"), ("sold", "closed_date_desc")]
@@ -93,12 +96,24 @@ class _ListingsApi(Source):
     container = ""
     mapper = None
 
+    def _get(self, params: dict) -> dict:
+        url = f"{self.host}/api/auctions/listings?" + urlencode(params)
+        if not self.use_browser:
+            try:
+                return self.ctx.fetcher.get_json(url)
+            except Blocked as e:
+                # SOMO refused GitHub Actions with 403 on 2026-10-31; the same call from inside
+                # the site's own page in a real browser is the fallback.
+                self.log.info("plain request refused (%s), switching to the browser", e)
+                self.use_browser = True
+        return self.ctx.browser.json_in_page(self.host + "/", url)
+
     def fetch(self) -> Iterator[RawRecord]:
+        self.use_browser = bool(self.cfg.get("browser"))
         for qtype, sort in QUERIES:
             pages = int(self.cfg.get("sold_pages", 4)) if qtype == "sold" else 5
             for page in range(1, pages + 1):
-                data = self.ctx.fetcher.get_json(f"{self.host}/api/auctions/listings",
-                                                 params={"limit": 50, "page": page, "type": qtype, "sort": sort})
+                data = self._get({"limit": 50, "page": page, "type": qtype, "sort": sort})
                 d = data.get("data") or {}
                 rows = d.get(self.container) or []
                 for row in rows:

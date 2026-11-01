@@ -127,6 +127,8 @@ Everything marked verified and on above runs free.
 
 `.github/workflows/daily.yml` runs at 11:17 UTC: tests, pipeline, site build, deploy to GitHub Pages. It keeps the database on a `market-data` branch so the price history survives between runs, and opens an issue when a source breaks.
 
+`.github/workflows/update.yml` ("Apply update") applies a code change sent as a compressed patch: `git diff | gzip -9 | base64 -w0`, pasted into the workflow's form. It runs the tests before committing. Changes under `.github/` have to be made in GitHub's web editor, because workflow tokens are not allowed to modify workflows.
+
 First run: start the workflow by hand with "Import extra auction history" ticked. That pages much deeper into every results feed, so the site opens with months of auction results instead of a few days.
 
 The asking price history only starts on the first run: medians, movers and price cuts need about a week of daily runs before they mean anything, and the 90 day charts need 90 days.

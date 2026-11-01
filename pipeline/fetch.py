@@ -22,6 +22,16 @@ import httpx
 log = logging.getLogger("fetch")
 
 
+_CHALLENGE = ("cf-chl-", "challenge-platform", "px-captcha", "_incapsula_resource", "verify you are a human",
+              "are you a robot", "access denied</title>", "attention required!")
+
+
+def _is_challenge(body: str) -> bool:
+    """Bot challenge interstitials, not ordinary pages that merely load a reCAPTCHA script."""
+    head = body[:20000].lower()
+    return len(body) < 60000 and any(m in head for m in _CHALLENGE)
+
+
 class Blocked(Exception):
     """robots.txt disallows the URL, or the site answered with a bot challenge."""
 
@@ -96,8 +106,8 @@ class Fetcher:
                 log.warning("%s %s -> %s, waiting %.0fs", method, url, r.status_code, wait)
                 time.sleep(wait); delay *= 2
                 continue
-            if r.status_code == 403 or "captcha" in r.text[:5000].lower():
-                raise Blocked(f"{url} answered {r.status_code} or a bot challenge")
+            if r.status_code in (401, 403) or _is_challenge(r.text):
+                raise Blocked(f"{url} answered {r.status_code}" + (" with a bot challenge page" if r.status_code < 400 else ""))
             r.raise_for_status()
             ctype = r.headers.get("content-type", "")
             self._archive(url if method == "GET" else f"{method} {url} {kw.get('json') or kw.get('data') or ''}",
@@ -132,11 +142,17 @@ class Browser:
         self._pw = None
         self._browser = None
 
+    # One Playwright instance per process: starting a second one while the first is running
+    # fails ("Sync API inside the asyncio loop"), which is what broke Mecum on the first live run.
+    _shared_pw = None
+    _shared_browser = None
+
     def _ensure(self):
-        if self._browser is None:
+        if Browser._shared_browser is None:
             from playwright.sync_api import sync_playwright
-            self._pw = sync_playwright().start()
-            self._browser = self._pw.chromium.launch(headless=True)
+            Browser._shared_pw = sync_playwright().start()
+            Browser._shared_browser = Browser._shared_pw.chromium.launch(headless=True)
+        self._browser = Browser._shared_browser
         return self._browser
 
     def sniff(self, url: str, url_filter: Callable[[str], bool] = lambda u: True,
@@ -184,6 +200,42 @@ class Browser:
         ctx.close()
         return payloads, html
 
+    def html(self, url: str, wait_ms: int = 1500) -> str:
+        """Load a page in headless Chromium and return its HTML. Reuses one context so
+        cookies set by the site's bot protection on the first page carry over."""
+        if not self.fetcher._allowed(url):
+            raise Blocked(f"robots.txt disallows {url}")
+        if getattr(self, "_page", None) is None:
+            self._ctx = self._ensure().new_context(
+                user_agent=self.cfg.get("browser_user_agent") or
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36",
+                locale="en-US", viewport={"width": 1400, "height": 1000})
+            self._page = self._ctx.new_page()
+        self.fetcher._wait(url)
+        resp = self._page.goto(url, wait_until="domcontentloaded", timeout=60_000)
+        self._page.wait_for_timeout(wait_ms)
+        body = self._page.content()
+        self.fetcher.requests += 1
+        if (resp and resp.status in (401, 403)) or _is_challenge(body):
+            raise Blocked(f"{url} answered {resp.status if resp else '?'} in the browser too")
+        self.fetcher._archive(url, body, "html")
+        return body
+
+    def json_in_page(self, origin_page: str, api_url: str):
+        """Call a site's JSON API from inside one of its own pages, so the request carries the
+        cookies and browser fingerprint its bot protection expects."""
+        if getattr(self, "_page", None) is None or not self._page.url.startswith(origin_page.split("/", 3)[0] + "//" + origin_page.split("/")[2]):
+            self.html(origin_page, wait_ms=3000)
+        self.fetcher._wait(api_url)
+        result = self._page.evaluate(
+            """async (u) => { const r = await fetch(u, {credentials: 'include', headers: {'Accept': 'application/json'}});
+                              return {status: r.status, body: await r.text()}; }""", api_url)
+        self.fetcher.requests += 1
+        if result["status"] in (401, 403) or _is_challenge(result["body"]):
+            raise Blocked(f"{api_url} answered {result['status']} inside the browser")
+        self.fetcher._archive(api_url, result["body"], "json")
+        return json.loads(result["body"])
+
     def capture_requests(self, url: str, contains: str, wait_ms: int = 5000) -> list[str]:
         """Open url and return the URLs of requests the page makes that contain `contains`.
         Used to read public, runtime issued search keys (Mecum's Algolia key)."""
@@ -200,6 +252,13 @@ class Browser:
         return seen
 
     def close(self):
-        if self._browser:
-            self._browser.close()
-            self._pw.stop()
+        if getattr(self, "_ctx", None) is not None:
+            self._ctx.close()
+            self._ctx = self._page = None
+
+    @staticmethod
+    def shutdown():
+        if Browser._shared_browser is not None:
+            Browser._shared_browser.close()
+            Browser._shared_pw.stop()
+            Browser._shared_browser = Browser._shared_pw = None
