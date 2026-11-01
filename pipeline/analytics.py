@@ -13,6 +13,7 @@ Definitions (shown on the site so readers know what they are looking at):
 """
 from __future__ import annotations
 
+import json
 import math
 import statistics as st
 from collections import defaultdict
@@ -137,34 +138,106 @@ def new_listings(con, day: date, since: str) -> dict[str, set]:
     return out
 
 
-def market_movers(con, day: date, stats: dict, covers: dict) -> dict:
-    """Biggest gainer and decliner by asking price, and the most active model.
+def _asks_with_year(con, d: str) -> list[tuple]:
+    """(vehicle_key, model_id, year, price) for every car in the snapshot of day d."""
+    return [tuple(r) for r in con.execute("""
+        SELECT a.vehicle_key, a.model_id, (SELECT MAX(s.year) FROM sightings s WHERE s.vehicle_key = a.vehicle_key), a.price_usd
+        FROM daily_asks a WHERE a.day = ? AND a.price_usd > 0""", (d,))]
 
-    Price moves compare the same cars on both days (the average change in their asks),
-    so a batch of cheaper cars arriving cannot pass for a falling market. Activity
-    counts cars newly listed, cars that left the market and auction sales."""
-    base = _base_day(con, day)
-    out = {"since": base, "gainer": None, "decliner": None, "active": None, "all": []}
-    if base is None:
-        return out
-    now, then = snapshot(con, day), snapshot(con, date.fromisoformat(base))
-    for mid, cars in now.items():
-        m = taxonomy.BY_ID.get(mid)
-        prev = then.get(mid, {})
-        same = [(cars[k] / prev[k] - 1) * 100 for k in cars.keys() & prev.keys() if prev[k]]
-        if not m or len(same) < 3:
+
+def _price_on(history: list, listed_on: str | None, target: str) -> float | None:
+    """A car's asking price on `target` from a marketplace price history [[date, price], ...]."""
+    if not history or not listed_on or listed_on > target:
+        return None                                   # not yet listed a week ago
+    before = [p for d, p in history if d <= target]
+    return float(before[-1]) if before else float(history[0][1])
+
+
+def _rebuilt_week_ago(con, day: date, target: str) -> tuple[list, list]:
+    """Last week's asks rebuilt from the marketplaces' own price histories (AutoTrader keeps
+    the date each car was listed and every price change). Returns (last week, this week),
+    both limited to the cars those histories cover, so the two weeks compare like with like."""
+    last, cars = {}, set()
+    for r in con.execute("""SELECT vehicle_key, model_id, year, raw FROM sightings
+                            WHERE model_id IS NOT NULL AND (removed_on IS NULL OR removed_on > ?)
+                              AND json_valid(raw) AND json_extract(raw, '$.extra.price_history') IS NOT NULL""", (target,)):
+        try:
+            extra = json.loads(r["raw"]).get("extra") or {}
+        except ValueError:
             continue
-        s = stats.get(mid) or {}
-        out["all"].append({"id": mid, "name": m.name, "family": m.family, "change": round(st.mean(same), 2),
-                           "same_cars": len(same), "repriced": sum(1 for x in same if abs(x) > 0.05),
-                           "listings": len(cars), "median": s.get("median"), "image": covers.get(mid)})
-    out["all"].sort(key=lambda x: x["change"], reverse=True)
-    moved = [x for x in out["all"] if x["repriced"]]
-    if moved:
-        if moved[0]["change"] > 0:
-            out["gainer"] = moved[0]
-        if moved[-1]["change"] < 0:
-            out["decliner"] = moved[-1]
+        cars.add(r["vehicle_key"])
+        hist = [h for h in extra.get("price_history") or [] if isinstance(h, list) and len(h) == 2 and h[1]]
+        p = _price_on(hist, extra.get("listed_on"), target)
+        if p and r["vehicle_key"] not in last:
+            last[r["vehicle_key"]] = (r["vehicle_key"], r["model_id"], r["year"], p)
+    now = [x for x in _asks_with_year(con, day.isoformat()) if x[0] in cars]
+    return list(last.values()), now
+
+
+def week_over_week(con, day: date) -> dict:
+    """Median asking price by model, this week against last week, compared model year by
+    model year (a 2023 car against 2023 cars) so a different mix of years does not
+    pass for a price move. Every car counts: a batch of cheaper cars arriving, or cuts on
+    cars already listed, moves the median, which is the point."""
+    target = _d(day, 7)
+    snaps = [d for d in available_days(con) if _d(day, 10) <= d <= target]
+    if snaps:
+        since, how = snaps[-1], "snapshot"
+        last, now = _asks_with_year(con, since), _asks_with_year(con, day.isoformat())
+    else:
+        since, how = target, "rebuilt"
+        last, now = _rebuilt_week_ago(con, day, target)
+    by = lambda rows: _group(rows)
+    a, b = by(now), by(last)
+    out = []
+    for mid, years in a.items():
+        m = taxonomy.BY_ID.get(mid)
+        prev = b.get(mid, {})
+        num = den = 0.0
+        n_now = n_last = 0
+        for y, prices in years.items():
+            old = prev.get(y, [])
+            if len(prices) >= 2 and len(old) >= 2:
+                w = len(prices)
+                num += w * (st.median(prices) / st.median(old) - 1) * 100
+                den += w
+                n_now += len(prices); n_last += len(old)
+        if not m or not den or n_now < 5 or n_last < 5:
+            continue
+        all_now = [p for ps in years.values() for p in ps]
+        all_last = [p for ps in prev.values() for p in ps]
+        out.append({"id": mid, "name": m.name, "family": m.family, "change": round(num / den, 2),
+                    "cars_now": len(all_now), "cars_last": len(all_last), "years": sum(1 for y in years if len(years[y]) >= 2 and len(prev.get(y, [])) >= 2),
+                    "median": round(st.median(all_now)), "median_last": round(st.median(all_last)) if all_last else None})
+    out.sort(key=lambda x: x["change"], reverse=True)
+    return {"since": since, "how": how, "models": out}
+
+
+def _group(rows) -> dict:
+    g = defaultdict(lambda: defaultdict(list))
+    for _, mid, year, price in rows:
+        if mid and year and price:
+            g[mid][year].append(price)
+    return g
+
+
+def market_movers(con, day: date, stats: dict, covers: dict) -> dict:
+    """Biggest gainer and decliner by asking price, week over week, and the most active model."""
+    wow = week_over_week(con, day)
+    base = wow["since"]
+    out = {"since": base, "how": wow["how"], "gainer": None, "decliner": None, "active": None, "all": []}
+    for x in wow["models"]:
+        x["image"] = covers.get(x["id"])
+        x["listings"] = (stats.get(x["id"]) or {}).get("listings", x["cars_now"])
+    out["all"] = wow["models"]
+    if out["all"]:
+        if out["all"][0]["change"] > 0:
+            out["gainer"] = out["all"][0]
+        if out["all"][-1]["change"] < 0:
+            out["decliner"] = out["all"][-1]
+    then_day = _base_day(con, day)
+    now = snapshot(con, day)
+    then = snapshot(con, date.fromisoformat(then_day)) if then_day else {}
 
     new = new_listings(con, day, base)
     gone = {mid: set(cars) - set(now.get(mid, {})) for mid, cars in then.items()}

@@ -480,7 +480,8 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     const body = kind === "active"
       ? `<div class="big num">${m.total}</div><div class="why">cars changed hands or hit the market since ${dateLong(since)}</div>
          <div class="split"><span>New <b>${m.new}</b></span><span>Gone <b>${m.removed}</b></span><span>Sold at auction <b>${m.sold}</b></span></div>`
-      : `<div class="big">${chg(m.change)}</div><div class="why">Average change in asking price across the ${m.same_cars} cars listed on both days, since ${dateLong(since)}. ${m.repriced} repriced.</div>`;
+      : `<div class="big">${chg(m.change)}</div><div class="why">Median ask by model year, this week against the week of ${dateLong(since)}. ${m.cars_now} cars now, ${m.cars_last} a week earlier.</div>
+         ${m.median_last ? `<div class="split"><span>Median now <b>${short(m.median)}</b></span><span>Week earlier <b>${short(m.median_last)}</b></span></div>` : ""}`;
     return `<a class="mover" href="${modelLink(m.id)}">${photo(m.image, m.name, `<span class="chip" style="background:var(--surface)">${label}</span>`)}
       <div class="mb"><h3>${esc(m.name)}</h3>${body}
       <div class="meta"><span>${m.median ? "Median ask <b class=\"num\">" + money(m.median) + "</b>" : ""}</span><span>${plural(m.listings || 0, "listing")}</span></div></div></a>`;
@@ -593,6 +594,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   function viewOverview(scrollTo) {
     const b = D.brief;
     const mm = D.market_movers || { since: null, all: [] };
+    if (mm.since && !mm.all.length && !mm.active) mm.since = null;
     const nModels = D.models.length;
     const live = D.auctions.live;
     const ix = D.index;
@@ -638,10 +640,10 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     <section class="block" id="movers"><div class="wrap">
       <div class="sec-head"><div><div class="eyebrow">Market Movers</div><h2>This week's movers</h2></div></div>
       ${mm.since ? `<div class="movers">${moverCard("gainer", mm.gainer, mm.since)}${moverCard("decliner", mm.decliner, mm.since)}${moverCard("active", mm.active, mm.since)}</div>
-        ${mm.all.length ? `<details class="all-movers"><summary>Every model's move (${mm.all.length})</summary><div class="tbl-wrap"><table class="sheet"><thead><tr><th class="p">Pos</th><th>Model</th><th class="r">Same cars</th><th class="r">Repriced</th><th class="r">Median ask</th><th class="r">Change</th></tr></thead><tbody>
-          ${mm.all.map((x, i) => `<tr class="click" data-href="${modelLink(x.id)}"><td class="p">P${i + 1}</td><td class="name"><a href="${modelLink(x.id)}">${esc(x.name)}</a></td><td class="r num">${x.same_cars}</td><td class="r num">${x.repriced}</td><td class="r num">${money(x.median)}</td><td class="r">${chg(x.change)}</td></tr>`).join("")}</tbody></table></div></details>` : ""}`
-        : '<div class="empty">Movers appear after the second day of asking prices.</div>'}
-      <p class="rule">Price moves compare the same cars on both days, so a batch of cheaper cars arriving cannot pass for a falling market. Most active counts cars newly listed, cars that left the market and auction sales. A site we have just started reading does not count as new listings.</p>
+        ${mm.all.length ? `<details class="all-movers"><summary>Every model's move (${mm.all.length})</summary><div class="tbl-wrap"><table class="sheet"><thead><tr><th class="p">Pos</th><th>Model</th><th class="r">Cars now</th><th class="r">Week earlier</th><th class="r">Median ask</th><th class="r">Change, by model year</th></tr></thead><tbody>
+          ${mm.all.map((x, i) => `<tr class="click" data-href="${modelLink(x.id)}"><td class="p">P${i + 1}</td><td class="name"><a href="${modelLink(x.id)}">${esc(x.name)}</a></td><td class="r num">${x.cars_now}</td><td class="r num">${x.cars_last}</td><td class="r num">${money(x.median)}</td><td class="r">${chg(x.change)}</td></tr>`).join("")}</tbody></table></div></details>` : ""}`
+        : '<div class="empty">Movers appear once there is a week of asking prices to compare.</div>'}
+      <p class="rule">Week over week: each model's median asking price this week against last week, model year by model year (2021 cars against 2021 cars), weighted by how many cars each year has. Every car counts, so a batch of cheaper cars arriving or price cuts on cars already listed both pull a model down.${mm.how === "rebuilt" ? " Until we hold a full week of daily snapshots, last week's asks are rebuilt from AutoTrader's own price histories and listing dates, and both weeks use those cars only." : ""} Most active counts cars newly listed, cars that left the market and auction sales.</p>
     </div></section>
 
     <section class="block" id="auctions-sec"><div class="wrap">
