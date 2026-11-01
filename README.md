@@ -87,7 +87,7 @@ Each verified source was inspected in a real browser on 2026-10-31, and its adap
 | Barrett-Jackson | | Results show "Register to View Price" | Off: prices are only shown to signed in users |
 | Gooding Christie's | GraphQL `getVehicles` at `cdn.goodingco.com/graphql` | ~940 Ferrari lots: results, unsold, upcoming with estimates | Verified, on |
 | Bonhams | Typesense `multi_search` at `api01.bonhams.com/search-proxy` (the public search key is read from the site's own script each run) | ~1,800 Ferrari car lots | Verified, on |
-| PCARMARKET | server rendered search, then one page per car lot for the date, VIN and mileage | Live lots and results (most of its ~1,400 Ferrari items are parts, which are skipped) | Verified, on |
+| PCARMARKET | server rendered search, then one page per car lot for the date, VIN and mileage | Live lots and results (most of its ~1,400 Ferrari items are parts, which are skipped) | Verified, on (Mac runner: Cloudflare answers GitHub's servers with 403) |
 | duPont Registry dealer listings | generic browser adapter | | Off, unverified |
 | AutoTrader, Cars.com direct | | | Off on purpose (terms, bot protection) |
 
@@ -139,8 +139,8 @@ Two workflows share the work:
 
 | Workflow | Runs on | Sources | When |
 |---|---|---|---|
-| Daily market run (`daily.yml`) | GitHub's servers | Bring a Trailer, Cars & Bids, duPont Registry Live, RM Sotheby's, Mecum, Gooding, Bonhams, PCARMARKET | 4:17 am Pacific |
-| Home sources (`home.yml`) | the owner's Mac (self hosted runner) | Ferrari Approved, SOMO, Broad Arrow | 7:37 am Pacific, or when the Mac wakes |
+| Daily market run (`daily.yml`) | GitHub's servers | Bring a Trailer, Cars & Bids, duPont Registry Live, RM Sotheby's, Mecum, Gooding, Bonhams | 4:17 am Pacific |
+| Home sources (`home.yml`) | the owner's Mac (self hosted runner) | Ferrari Approved, SOMO, Broad Arrow, PCARMARKET | 7:37 am Pacific, or when the Mac wakes |
 
 Ferrari Approved and SOMO refuse GitHub's server addresses, so they run from a home connection. Sources are assigned with `runner: home` in `config/sources.yaml`. Each workflow merges in anything the other saved before writing the database (`pipeline/merge.py`), and the home run asks the daily workflow to republish the site when it finishes.
 

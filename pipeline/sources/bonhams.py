@@ -93,6 +93,7 @@ class Bonhams(Source):
     kind = AUCTION
 
     def _key(self) -> str:
+        why = "no _app script on the search page"
         try:
             html = self.ctx.fetcher.get(SITE + "/search/").text
             m = _APP.search(html)
@@ -100,11 +101,13 @@ class Bonhams(Source):
                 key = find_key(self.ctx.fetcher.get(SITE + m.group(1)).text)
                 if key:
                     return key
+                why = "key pattern not found in " + m.group(1)
         except Exception as e:
-            self.log.warning("could not read the search key from the site: %s", e)
+            why = f"{type(e).__name__}: {e}"
         if self.cfg.get("api_key"):
+            self.log.info("using the configured search key (%s)", why)
             return self.cfg["api_key"]
-        raise RuntimeError("Bonhams search key not found on the page and none configured")
+        raise RuntimeError(f"Bonhams search key not found ({why}) and none configured")
 
     def fetch(self) -> Iterator[RawRecord]:
         key, size = self._key(), int(self.cfg.get("page_size", 250))
