@@ -28,7 +28,7 @@ from urllib.parse import urlencode
 
 from ..fetch import Blocked
 from ..records import RawRecord, AUCTION
-from ..images import first_image, find_image, gooding as gooding_image, sized
+from ..images import first_image
 
 QUERIES = [("live", "ending_soon"), ("upcoming", "ending_soon"), ("sold", "closed_date_desc")]
 

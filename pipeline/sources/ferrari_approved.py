@@ -20,7 +20,7 @@ from typing import Iterator
 from .base import Source
 from ..fetch import Blocked
 from ..records import RawRecord, LISTING
-from ..images import first_image, sized
+from ..images import first_image, all_images, sized
 
 BASE = "https://preowned.ferrari.com/en-US/r/north-america/used-ferrari/{country}/rfc"
 AD_URL = "https://preowned.ferrari.com/en-US/a/north-america/used-ferrari/{country}/{dealer}/{model}/{id}"
@@ -61,7 +61,8 @@ def map_ad(a: dict, source: str, country: str) -> RawRecord:
         seller_type="dealer", dealer_name=dealer.get("name"), certified=bool(a.get("ferrariApproved")),
         marketplace="Ferrari Approved",
         image_url=sized(first_image(a.get("cardImages")), height=400),
-        extra={"stock": a.get("stock"), "price_on_request": on_request},
+        extra={"stock": a.get("stock"), "price_on_request": on_request,
+               "photos": [sized(u, height=900) for u in all_images(a.get("cardImages"))]},
     )
 
 

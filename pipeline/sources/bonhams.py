@@ -31,7 +31,7 @@ from typing import Iterator, Optional
 
 from .base import Source
 from ..records import RawRecord, AUCTION
-from ..images import first_image, find_image, gooding as gooding_image, sized
+from ..images import first_image, sized
 
 SEARCH = "https://api01.bonhams.com/search-proxy/multi_search?use_cache=true"
 SITE = "https://www.bonhams.com"
@@ -116,7 +116,7 @@ class Bonhams(Source):
         while page <= min(pages, int(self.cfg.get("max_pages", 20))):
             body = {"searches": [{"collection": "lots", "q": "ferrari", "query_by": "title",
                                   "filter_by": DEPARTMENTS, "sort_by": "hammerTime.timestamp:desc",
-                                  "exclude_fields": "footnotes,catalogDesc,styledDescription,images",
+                                  "exclude_fields": "footnotes,catalogDesc,styledDescription,images,embedding",
                                   "page": page, "per_page": size}]}
             res = (self.ctx.fetcher.post_json(SEARCH, body, headers={"X-TYPESENSE-API-KEY": key,
                                                                       "Origin": SITE, "Referer": SITE + "/search/"})

@@ -180,3 +180,21 @@ site/index.html            the website (fragment, wrapped by scripts/build_site.
 site/data/                 written by the pipeline
 tests/                     model matching, parsing, dedupe, mover rule, removal safety, end to end run
 ```
+
+
+## Photos, car pages and the market chart
+
+Every source's main photo is stored with each record (`image_url`), and where a source
+offers more, up to 40 more in `extra.photos` (RM, Gooding, Ferrari Approved, Broad Arrow
+and PCARMARKET lot pages). `pipeline/images.py` lists where each source keeps them.
+Photos load from each source's own image server and every page links back to the source.
+
+`pipeline/cars.py` writes one file per car to `site/data/cars/<id>.json`, like a
+classic.com vehicle page: gallery, specs, where the car is now, and its history. Records
+that share a VIN or chassis number are one car wherever they came from. A dealer's listing
+of one car on several sites is one history event. Auction lots without a VIN or chassis
+stand alone, because loose fingerprints would join different cars.
+
+Each model file carries `points` for the market chart: sold, high bid, for sale and last
+asking price, each with its car id, title and photo, so hovering a dot shows the car and
+clicking it opens the car page.

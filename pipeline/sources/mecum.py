@@ -25,7 +25,7 @@ from urllib.parse import urlparse, parse_qs
 from .base import Source
 from ..fetch import Blocked
 from ..records import RawRecord, AUCTION
-from ..images import first_image, find_image, gooding as gooding_image, sized
+from ..images import find_image
 
 
 def map_hit(h: dict, source: str, now: float) -> RawRecord | None:

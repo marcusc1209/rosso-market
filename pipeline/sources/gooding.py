@@ -27,7 +27,7 @@ from typing import Iterator, Optional
 from .base import Source
 from ..normalize import parse_price
 from ..records import RawRecord, AUCTION
-from ..images import first_image, find_image, gooding as gooding_image, sized
+from ..images import gooding as gooding_image
 
 API = "https://cdn.goodingco.com/graphql"
 SITE = "https://www.goodingco.com"
@@ -97,7 +97,8 @@ def map_vehicle(v: dict, source: str, now: datetime) -> Optional[RawRecord]:
         lot_number=str(v["lotNumber"]) if v.get("lotNumber") is not None else None,
         location=v.get("auctionName"), auction_house="Gooding Christie's", seller_type="auction",
         image_url=gooding_image(((v.get("cloudinaryImages") or [{}])[0] or {}).get("public_id")),
-        extra={"auction": v.get("auctionName"), "auction_type": v.get("auctionType"), "price_basis": "with premium"},
+        extra={"auction": v.get("auctionName"), "auction_type": v.get("auctionType"), "price_basis": "with premium",
+               "photos": [u for u in (gooding_image((c or {}).get("public_id"), 1280) for c in (v.get("cloudinaryImages") or [])[:40]) if u]},
     )
 
 

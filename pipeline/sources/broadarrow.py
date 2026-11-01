@@ -117,6 +117,24 @@ def lot_urls(body: bytes) -> list[str]:
             and not other_make_first(m.group(2).replace("-", " "))]
 
 
+_PHOTO = re.compile(r"https://cdn\.dealeraccelerate\.com/bagauction/\d+/\d+/\d+/\d+x\d+/[\w-]+")
+
+
+def gallery(html: str, slug: str, limit: int = 40) -> list[str]:
+    """The lot's own photos, in page order. The CDN serves any size: /1280x960/ for the gallery.
+    Photos of other lots on the page carry their own slug, so they are left out."""
+    out = []
+    for u in _PHOTO.findall(html or ""):
+        if not u.endswith("/" + slug):
+            continue
+        big = re.sub(r"/\d+x\d+/", "/1280x960/", u)
+        if big not in out:
+            out.append(big)
+        if len(out) >= limit:
+            break
+    return out
+
+
 def parse_lot(html: str, url: str, events: dict, today: date, source: str = "broadarrow") -> tuple[Optional[RawRecord], str]:
     """(record or None, reason). reason is 'final', 'upcoming' or why nothing was kept."""
     soup = BeautifulSoup(html, "html.parser")
@@ -164,6 +182,7 @@ def parse_lot(html: str, url: str, events: dict, today: date, source: str = "bro
     else:
         return None, f"unrecognised price row: {words[:60]}"
 
+    photos = gallery(html, m.group(2))
     vin = mileage = None
     for script in soup.find_all("script", type="application/ld+json"):
         txt = script.string or ""
@@ -185,8 +204,9 @@ def parse_lot(html: str, url: str, events: dict, today: date, source: str = "bro
         ends_at=f"{day}T20:00:00+00:00" if day else None, estimate_low=est_lo, estimate_high=est_hi,
         lot_number=lot_no, vin=vin, mileage=mileage, country=country, location=event,
         auction_house="Broad Arrow", seller_type="auction",
-        image_url=first_image((soup.select_one('meta[property="og:image"]') or {}).get("content")),
-        extra={"auction": event, "price_basis": "with premium", "keep_undated": True},
+        image_url=(photos[0].replace("/1280x960/", "/640x480/") if photos else
+                   first_image((soup.select_one('meta[property="og:image"]') or {}).get("content"))),
+        extra={"auction": event, "price_basis": "with premium", "keep_undated": True, "photos": photos},
     )
     return rec, ("upcoming" if status == "upcoming" else "final")
 
@@ -251,11 +271,16 @@ class BroadArrow(Source):
             if old is None:
                 continue
             try:
-                soup = BeautifulSoup(self._get(old.url), "html.parser")
+                html = self._get(old.url)
             except Exception as e:
                 self.log.info("photo backfill stopped: %s", e)
                 return
-            img = first_image((soup.select_one('meta[property="og:image"]') or {}).get("content"))
+            m = _LOT.search(old.url)
+            photos = gallery(html, m.group(2)) if m else []
+            soup = BeautifulSoup(html, "html.parser")
+            img = (photos[0].replace("/1280x960/", "/640x480/") if photos else
+                   first_image((soup.select_one('meta[property="og:image"]') or {}).get("content")))
             if img:
                 old.image_url = img
+                old.extra = {**(old.extra or {}), "photos": photos}
                 yield old

@@ -105,3 +105,30 @@ def sized(url: Optional[str], **params) -> Optional[str]:
         return None
     sep = "&" if "?" in url else "?"
     return url + sep + "&".join(f"{k}={v}" for k, v in params.items())
+
+
+def all_images(v: Any, limit: int = 40) -> list[str]:
+    """Every usable photo URL in a list or dict, in order, without duplicates."""
+    out: list[str] = []
+
+    def add(x, depth=0):
+        if len(out) >= limit or depth > 4 or x is None:
+            return
+        if isinstance(x, str):
+            u = _ok(x)
+            if u and u not in out:
+                out.append(u)
+        elif isinstance(x, list):
+            for y in x:
+                add(y, depth + 1)
+        elif isinstance(x, dict):
+            one = first_image(x)
+            if one and ("base_url" in x or "url" in x or "fullUrl" in x or "resizedImages" in x or "src" in x):
+                if one not in out:
+                    out.append(one)
+            else:
+                for y in x.values():
+                    add(y, depth + 1)
+
+    add(v)
+    return out[:limit]

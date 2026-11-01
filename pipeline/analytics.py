@@ -242,7 +242,7 @@ def insights(stats: dict, auc: dict, day: date, cert: dict) -> list[dict]:
         out.append({"label": "Top result", "headline": l["title"],
                     "body": f"The week's highest Ferrari sale: {_money(l['price_usd'])} at {l['auction_house']}"
                             + (f", against a median of {_money(l['auction_median'])} for the model at auction." if l.get("auction_median") else "."),
-                    "url": l["url"], "model": l["model_id"], "image": l.get("image")})
+                    "url": l["url"], "model": l["model_id"], "image": l.get("image"), "uid": l["uid"]})
     # sell through change
     cand = [(mid, v) for mid, v in auc["sell_through"].items() if v["closed_30d"] >= 4 and (v["closed_prior_60d"] or 0) >= 4]
     if cand:

@@ -82,8 +82,29 @@ def _field(text: str, label: str) -> Optional[str]:
     return m.group(1).strip() if m else None
 
 
+_BASTA = re.compile(r"^https://assets\.basta\.app/accounts/[0-9a-f-]+/images/[0-9a-f-]+")
+
+
+def lot_photos(soup, limit: int = 40) -> list[str]:
+    """The lot's gallery in page order. Images inside links to other lots (the related
+    lots strip) are left out."""
+    out = []
+    for img in soup.find_all("img"):
+        if img.find_parent("a", href=re.compile(r"^/(auction|results)/")):
+            continue
+        m = _BASTA.match(img.get("src") or "")
+        if m:
+            u = m.group(0) + "?width=1280&quality=80&format=webp"
+            if u not in out:
+                out.append(u)
+        if len(out) >= limit:
+            break
+    return out
+
+
 def parse_detail(html: str) -> dict:
-    text = re.sub(r"\s+", " ", BeautifulSoup(html, "html.parser").get_text(" "))
+    soup = BeautifulSoup(html, "html.parser")
+    text = re.sub(r"\s+", " ", soup.get_text(" "))
     text = re.sub(r"\s+([,:])", r"\1", text)          # "Oct 15 , 2026" -> "Oct 15, 2026"
     out = {}
     m = _ENDED.search(text.replace(" ,", ","))
@@ -95,6 +116,9 @@ def parse_detail(html: str) -> dict:
                 break
             except ValueError:
                 continue
+    photos = lot_photos(soup)
+    if photos:
+        out["photos"] = photos
     specs = text[text.find("Car Details"):] if "Car Details" in text else text   # skip buttons like "Make Offer"
     for key, label in (("year", "Year"), ("make", "Make"), ("model", "Model"), ("vin", "VIN"),
                        ("mileage", "Mileage Shown"), ("seller_type", "Seller Type"), ("color", "Exterior Color")):
@@ -129,7 +153,7 @@ def to_record(card: dict, detail: dict, source: str) -> Optional[RawRecord]:
         model_text=detail.get("model"), vin=detail.get("vin"), mileage=miles, exterior_color=detail.get("color"),
         bid_count=card.get("bids"), location=card.get("location"), auction_house="PCARMARKET",
         seller_type="auction", image_url=card.get("image"),
-        extra={"seller_type": detail.get("seller_type"), "price_basis": "with buyer fee",
+        extra={"seller_type": detail.get("seller_type"), "price_basis": "with buyer fee", "photos": detail.get("photos") or [],
                                       "keep_undated": True},
     )
 
