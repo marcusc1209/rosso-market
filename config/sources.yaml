@@ -155,7 +155,8 @@ sources:
     adapter: pcarmarket
     enabled: true
     runner: home                   # Cloudflare answers GitHub's servers with 403
-    result_pages: 3                # newest results pages read each run (24 a page); history mode reads all ~60
+    result_pages: 3                # newest results pages read each run (24 a page)
+    history_pages: 70              # until every results page has been read once (~60 pages, ~4 s each)
     lot_pages: 60
 
   # ============================================================ managed backups (paid, maintained by others)

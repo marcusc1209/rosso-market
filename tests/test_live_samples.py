@@ -491,3 +491,53 @@ def test_somo_skips_a_refused_list():
         assert list(src.fetch()) == []
         assert any("type=sold" in u for u in asked)
         assert any("type=upcoming" in u for u in asked) == (cls is DupontLive)
+
+
+def test_pcarmarket_card_filter_and_stored_results():
+    import json, sqlite3
+    from datetime import date
+    from types import SimpleNamespace
+    import logging
+    from pipeline import db
+    from pipeline.sources.pcarmarket import is_car_card, stored_record, PCarMarket, to_record
+
+    assert is_car_card("5,500-Mile 2012 Ferrari 458 Spider")
+    assert not is_car_card("1990 Ferrari Dealership Sign")
+    assert not is_car_card("2024 Ferrari SF-24 Formula 1 1:1 Scale Model Car")
+    assert not is_car_card("Hachette Ferrari Model Car Collection")
+
+    card = {"href": "/results/2012-ferrari-458-spider-1", "title": "2012 Ferrari 458 Spider", "label": "Sold price",
+            "value": "$450,000", "bids": 102, "location": "Westhampton, NY"}
+    rec = to_record(card, {"ends_at": "2026-10-21T19:12:00+00:00", "year": "2012", "make": "Ferrari"}, "pcarmarket")
+    back = stored_record(json.dumps(rec.to_dict(), default=str))
+    assert back.price == 450000 and back.ends_at == rec.ends_at and back.year == 2012
+
+    con = sqlite3.connect(":memory:"); con.row_factory = sqlite3.Row
+    con.execute("CREATE TABLE lots(uid TEXT PRIMARY KEY, status TEXT, ends_at TEXT, raw TEXT)")
+    con.execute("CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT, updated TEXT)")
+    con.execute("INSERT INTO lots VALUES ('pcarmarket:2012-ferrari-458-spider-1','sold',?,?)",
+                (rec.ends_at, json.dumps(rec.to_dict(), default=str)))
+    page = ('<a href="/results/2012-ferrari-458-spider-1"><article><h3>2012 Ferrari 458 Spider</h3>'
+            '<span>Westhampton, NY</span><span>102 Bids</span><span>Sold price</span><span>$450,000</span></article></a>')
+    asked = []
+
+    class F:
+        def get(self, url):
+            asked.append(url)
+            return SimpleNamespace(text="" if "stage=live" in url else page)
+
+    src = PCarMarket.__new__(PCarMarket)
+    src.name, src.cfg, src.log = "pcarmarket", {"result_pages": 3, "history_pages": 70}, logging.getLogger("t")
+    src.ctx = SimpleNamespace(fetcher=F(), con=con)
+    out = list(src.fetch())
+    assert [r.price for r in out] == [450000]                    # stored result yielded again, no lot page read
+    assert not any("/results/" in u for u in asked)
+    assert sum("stage=results" in u for u in asked) == 2         # page 2 repeats page 1: the end
+    assert db.kv_get(con, "pcm_history_done") == "1"
+
+
+def test_broadarrow_sitemap_drops_other_makes():
+    from pipeline.sources.broadarrow import lot_urls
+    xml = (b"<urlset><url><loc>https://www.broadarrowauctions.com/vehicles/gi26e_r0061/1992-lancia-delta-hf-integrale-evoluzione-giallo-ferrari</loc></url>"
+           b"<url><loc>https://www.broadarrowauctions.com/vehicles/ql26_r0071/2020-ferrari-488-pista-spider</loc></url></urlset>")
+    assert lot_urls(xml) == ["https://www.broadarrowauctions.com/vehicles/ql26_r0071/2020-ferrari-488-pista-spider"]

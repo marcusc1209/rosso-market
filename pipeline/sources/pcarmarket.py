@@ -13,9 +13,13 @@ pages are rendered on the server.
 * A lot page adds what the card lacks: "Ended Oct 21, 2026, 7:12 PM" (or "Ending ..."
   while live), Year, Make, Model, VIN, "Mileage Shown 22,143 mi", Seller Type.
 
-Only cards whose title carries a model year are read further, since the rest are
-parts. Lot pages are read once: finished results are never fetched again, and
-`lot_pages` caps the pages read per run.
+Only cards whose title carries a model year and reads like a car are read further,
+since the rest are parts and memorabilia. Lot pages are read once: a finished result
+already stored is yielded again from the stored record (so the run's count stays
+steady) without fetching its page, and `lot_pages` caps the pages read per run.
+
+History: until every results page has been read once (~60 pages), each run reads
+up to `history_pages` search pages. After that only the newest `result_pages`.
 
 "Sold price" is sold (PCARMARKET prices include the buyer's fee), "Bid to $X" did
 not meet reserve (unsold with a high bid), "Bid to —" is unsold with no bid.
@@ -28,9 +32,14 @@ from typing import Iterator, Optional
 
 from bs4 import BeautifulSoup
 
+import dataclasses
+import json
+
 from .base import Source
+from .. import db
 from ..normalize import parse_price
 from ..records import RawRecord, AUCTION
+from ..taxonomy import looks_like_car, other_make_first
 
 SITE = "https://www.pcarmarket.com"
 _YEAR = re.compile(r"\b(19[4-9]\d|20[0-3]\d)\b")
@@ -121,27 +130,49 @@ def to_record(card: dict, detail: dict, source: str) -> Optional[RawRecord]:
     )
 
 
+def is_car_card(title: str) -> bool:
+    """A model year, no parts or memorabilia words, and no other maker named first."""
+    return bool(_YEAR.search(title)) and looks_like_car(title) and not other_make_first(title)
+
+
+def stored_record(raw_json: str) -> Optional[RawRecord]:
+    try:
+        d = json.loads(raw_json)
+        names = {f.name for f in dataclasses.fields(RawRecord)}
+        return RawRecord(**{k: v for k, v in d.items() if k in names})
+    except Exception:
+        return None
+
+
 class PCarMarket(Source):
     kind = AUCTION
 
     def fetch(self) -> Iterator[RawRecord]:
         con = self.ctx.con
         budget = int(self.cfg.get("lot_pages", 60))
+        history_done = con is None or bool(db.kv_get(con, "pcm_history_done"))
+        pages = int(self.cfg.get("result_pages", 3)) if history_done else int(self.cfg.get("history_pages", 60))
         cards = parse_cards(self.ctx.fetcher.get(f"{SITE}/search?q=ferrari&stage=live").text)
-        for page in range(1, int(self.cfg.get("result_pages", 3)) + 1):
+        reached_end = False
+        for page in range(1, pages + 1):
             got = parse_cards(self.ctx.fetcher.get(f"{SITE}/search?q=ferrari&stage=results&page={page}").text)
-            if not got:
+            if not got or (page > 1 and {c["href"] for c in got} <= {c["href"] for c in cards}):
+                reached_end = True                         # past the last page (it repeats or comes back empty)
                 break
             cards += got
-        self.log.info("%d Ferrari cards, %d with a model year", len(cards), sum(bool(_YEAR.search(c["title"])) for c in cards))
+        self.log.info("%d Ferrari cards from %d results pages, %d look like cars", len(cards), page,
+                      sum(is_car_card(c["title"]) for c in cards))
         for card in cards:
-            if not _YEAR.search(card["title"]):
-                continue                                   # parts, signs, watches
+            if not is_car_card(card["title"]):
+                continue                                   # parts, signs, watches, models
             slug = card["href"].rstrip("/").split("/")[-1]
             if con is not None and card["label"] != "Current bid":
-                row = con.execute("SELECT status, ends_at FROM lots WHERE uid=?", (f"{self.name}:{slug}",)).fetchone()
+                row = con.execute("SELECT status, ends_at, raw FROM lots WHERE uid=?", (f"{self.name}:{slug}",)).fetchone()
                 if row and row[0] in ("sold", "unsold") and row[1]:
-                    continue                               # finished result already stored with its date
+                    rec = stored_record(row[2])            # finished result already stored with its date
+                    if rec:
+                        yield rec
+                    continue
             detail = {}
             if budget > 0:
                 budget -= 1
@@ -154,3 +185,7 @@ class PCarMarket(Source):
             rec = to_record(card, detail, self.name)
             if rec:
                 yield rec
+        if con is not None and not history_done and reached_end and budget > 0:
+            db.kv_set(con, "pcm_history_done", "1")
+            self.log.info("every results page read once: daily runs now read the newest %s",
+                          self.cfg.get("result_pages", 3))

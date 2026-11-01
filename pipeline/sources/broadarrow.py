@@ -43,6 +43,7 @@ from .. import db
 from ..fetch import Blocked
 from ..normalize import parse_price
 from ..records import RawRecord, AUCTION
+from ..taxonomy import other_make_first
 
 SITE = "https://www.broadarrowauctions.com"
 SITEMAP = SITE + "/sitemaps/bagauction/sitemap.xml.gz"
@@ -109,7 +110,9 @@ def lot_urls(body: bytes) -> list[str]:
     if body[:2] == b"\x1f\x8b":
         body = gzip.decompress(body)
     urls = re.findall(r"<loc>\s*([^<\s]+)\s*</loc>", body.decode("utf-8", "replace"))
-    return [u for u in urls if _LOT.search(u) and "ferrari" in u.lower()]
+    # "ferrari" in the slug also catches other makes painted Giallo Ferrari: drop those
+    return [u for u in urls if (m := _LOT.search(u)) and "ferrari" in u.lower()
+            and not other_make_first(m.group(2).replace("-", " "))]
 
 
 def parse_lot(html: str, url: str, events: dict, today: date, source: str = "broadarrow") -> tuple[Optional[RawRecord], str]:
