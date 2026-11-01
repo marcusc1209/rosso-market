@@ -53,6 +53,7 @@ jobs:
           MARKETCHECK_API_KEY: ${{ secrets.MARKETCHECK_API_KEY }}
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
 
       - name: Save database
         if: always()
