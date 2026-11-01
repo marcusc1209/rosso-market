@@ -66,7 +66,7 @@ class Fetcher:
         # Optional proxy, per source: `fetch: {proxy_env: RESIDENTIAL_PROXY_URL}` in sources.yaml.
         # Some sites (Ferrari Approved, SOMO) refuse data center addresses such as GitHub Actions.
         env = cfg.get("proxy_env")
-        self.proxy = os.environ.get(env) if env else None
+        self.proxy = (os.environ.get(env) or "").strip() or None if env else None   # an unset secret arrives as ""
         if env and not self.proxy:
             log.info("%s: %s is not set, connecting directly", source, env)
         self.client = httpx.Client(

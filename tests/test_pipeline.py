@@ -318,3 +318,10 @@ def test_waf_challenge_and_empty_runs_are_not_ok(tmp_path):
     rid = db.start_run(con, date(2026, 11, 1), "x")
     db.finish_run(con, rid, "ok", 0, 0, 0, 3)
     assert health.check(con, "x", rid)["state"] == "down"
+
+
+def test_empty_proxy_secret_means_no_proxy(tmp_path, monkeypatch):
+    from pipeline.fetch import Fetcher
+    monkeypatch.setenv("RESIDENTIAL_PROXY_URL", "")
+    f = Fetcher({"proxy_env": "RESIDENTIAL_PROXY_URL"}, tmp_path, "t")
+    assert f.proxy is None
