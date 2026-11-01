@@ -309,6 +309,7 @@ table.sheet { width: 100%; border-collapse: collapse; font-size: 14px; min-width
 .dot-sold { background: var(--rosso); }
 .dot-unsold { border: 1.5px solid var(--muted); }
 .line-med { width: 18px; height: 2px; background: var(--ink); display: inline-block; }
+.band { width: 18px; height: 10px; background: var(--ink); opacity: .14; display: inline-block; }
 .axis { fill: var(--muted); font: 11px var(--f-mono); }
 .grid-line { stroke: var(--line); stroke-width: 1; }
 .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -867,6 +868,96 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
 
   // ------------------------------------------------------------ car page
   const STATUS = { for_sale: "For sale", live: "Live auction", upcoming: "Upcoming auction", sold: "Sold", unsold: "Not sold", off_market: "Off market" };
+  // Mileage curve: price against mileage for one model, cars for sale now and sales in the last 18 months,
+  // with the fitted curve and its typical spread. mg comes from the model file (pipeline/mileage.py).
+  function mileageChart(el, mg, opts = {}) {
+    const all = (mg && mg.points) || [], f = mg && mg.fit;
+    if (all.length < 3) { el.innerHTML = '<div class="empty">Not enough cars with a known mileage yet.</div>'; return; }
+    const pred = m => Math.exp(f.a + f.b * (f.shape === "exp" ? m / 1000 : Math.log1p(m / 1000)));
+    const mine = all.find(p => opts.highlight && p[3] === opts.highlight);
+    const me = mine ? { miles: mine[0], price: mine[1] } : opts.me;
+    const vs = f && me && me.price && me.miles != null ? (me.price / pred(me.miles) - 1) * 100 : null;
+    const sortedMi = all.map(p => p[0]).sort((a, b) => a - b);
+    let xmax = f ? f.x_max * 1.08 : sortedMi[sortedMi.length - 1] * 1.05;
+    if (me && me.miles != null) xmax = Math.max(xmax, me.miles * 1.05);
+    xmax = Math.max(xmax, 1000);
+    const vis = all.filter(p => p[0] <= xmax), off = all.length - vis.length;
+    const effect = !f ? "n/a" : f.change_pct > -1 ? '<span class="flat">little</span>' : chg(f.change_pct);
+    el.innerHTML = `<div class="mkt-stats">${[
+        ["Cars on the curve", f ? f.n : all.length], ["For sale now", mg.for_sale], ["Sold, last 18 months", mg.sold],
+        [f ? `${Math.round(f.low_miles / 1000)}k to ${Math.round(f.high_miles / 1000)}k miles` : "Mileage effect", effect],
+        ...(vs != null ? [["This car vs the curve", chg(vs)]] : [])].map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join("")}</div>
+      <div class="legend" style="margin-bottom:10px"><span><i class="k k-f"></i>For sale now</span><span><i class="k k-s"></i>Sold</span>${f ? '<span><i class="line-med"></i>Mileage curve</span><span><i class="band"></i>Typical spread</span>' : ""}${me ? '<span><i class="k" style="box-shadow:0 0 0 3px var(--giallo)"></i>This car</span>' : ""}</div>
+      <div class="chart-box mkt"><div class="cv"></div><div class="tip" hidden></div></div>
+      <p class="flat" style="font-size:13px;margin-top:10px">${f
+        ? `Going from ${miles(f.low_miles)} to ${miles(f.high_miles)} moves a typical ${esc(opts.name || "car")} from ${money(f.low_price)} to ${money(f.high_price)}. `
+        : "There are not enough cars with spread out mileage to fit a curve yet. "}${vs != null ? `This car ${opts.verb || "is priced"} ${Math.abs(vs).toFixed(1)}% ${vs < 0 ? "below" : "above"} what the curve expects for its mileage. ` : ""}Model year and spec also move prices, so read the curve as a guide.${off ? ` ${plural(off, "car")} above ${miles(xmax)} not shown.` : ""}</p>`;
+    const cv = el.querySelector(".cv"), tip = el.querySelector(".tip"), box = el.querySelector(".mkt");
+    const W = 900, H = 340, L = 64, R = 18, T = 14, B = 34;
+    const prices = vis.map(p => p[1]).concat(me && me.price ? [me.price] : []).sort((a, b) => a - b);
+    const lo = prices[Math.floor(prices.length * 0.02)], hi = prices[Math.min(prices.length - 1, Math.ceil(prices.length * 0.98) - 1)];
+    const ticks = niceTicks(lo * 0.9, hi * 1.08, 4);
+    const min = Math.min(ticks[0], lo * 0.9), max = Math.max(ticks[ticks.length - 1], hi * 1.08);
+    const x = m => L + m / xmax * (W - L - R);
+    const y = v => T + (1 - (Math.min(Math.max(v, min), max) - min) / (max - min)) * (H - T - B);
+    const grid = ticks.map(t => `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text class="axis" x="${L - 8}" y="${y(t) + 4}" text-anchor="end">${short(t)}</text>`).join("");
+    const xg = niceTicks(0, xmax, 6).filter(t => t <= xmax).map(t => `<line class="grid-line" x1="${x(t)}" x2="${x(t)}" y1="${T}" y2="${H - B}"/><text class="axis" x="${x(t)}" y="${H - 10}" text-anchor="middle">${t ? (t >= 1000 ? Math.round(t / 1000) + "k" : t) + " mi" : "0"}</text>`).join("");
+    let curve = "";
+    if (f) {
+      const ms = Array.from({ length: 61 }, (_, i) => i / 60 * xmax);
+      const up = ms.map(m => [x(m), y(pred(m) * Math.exp(f.sigma))]), dn = ms.map(m => [x(m), y(pred(m) * Math.exp(-f.sigma))]).reverse();
+      const band = [...up, ...dn].map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join("") + "Z";
+      const line = ms.map((m, i) => (i ? "L" : "M") + x(m).toFixed(1) + " " + y(pred(m)).toFixed(1)).join("");
+      curve = `<path d="${band}" fill="var(--ink)" fill-opacity=".07"/><path d="${line}" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-opacity=".8"/>`;
+    }
+    const pos = vis.map(p => [x(p[0]), y(p[1])]);
+    const order = vis.map((p, i) => i).sort((i, j) => (vis[i][2] === "s") - (vis[j][2] === "s"));
+    const dots = order.map(i => {
+      const p = vis[i], [cx, cy] = pos[i], hit = opts.highlight && p[3] === opts.highlight;
+      const style = p[2] === "s" ? 'fill="var(--rosso)" fill-opacity=".8"' : 'fill="var(--ink)" fill-opacity=".8"';
+      return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${hit ? 7 : 4.2}" ${style}${hit ? ' stroke="var(--giallo)" stroke-width="3"' : ""}/>`;
+    }).join("");
+    const extra = me && !mine && me.price && me.miles != null
+      ? `<circle cx="${x(me.miles).toFixed(1)}" cy="${y(me.price).toFixed(1)}" r="7" fill="var(--ink)" stroke="var(--giallo)" stroke-width="3"/>` : "";
+    cv.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc((opts.name || "") + " price against mileage")}">${grid}${xg}${curve}${dots}${extra}<circle class="ring" r="9" fill="none" stroke="var(--ink)" stroke-width="2" style="display:none"/></svg>`;
+    const svg = cv.querySelector("svg");
+    let sel = -1;
+    const nearest = e => {
+      const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+      const q = pt.matrixTransform(svg.getScreenCTM().inverse());
+      let best = -1, bd = 1e9;
+      pos.forEach(([px, py], i) => { const d = (px - q.x) ** 2 + (py - q.y) ** 2; if (d < bd) { bd = d; best = i; } });
+      return bd < 22 * 22 ? best : -1;
+    };
+    const show = i => {
+      sel = i;
+      const ring = svg.querySelector(".ring");
+      if (i < 0) { tip.hidden = true; ring.style.display = "none"; return; }
+      const p = vis[i], [cx, cy] = pos[i];
+      ring.setAttribute("cx", cx); ring.setAttribute("cy", cy); ring.style.display = "";
+      const off = f ? (p[1] / pred(p[0]) - 1) * 100 : null;
+      tip.innerHTML = `${p[5] ? photo(p[5], p[4]) : ""}<div class="tb"><b class="t">${esc(p[4] || "")}</b><span class="pr">${money(p[1])}</span>
+        <span class="sub">${miles(p[0])}${off != null ? `, ${Math.abs(off).toFixed(0)}% ${off < 0 ? "below" : "above"} the curve` : ""}</span>
+        <span class="sub">${p[2] === "s" ? "Sold" : "For sale"}${p[6] ? ", " + esc(p[6]) : ""}${p[7] ? (p[2] === "s" ? ", " : ", listed ") + dateLong(p[7]) : ""}</span>${p[3] ? '<span class="go">Open this car →</span>' : ""}</div>`;
+      tip.hidden = false;
+      const sr = svg.getBoundingClientRect(), br = box.getBoundingClientRect();
+      const px = sr.left - br.left + cx / W * sr.width, py = sr.top - br.top + cy / H * sr.height;
+      const w = tip.offsetWidth, h = tip.offsetHeight;
+      let left = px + 16;
+      if (left + w > br.width - 4) left = px - w - 16;
+      tip.style.left = Math.max(4, left) + "px";
+      tip.style.top = Math.max(4, Math.min(py - h / 2, br.height - h - 4)) + "px";
+    };
+    cv.addEventListener("pointermove", e => { if (e.pointerType === "mouse") { const i = nearest(e); if (i !== sel) show(i); } });
+    cv.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") show(-1); });
+    cv.addEventListener("click", e => {
+      const i = nearest(e);
+      if (i < 0) return show(-1);
+      if (i === sel && vis[i][3]) location.hash = "car-" + vis[i][3];
+      else show(i);
+    });
+  }
+
   async function viewCar(id) {
     app.innerHTML = '<div class="wrap loading">Loading this car</div>';
     let c;
@@ -914,6 +1005,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
               ${e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">View source ↗</a>` : ""}</div>
               <div style="position:relative">${photo(e.photo, "")}${e.n_photos > 1 ? `<span class="n">${e.n_photos}</span>` : ""}</div>${seen}${changes}</div></li>`;
           }).join("")}</ol></div>
+        <div class="car-sec"><h2>Mileage curve</h2><p class="flat" style="margin:-6px 0 16px;font-size:14px">How mileage moves ${esc(c.model.name)} prices: every one for sale now and every auction sale in the last 18 months that gave its mileage. Older sales are left out.</p><div id="car-miles"><p class="flat">Loading the curve</p></div></div>
         <div class="car-sec"><h2>${esc(c.model.name)} market</h2><p class="flat" style="margin:-6px 0 16px;font-size:14px">This car is ringed in yellow. Hover a dot to see which car it is.</p><div id="car-mkt"><p class="flat">Loading the market</p></div></div>
         ${c.comps.length ? `<div class="car-sec"><h2>Recent ${esc(c.model.name)} sales</h2><div class="lots">${c.comps.map(x => `<a class="lot" ${carLink({ car: x.id, url: "#" })}>${photo(x.image, x.title, '<span class="chip sold">Sold</span>')}
           <div class="body"><h3>${esc(x.title)}</h3><div class="house">${esc(x.house || "")}</div>${x.mileage ? `<div class="specs">${miles(x.mileage)}</div>` : ""}
@@ -925,8 +1017,18 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     if (!detail) { try { detail = modelCache[c.model.id] = await (await fetch(`data/models/${c.model.id}.json`)).json(); } catch (e) { detail = null; } }
     if (location.hash !== "#car-" + id) return;
     const mk = document.getElementById("car-mkt");
-    if (detail) marketChart(mk, detail.points || [], { highlight: c.id, label: `${c.model.name} market` });
-    else mk.innerHTML = '<p class="flat">Could not load the market for this model.</p>';
+    const mm = document.getElementById("car-miles");
+    if (detail) {
+      marketChart(mk, detail.points || [], { highlight: c.id, label: `${c.model.name} market` });
+      // where this car sits even when it is not among the curve's cars (an older sale, say)
+      const sold = c.status === "sold";
+      const myMiles = (c.history.find(e => e.mileage != null) || {}).mileage;
+      const me = c.price && myMiles != null && (c.status === "for_sale" || sold) ? { miles: myMiles, price: c.price } : null;
+      mileageChart(mm, detail.mileage, { highlight: c.id, me, name: c.model.name, verb: sold ? "sold for" : "is priced" });
+    } else {
+      mk.innerHTML = '<p class="flat">Could not load the market for this model.</p>';
+      mm.innerHTML = '<p class="flat">Could not load the curve for this model.</p>';
+    }
   }
 
   function viewFamily(s) {
@@ -981,13 +1083,15 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     app.innerHTML = pageHead("Methodology", "How we count", "Where the numbers come from and what each one means.")
       + `<section class="block"><div class="wrap"><div class="prose">
         <h3>Sources</h3>
-        <p>Asking prices come from the Ferrari dealer network's own used inventory, including cars certified under Ferrari Approved, and from dealer marketplaces: AutoTrader in the US and Canada and duPont Registry. Auction results come from Bring a Trailer, Cars &amp; Bids, Sotheby's Motorsport, duPont Registry Live, RM Sotheby's and Mecum. We collect once a day.</p>
+        <p>Asking prices come from the Ferrari dealer network's own used inventory, including cars certified under Ferrari Approved, and from dealer marketplaces: duPont Registry, AutoTrader in Canada and ClassicCars.com. Auction results come from Bring a Trailer, Cars &amp; Bids, Sotheby's Motorsport, duPont Registry Live, RM Sotheby's and Mecum. We collect once a day.</p>
         <h3>One car, one count</h3>
         <p>The same car is often listed on several sites at once. We match cars by VIN, then by chassis number for older cars, then by model, year, mileage, colour and seller. Each physical car moves the numbers once. When one car shows two prices, the selling dealer's own price wins.</p>
         <h3>Median ask</h3>
         <p>The middle asking price of every tracked car of a model on a given day. Cars listed as price on request are left out. A listing counts as gone after two successful daily checks in a row without it.</p>
         <h3>Market movers</h3>
-        <p>A model whose median ask moved ${r.mover_min_pct}% or more against a week earlier, with at least ${r.mover_min_cars} cars for sale on both days, and where the cars listed on both days mostly repriced in the same direction. A batch of cheaper cars arriving does not count as a move.</p>
+        <p>Each model's asking prices this week against the same model a week earlier, compared model year by model year so a change in the mix of years does not look like a move. A batch of cheaper cars arriving or a round of price cuts both pull a model down, and the reverse pushes it up. A model needs at least five cars for sale in both weeks. The most active model is the one with the most cars added, sold or taken off the market over the week.</p>
+        <h3>Mileage curve</h3>
+        <p>Each car page plots its model's prices against mileage: every car for sale now and every auction sale in the last 18 months that gave a mileage. Older sales are left out because the market has moved since. The curve is fitted to the logarithm of price, in whichever of two shapes fits the cars better: a steady percentage per mile, or a steeper drop over the first miles that then flattens. Cars far off the curve, such as race cars or wrecks, are set aside before the final fit. The shaded band is the typical spread around the curve. Model year and specification also move prices, so the curve is a guide rather than a valuation.</p>
         <h3>Auction results</h3>
         <p>Houses report prices differently. Bring a Trailer, Cars &amp; Bids, Sotheby's Motorsport and duPont Registry Live show the winning bid. RM Sotheby's and Mecum include the buyer's premium. Prices in pounds, euros or francs are converted to US dollars at the day's rate. A result far outside the model's asking range is kept on its model page but left out of the headline insights, because it is more often a data error than a real sale.</p>
         <h3>What these numbers are not</h3>

@@ -195,6 +195,12 @@ that share a VIN or chassis number are one car wherever they came from. A dealer
 of one car on several sites is one history event. Auction lots without a VIN or chassis
 stand alone, because loose fingerprints would join different cars.
 
+Each model file also carries `mileage` (`pipeline/mileage.py`): the model's cars for sale
+now and auction sales from the last 18 months with a known mileage, and a curve fitted to
+log price (a steady percentage per mile, or a log of miles shape, whichever misses the cars
+by less), refitted after setting aside cars far off it. Each car page draws it with the car
+ringed and says how far above or below the curve the car is priced.
+
 Each model file carries `points` for the market chart: sold, high bid, for sale and last
 asking price, each with its car id, title and photo, so hovering a dot shows the car and
 clicking it opens the car page.
@@ -202,13 +208,14 @@ clicking it opens the car page.
 
 ## Dealer marketplaces
 
-`pipeline/sources/dealer_marketplaces.py` reads three marketplaces, checked on 2026-11-01:
+`pipeline/sources/dealer_marketplaces.py` and `classiccars.py` read these marketplaces, checked on 2026-11-01:
 
 | Source | Cars | Runner | Notes |
 | --- | --- | --- | --- |
 | AutoTrader.com | off | | blocks automated access ("page unavailable") from plain requests and headless browsers; the reader is kept for a licensed route |
 | duPont Registry | ~1,800 used | cloud | schema.org list on each search page, VIN, dealer |
 | AutoTrader.ca | ~330 | Mac | AutoScout24 platform, prices in CAD, no VIN |
+| ClassicCars.com | ~180 | cloud | `classiccars.py`: 12 search pages, then each listing page once for odometer, colours, VIN or chassis and photos. Cars consigned to auctions are skipped |
 
 Each one's robots.txt allows general crawlers on the search pages read here, and
 nothing else is read. Cars.com is off: every page, robots.txt included, sits behind a
@@ -217,3 +224,9 @@ several sites are one car (matched by VIN, or by fingerprint for AutoTrader.ca),
 adding sources widens coverage without double counting. These sites' terms of use
 govern automated access; MarketCheck (`marketcheck`, needs a paid key) is the licensed
 route to the same inventory.
+
+Also checked on 2026-11-01 and left out: CarGurus and Carfax (DataDome), TrueCar
+(PerimeterX), JamesEdition (Cloudflare challenge), iSeeCars (nationwide results need a
+token its own script makes), Autolist (its results are CarGurus inventory) and
+Exotic Car Trader (about 20 live Ferraris). eBay Motors has an official free API that
+needs the owner's developer keys.

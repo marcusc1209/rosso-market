@@ -8,7 +8,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from . import analytics as A
-from . import cars, clean, taxonomy
+from . import cars, clean, mileage, taxonomy
 
 
 def _takes(content_dir: Path) -> list[dict]:
@@ -206,7 +206,8 @@ def model_detail(con, model_id: str, day: date, idx=None) -> dict:
             "results": [dict({k: r[k] for k in r.keys() if k != "uid"}, car=car(r["uid"])) for r in lots],
             "points": pts,
             "auction_points": [[p[0], p[1], 1 if p[2] == "s" else 0] for p in pts if p[2] in "su"],
-            "upcoming": [dict({k: r[k] for k in r.keys() if k != "uid"}, car=car(r["uid"])) for r in upcoming]}
+            "upcoming": [dict({k: r[k] for k in r.keys() if k != "uid"}, car=car(r["uid"])) for r in upcoming],
+            "mileage": mileage.curve(con, model_id, day, idx, skip)}
 
 
 def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
