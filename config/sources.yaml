@@ -1,4 +1,4 @@
-# Rosso Ledger data sources
+# Rosso Market data sources
 #
 # Each source has an adapter (how it is read) and enabled (whether the daily run uses it).
 # Adapters: bringatrailer, browser_json, static_page, static_then_browser, marketcheck, apify, demo
@@ -14,7 +14,7 @@ settings:
   raw_dir: data/raw
   site_dir: site
   content_dir: content
-  user_agent: "RossoLedgerBot/1.0 (+https://rossoledger.example/bot)"   # put your real site and a contact address here
+  user_agent: "RossoMarketBot/1.0 (+https://rossomarket.example/bot)"   # put your real site and a contact address here
   min_interval_seconds: 4          # per host, between requests
   respect_robots_txt: true
   max_retries: 3

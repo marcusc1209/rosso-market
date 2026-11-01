@@ -1,5 +1,5 @@
 ---
-title: How Rosso Ledger counts a car only once
+title: How Rosso Market counts a car only once
 date: 2026-10-29
 summary: The same 488 Spider can sit on a dealer site, AutoTrader, Cars.com and the Ferrari Approved catalogue at once. Here is how we make sure it moves the median exactly once.
 sample: true

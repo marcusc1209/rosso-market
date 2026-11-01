@@ -80,7 +80,7 @@ def build(con, day: date, cfg: dict, health: list[dict]) -> dict:
     news = [dict(r) for r in con.execute("SELECT title, url, outlet, published, image FROM news ORDER BY published DESC LIMIT 8")]
 
     return {
-        "brand": "Rosso Ledger",
+        "brand": "Rosso Market",
         "as_of": day.isoformat(),
         "region": "US and Canada",
         "sample": sample,

@@ -35,7 +35,7 @@ class Fetcher:
         self.min_interval = float(cfg.get("min_interval_seconds", 3.0))
         self.respect_robots = bool(cfg.get("respect_robots_txt", True))
         self.max_retries = int(cfg.get("max_retries", 3))
-        self.user_agent = cfg.get("user_agent", "RossoLedgerBot/1.0")
+        self.user_agent = cfg.get("user_agent", "RossoMarketBot/1.0")
         self._last: dict[str, float] = {}
         self._robots: dict[str, Optional[RobotFileParser]] = {}
         self.requests = 0

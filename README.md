@@ -1,4 +1,4 @@
-# Rosso Ledger
+# Rosso Market
 
 Daily Ferrari asking prices, auction results and market signals for the US and Canada.
 
@@ -135,7 +135,7 @@ The asking price history only starts on the first run: medians, movers and price
 
 **Terms of use.** Most marketplaces and several auction sites prohibit automated collection in their terms, and AutoTrader and Cars.com run heavy bot protection. That is why asking prices default to MarketCheck, which licenses that data, and why the direct marketplace adapters ship switched off. Before enabling any direct scraper, read that site's terms, keep the polite defaults (robots.txt on, one request every few seconds per host), and set a real contact address in `user_agent`. This is not legal advice.
 
-**The name.** The brand is Rosso Ledger, so "Ferrari", a trademark Ferrari S.p.A. enforces actively, is used only to describe what the site covers. Keep it out of the domain, logo and social handles, keep the footer's non affiliation notice, and avoid Ferrari's logos, the prancing horse and the Scuderia shield. A quick trademark search on your chosen domain is still worth doing before launch.
+**The name.** The brand is Rosso Market, so "Ferrari", a trademark Ferrari S.p.A. enforces actively, is used only to describe what the site covers. Keep it out of the domain, logo and social handles, keep the footer's non affiliation notice, and avoid Ferrari's logos, the prancing horse and the Scuderia shield. A quick trademark search on your chosen domain is still worth doing before launch.
 
 **Photos.** The reference site uses car photos. This build uses price charts instead, because photos scraped from listings belong to the dealers and photographers. Licensed or your own photography can be added later.
 
