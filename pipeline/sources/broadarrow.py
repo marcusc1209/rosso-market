@@ -19,6 +19,10 @@ Verified 2026-10-31 in a real browser:
 * /past-auctions and /events list each auction's name with its dates
   ("5 - 14 October 2026"), which date the results.
 
+From GitHub's servers the site answers 202 with an AWS WAF challenge page, so
+this source runs on the home runner (a residential connection), like Ferrari
+Approved and SOMO. The challenge is never worked around.
+
 Private sales live on a separate site (broadarrowprivatesales.com) and are never read.
 Lots whose result is final, or that publish no price, are remembered so each
 page is read once. `lot_pages` caps the pages read per run (10 s apart).
@@ -197,7 +201,7 @@ class BroadArrow(Source):
         try:
             return self.ctx.fetcher.get(url).text
         except Blocked:
-            if self.cfg.get("browser_fallback", True):
+            if self.cfg.get("browser_fallback", False):
                 return self.ctx.browser.html(url)
             raise
 

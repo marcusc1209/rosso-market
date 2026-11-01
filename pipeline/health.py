@@ -21,8 +21,8 @@ def check(con, source: str, run_id: int) -> dict:
     accepted, fetched = r["accepted"] or 0, r["fetched"] or 0
     if r["status"] == "error":
         state, why = "down", r["error"]
-    elif baseline and accepted == 0:
-        state, why = "down", f"0 records, usually {baseline:.0f}"
+    elif accepted == 0 and (baseline or fetched == 0):
+        state, why = "down", f"0 records, usually {baseline:.0f}" if baseline else "returned nothing"
     elif baseline and accepted < 0.5 * baseline:
         state, why = "degraded", f"{accepted} records, usually {baseline:.0f}"
     elif fetched >= 20 and (fetched - accepted) / fetched > 0.3:

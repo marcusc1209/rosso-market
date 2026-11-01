@@ -295,3 +295,26 @@ def test_clean_applies_the_auction_policy_to_stored_rows(tmp_path):
     out = clean.purge(con)
     assert out["private_or_sealed"] == 1 and out["sold_without_price"] == 1 and out["upcoming_price_cleared"] == 1
     assert [tuple(r) for r in con.execute("SELECT uid, price_usd FROM lots ORDER BY uid")] == [("a:3", None), ("a:4", 2_000_000)]
+
+
+def test_waf_challenge_and_empty_runs_are_not_ok(tmp_path):
+    import httpx
+    from pipeline.fetch import Fetcher, Blocked
+    from pipeline import health
+    calls = []
+
+    def handler(request):
+        calls.append(request.url.path)
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
+        return httpx.Response(202, text="<html><script src='challenge.js'></script></html>")
+
+    f = Fetcher({"min_interval_seconds": 0, "max_retries": 0}, tmp_path, "t")
+    f.client = httpx.Client(transport=httpx.MockTransport(handler))
+    with pytest.raises(Blocked):
+        f.get("https://example.com/sitemap.xml.gz")
+
+    con = db.connect(tmp_path / "t.db")
+    rid = db.start_run(con, date(2026, 11, 1), "x")
+    db.finish_run(con, rid, "ok", 0, 0, 0, 3)
+    assert health.check(con, "x", rid)["state"] == "down"

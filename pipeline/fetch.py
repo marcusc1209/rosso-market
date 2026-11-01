@@ -24,7 +24,8 @@ log = logging.getLogger("fetch")
 
 
 _CHALLENGE = ("cf-chl-", "challenge-platform", "px-captcha", "_incapsula_resource", "verify you are a human",
-              "are you a robot", "access denied</title>", "attention required!")
+              "are you a robot", "access denied</title>", "attention required!",
+              "awswafintegration", "aws-waf-token", "gokuprops")          # AWS WAF answers 202 with a JS challenge
 
 
 def _is_challenge(body: str) -> bool:
@@ -126,7 +127,7 @@ class Fetcher:
                 log.warning("%s %s -> %s, waiting %.0fs", method, url, r.status_code, wait)
                 time.sleep(wait); delay *= 2
                 continue
-            if r.status_code in (401, 403) or _is_challenge(r.text):
+            if r.status_code in (401, 403) or _is_challenge(r.text) or (r.status_code == 202 and len(r.content) < 20000):
                 raise Blocked(f"{url} answered {r.status_code}" + (" with a bot challenge page" if r.status_code < 400 else ""))
             r.raise_for_status()
             ctype = r.headers.get("content-type", "")

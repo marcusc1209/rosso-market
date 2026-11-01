@@ -83,7 +83,7 @@ Each verified source was inspected in a real browser on 2026-10-31, and its adap
 | RM Sotheby's | `POST /api/search/SearchLots` | ~3,200 Ferrari results worldwide, upcoming lots with estimates | Verified, on |
 | Mecum | Algolia index `wp_posts_lot` (public key read from the page) | ~1,850 Ferrari lots | Verified, on |
 | MarketCheck | licensed API | AutoTrader, Cars.com, CarGurus and dealer sites, US and Canada | Built, needs a paid key |
-| Broad Arrow | sitemap, then one page per lot, 10 s apart (robots.txt bars the results search) | ~370 Ferrari lots: results with price, unsold lots, upcoming lots with estimates | Verified, on |
+| Broad Arrow | sitemap, then one page per lot, 10 s apart (robots.txt bars the results search) | ~370 Ferrari lots: results with price, unsold lots, upcoming lots with estimates | Verified, on (Mac runner: GitHub's servers get an AWS WAF challenge) |
 | Barrett-Jackson | | Results show "Register to View Price" | Off: prices are only shown to signed in users |
 | Gooding Christie's | GraphQL `getVehicles` at `cdn.goodingco.com/graphql` | ~940 Ferrari lots: results, unsold, upcoming with estimates | Verified, on |
 | Bonhams | Typesense `multi_search` at `api01.bonhams.com/search-proxy` (the public search key is read from the site's own script each run) | ~1,800 Ferrari car lots | Verified, on |
@@ -139,8 +139,8 @@ Two workflows share the work:
 
 | Workflow | Runs on | Sources | When |
 |---|---|---|---|
-| Daily market run (`daily.yml`) | GitHub's servers | Bring a Trailer, Cars & Bids, duPont Registry Live, RM Sotheby's, Mecum | 4:17 am Pacific |
-| Home sources (`home.yml`) | the owner's Mac (self hosted runner) | Ferrari Approved, SOMO | 7:37 am Pacific, or when the Mac wakes |
+| Daily market run (`daily.yml`) | GitHub's servers | Bring a Trailer, Cars & Bids, duPont Registry Live, RM Sotheby's, Mecum, Gooding, Bonhams, PCARMARKET | 4:17 am Pacific |
+| Home sources (`home.yml`) | the owner's Mac (self hosted runner) | Ferrari Approved, SOMO, Broad Arrow | 7:37 am Pacific, or when the Mac wakes |
 
 Ferrari Approved and SOMO refuse GitHub's server addresses, so they run from a home connection. Sources are assigned with `runner: home` in `config/sources.yaml`. Each workflow merges in anything the other saved before writing the database (`pipeline/merge.py`), and the home run asks the daily workflow to republish the site when it finishes.
 

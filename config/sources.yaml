@@ -136,6 +136,7 @@ sources:
   broadarrow:                      # verified. Sitemap plus one page per lot (robots.txt bars the results search, asks 10 s between requests)
     adapter: broadarrow
     enabled: true
+    runner: home                   # answers GitHub's servers with an AWS WAF challenge (HTTP 202)
     lot_pages: 80                  # pages read per run; finished lots and lots with no published price are never read twice
     fetch:
       min_interval_seconds: 10
