@@ -436,3 +436,58 @@ def test_pcarmarket_cards_and_lot_page():
     assert sold.status == "sold" and sold.price == 450_000
     assert to_record(live, {}, "pcarmarket").status == "live"
     assert to_record(c550, {**d, "make": "Porsche"}, "pcarmarket") is None
+
+
+def test_ferrari_approved_retries_an_empty_page_instead_of_stopping(monkeypatch):
+    import json as _json
+    from datetime import date
+    from pipeline.sources import ferrari_approved as fa
+    from pipeline.sources.base import Context
+    monkeypatch.setattr(fa.time, "sleep", lambda s: None)
+
+    def page(ads, pages=3):
+        data = {"props": {"pageProps": {"initialState": {"search": {"searchResults": {
+            "ads": ads, "pagination": {"pages": pages}}}}}}}
+        return f'<script id="__NEXT_DATA__" type="application/json">{_json.dumps(data)}</script>'
+
+    rows = [{"id": r[8], "year": r[0], "carName": r[1], "price": r[2], "priceUnit": r[3], "requestPrice": r[4],
+             "ferrariApproved": r[5], "odometer": r[6], "odometerUnit": r[7], "vin": r[8], "exteriorColor": r[9],
+             "dealer": {"name": r[10], "city": r[11]}, "model": {"name": r[1]}} for r in load("ferrari_approved_rows.json")]
+    served = {0: [page(rows[:2])], 1: [page([]), page(rows[2:4])], 2: [page(rows[4:6])]}
+    calls = []
+
+    class FakeFetcher:
+        requests = 0
+        def get(self, url):
+            n = int(url.rsplit("=", 1)[1]); calls.append(n)
+            body = served[n].pop(0) if len(served[n]) > 1 else served[n][0]
+            return type("R", (), {"text": body})()
+
+    src = fa.FerrariApproved("ferrari_approved", {"countries": ["usa"], "retry_pauses": [1]},
+                             Context(fetcher=FakeFetcher(), run_date=date(2026, 11, 1)))
+    got = list(src.fetch())
+    assert calls == [0, 1, 1, 2] and len(got) == len({r.source_id for r in got}) >= 5
+
+
+def test_somo_skips_a_refused_list():
+    import httpx, logging
+    from types import SimpleNamespace
+    from pipeline.sources.online_auctions import SothebysMotorsport, DupontLive
+
+    asked = []
+
+    class F:
+        def get_json(self, url):
+            asked.append(url)
+            if "type=upcoming" in url:
+                req = httpx.Request("GET", url)
+                raise httpx.HTTPStatusError("400", request=req, response=httpx.Response(400, request=req))
+            return {"data": {"auctions": [], "cards": [], "pagination": {"pageCount": 1}}}
+
+    for cls in (SothebysMotorsport, DupontLive):
+        asked.clear()
+        src = cls.__new__(cls)
+        src.name, src.cfg, src.ctx, src.log = "x", {}, SimpleNamespace(fetcher=F()), logging.getLogger("t")
+        assert list(src.fetch()) == []
+        assert any("type=sold" in u for u in asked)
+        assert any("type=upcoming" in u for u in asked) == (cls is DupontLive)

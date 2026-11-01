@@ -4,7 +4,8 @@ Both verified 2026-10-31 in a real browser. They share a URL scheme
 (/auction/<slug>) and a similar listings endpoint, with different response shapes.
 
 SOMO       GET https://sothebysmotorsport.com/api/auctions/listings?limit=50&page=N&type=<t>&sort=<s>
-           type/sort pairs: live/ending_soon, upcoming/ending_soon, sold/closed_date_desc
+           type/sort pairs: live/ending_soon, sold/closed_date_desc
+           (upcoming/ending_soon answers 400 "unauthorized" since 2026-11-01: it needs a sign in)
            -> data.auctions[], data.pagination.pageCount
            lot: vehicleData{year, make, model, slug, location{city,state}}, bidDetails.value,
                 buyerFeeGross, status (started, closed), endTime, soldDate, lotNumber
@@ -19,6 +20,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Iterator
+
+import httpx
 
 from .base import Source
 from urllib.parse import urlencode
@@ -92,6 +95,7 @@ def map_dupont(c: dict, source: str, qtype: str) -> RawRecord | None:
 
 class _ListingsApi(Source):
     kind = AUCTION
+    skip_types: tuple = ()
     host = ""
     container = ""
     mapper = None
@@ -112,8 +116,17 @@ class _ListingsApi(Source):
         self.use_browser = bool(self.cfg.get("browser"))
         for qtype, sort in QUERIES:
             pages = int(self.cfg.get("sold_pages", 4)) if qtype == "sold" else 5
+            if qtype in self.skip_types:
+                continue
             for page in range(1, pages + 1):
-                data = self._get({"limit": 50, "page": page, "type": qtype, "sort": sort})
+                try:
+                    data = self._get({"limit": 50, "page": page, "type": qtype, "sort": sort})
+                except httpx.HTTPStatusError as e:
+                    # one list going private should not take the whole source down
+                    if e.response.status_code not in (400, 401, 404) or qtype == "sold":
+                        raise
+                    self.log.warning("%s list refused (%s), skipping it", qtype, e.response.status_code)
+                    break
                 d = data.get("data") or {}
                 rows = d.get(self.container) or []
                 for row in rows:
@@ -127,6 +140,7 @@ class _ListingsApi(Source):
 
 class SothebysMotorsport(_ListingsApi):
     host, container, mapper = "https://sothebysmotorsport.com", "auctions", map_somo
+    skip_types = ("upcoming",)        # members only since 2026-11-01
 
 
 class DupontLive(_ListingsApi):

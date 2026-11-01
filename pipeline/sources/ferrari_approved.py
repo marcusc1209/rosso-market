@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from typing import Iterator
 
 from .base import Source
@@ -72,26 +73,46 @@ class FerrariApproved(Source):
         seen = set()
         for country in self.cfg.get("countries", ["usa", "canada"]):
             base = BASE.format(country=country)
-            page, pages = 0, 1
+            page, pages, empty_streak = 0, 1, 0
             cap = int(self.cfg.get("max_pages", 200))
             while page < min(pages, cap):
                 url = f"{base}?pl={page}"
-                if not self.use_browser:
-                    try:
-                        html = self.ctx.fetcher.get(url).text
-                    except Blocked as e:
-                        # The site refuses plain requests from some networks (GitHub Actions got 403 on
-                        # 2026-10-31). A real browser usually gets through, so switch for the rest of the run.
-                        self.log.info("plain request refused (%s), switching to the browser", e)
-                        self.use_browser = True
-                if self.use_browser:
-                    html = self.ctx.browser.html(url)
-                ads, pages = parse_page(html)
+                ads, n = self._load(url)
+                pages = max(pages, n)
                 if not ads:
-                    break
+                    # A page inside the known range came back empty: the site slowed us down
+                    # (seen 2026-11-01 after ~20 quick browser loads). Wait and try again before
+                    # giving up, and never let one bad page end the whole country.
+                    for pause in self.cfg.get("retry_pauses", [20, 45, 90]):
+                        self.log.info("%s: no cars on page %d of %d, waiting %ds", country, page, pages, pause)
+                        time.sleep(pause)
+                        ads, n = self._load(url)
+                        if ads:
+                            break
+                if not ads:
+                    empty_streak += 1
+                    if empty_streak >= 3 or page + 1 >= pages:
+                        self.log.warning("%s: stopping at page %d of %d after repeated empty pages", country, page, pages)
+                        break
+                    page += 1
+                    continue
+                empty_streak = 0
                 for a in ads:
                     rec = map_ad(a, self.name, country)
                     if rec.source_id not in seen:
                         seen.add(rec.source_id)
                         yield rec
                 page += 1
+            self.log.info("%s: %d pages of %d read, %d cars so far", country, page, pages, len(seen))
+
+    def _load(self, url: str) -> tuple[list[dict], int]:
+        if not self.use_browser:
+            try:
+                return parse_page(self.ctx.fetcher.get(url).text)
+            except Blocked as e:
+                # The site refuses plain requests from some networks (GitHub Actions got 403 on
+                # 2026-10-31, home 405 on 2026-11-01). A real browser gets through, so switch for the rest of the run.
+                self.log.info("plain request refused (%s), switching to the browser", e)
+                self.use_browser = True
+        time.sleep(float(self.cfg.get("browser_pause_seconds", 3)))
+        return parse_page(self.ctx.browser.html(url))
