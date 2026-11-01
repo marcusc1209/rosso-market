@@ -1,0 +1,152 @@
+# Rosso Ledger
+
+Daily Ferrari asking prices, auction results and market signals for the US and Canada.
+
+Two parts:
+
+1. **`pipeline/`** collects listings and auction lots every day, cleans them, counts each car once, stores daily price observations in SQLite and writes the JSON the site reads.
+2. **`site/`** is the website. It is a static page that reads `site/data/site.json` and `site/data/models/*.json`, so it can be hosted anywhere (GitHub Pages, Netlify, Cloudflare Pages, S3).
+
+## Quick start
+
+```bash
+pip install -r requirements.txt
+playwright install chromium          # only needed for the browser based sources
+
+python -m pytest -q tests            # 80 tests, 23 of them against real responses captured from each site
+
+# real data (needs normal internet access)
+python -m pipeline.run               # every verified source, today
+
+# offline demo (a simulated market, no network)
+python -m pipeline.run --config config/demo.yaml --backfill 120
+
+python scripts/build_site.py         # wraps the page for static hosting into public/
+cd public && python -m http.server 8000   # open http://localhost:8000
+```
+
+The demo writes to `data/demo.db` and the site shows a yellow "Sample data" bar. Real runs write to `data/ferrari.db`.
+
+## How the pipeline works
+
+```
+source adapters  ->  normalize  ->  dedupe  ->  SQLite  ->  analytics  ->  site JSON
+   (fetch.py)       (normalize.py) (dedupe.py)  (db.py)   (analytics.py)   (export.py)
+                         |
+                   taxonomy.py  (every title resolved to one of 80+ Ferrari models)
+```
+
+**Fetching (`fetch.py`).** All traffic goes through one client that rate limits per host, honours robots.txt, retries with backoff, detects bot challenges and archives every raw page under `data/raw/<date>/<source>/`. When a site changes its markup you fix the parser and replay it against the archived pages without hitting the site again.
+
+**Extraction (`extract.py`).** Three layers, tried in order:
+
+1. Structured data the site already publishes: JSON-LD, Next.js `__NEXT_DATA__`, embedded `var x = {...}` objects, and for JavaScript sites the JSON feeds the page itself downloads (the headless browser records them). These change far less often than page markup.
+2. A generic mapper that recognises a vehicle in any JSON shape, whatever the site calls its fields (`sold_price`, `hammerPrice`, `current_bid`, `askingPrice` and so on).
+3. Optional: Claude reads the page text and returns the fields, used only when 1 and 2 find nothing. Off by default.
+
+**Model resolution (`taxonomy.py`).** Titles are matched to canonical models with the most specific variant first, so "488 Pista Spider" never lands in "488 Spider". A year outside a model's production run lowers confidence and the record is rejected rather than guessed. Parts, wheels, scale models, brochures and replicas are filtered out.
+
+**Normalisation (`normalize.py`).** Prices in USD, CAD, EUR, GBP and others with live exchange rates, mileage in miles (km converted), Ferrari VIN detection with check digit validation, chassis numbers for classics, US or Canada from the location.
+
+**Counting each car once (`dedupe.py`).** The same car often sits on the dealer's site, AutoTrader, Cars.com and Ferrari Approved at once. Cars are matched by VIN, then chassis number, then a fingerprint of model, year, mileage band, colour and seller. Where one car shows two prices, the dealer's own page or Ferrari Approved wins, because marketplaces lag behind price cuts.
+
+**Storage (`db.py`).** Prices are stored as daily observations, so any statistic can be recomputed for any past day. A source that fails never makes cars disappear: a listing is only marked gone after its source has run successfully twice without seeing it.
+
+**Health checks (`health.py`).** Scrapers usually break quietly, returning 20 cars instead of 600. Every run is compared with the source's recent history and marked ok, degraded or down. A degraded source does not remove any listings, and its state shows in the site footer.
+
+**Analytics (`analytics.py`).**
+
+| Figure | Definition |
+|---|---|
+| Tracked listing | one physical car for sale, however many sites list it |
+| Median ask | median asking price of tracked listings for a model on a day |
+| Mover | median ask moved 1% or more in 7 days, at least 5 cars on both days, and the cars listed on both days mostly repriced the same way |
+| Price cut | a car whose ask is lower than 7 days earlier |
+| Overnight changes | new cars plus cars gone plus cars repriced since yesterday |
+| Sell through | sold lots divided by closed lots |
+| Ask index | chain linked index of model medians, weighted by listings, so a shift in model mix does not move it |
+| Auction vs ask | each hammer price compared with the model's median dealer ask that day |
+
+The mover rule is stricter than the reference site's. A batch of cheap cars arriving drags a median down without anyone cutting a price, and that does not count here.
+
+## Sources
+
+Each verified source was inspected in a real browser on 2026-10-31, and its adapter is tested against responses captured that day (`tests/fixtures/`, `tests/test_live_samples.py`).
+
+| Source | How it is read | What it gives | Status |
+|---|---|---|---|
+| Ferrari Approved | page data on `preowned.ferrari.com/.../rfc?pl=N` | Every car at a Ferrari dealer: US ~1,200, Canada ~100, with VIN, price, mileage, dealer and a certified flag | Verified, on |
+| Bring a Trailer | `auctionsCurrentInitialData` on /auctions/, results from `/wp-json/bringatrailer/1.0/data/listings-filter` | ~40 live Ferrari lots, ~7,000 results | Verified, on |
+| Cars & Bids | headless browser captures `/v2/autos/auctions` (requests are signed) | Live lots and recent results | Verified, on |
+| Sotheby's Motorsport | `/api/auctions/listings?type=live,upcoming,sold` | Live, preview and sold lots with hammer and fee | Verified, on |
+| duPont Registry Live | `/api/auctions/listings` | Live and sold lots | Verified, on |
+| RM Sotheby's | `POST /api/search/SearchLots` | ~3,200 Ferrari results worldwide, upcoming lots with estimates | Verified, on |
+| Mecum | Algolia index `wp_posts_lot` (public key read from the page) | ~1,850 Ferrari lots | Verified, on |
+| MarketCheck | licensed API | AutoTrader, Cars.com, CarGurus and dealer sites, US and Canada | Built, needs a paid key |
+| Broad Arrow | JSON-LD on results pages | Results | Off: price unit unclear |
+| Gooding, Bonhams, PCARMARKET, duPont Registry dealer listings | generic browser adapter | | Off, unverified |
+| AutoTrader, Cars.com direct | | | Off on purpose (terms, bot protection) |
+
+### Quirks found in the live data, and how they are handled
+
+* **Mecum "The Bid Goes On" lots** show a number that is not a high bid (a 2015 458 Spider showed $600,000). Those lots count as unsold and the number is never used as a price.
+* **Ferrari Approved "price on request"** cars carry placeholder prices like 0, 212 or 1,685. They are excluded.
+* **Ferrari Approved includes track cars** (488 Challenge). Track only cars are excluded everywhere.
+* **duPont Registry Live** reports some results that look implausible (an F12tdf at $2.66M). Any result outside 0.4 to 2.5 times the model's median ask is kept on the model page but left out of insights.
+* **RM Sotheby's results have no sale date.** After the first run, a new result is dated by the day it first appears. Results from the first import stay undated and out of time based stats.
+* **Auction titles carry mileage** ("20k-Mile 2003 Ferrari 360 Spider", "48k-Kilometer 1996 F355"). It is read and converted to miles.
+* **Non cars share the make**: luggage, wheels, signs, arcade games, kids' cars, half scale models, re-creations, and other makers' cars with a Ferrari link (Abarth 695 Tributo Ferrari). All filtered.
+* **Price basis differs by house.** BaT, Cars & Bids, SOMO and duPont show the hammer bid. RM and Mecum include the buyer's premium. Each record keeps `price_basis` so this can be normalised later.
+
+### When a source breaks
+
+The daily run opens a GitHub issue labelled `data-source` when a source returns far fewer cars than usual or errors. To fix it:
+
+1. Download the run's `raw-pages` artifact and look at the failing source's saved responses.
+2. Open the site in a browser, compare what it now loads, and update the adapter.
+3. Capture a fresh sample into `tests/fixtures/`, update the test, and run `python -m pytest`.
+4. Meanwhile, switch on the matching `apify_*` backup in `config/sources.yaml` if one exists.
+
+Listings are never removed because a source broke: removal needs two successful runs without the car.
+
+### Turning on an unverified source
+
+Set `enabled: true`, run `python -m pipeline.run --only <name> -v`, and check fetched, accepted and rejected in the log. `sqlite3 data/ferrari.db "select reason, count(*) from rejects group by 1"` shows why records were dropped. If nothing is accepted, open the saved responses in `data/raw/<date>/<name>/`, find the feed that holds the cars, and set `json_url_contains` or write a small adapter like `pipeline/sources/online_auctions.py`.
+
+### Keys and cost
+
+| Key | Used by | Rough cost |
+|---|---|---|
+| `MARKETCHECK_API_KEY` | asking prices beyond the Ferrari dealer network | paid plans, see marketcheck.com |
+| `APIFY_TOKEN` | backup auction scrapers | about $2 to $16 per thousand records |
+| `ANTHROPIC_API_KEY` | optional page reading fallback | cents per page |
+
+Everything marked verified and on above runs free.
+
+## Running it every day
+
+`.github/workflows/daily.yml` runs at 11:17 UTC: tests, pipeline, site build, deploy to GitHub Pages. It keeps the database on a `market-data` branch so the price history survives between runs, and opens an issue when a source breaks.
+
+First run: start the workflow by hand with "Import extra auction history" ticked. That pages much deeper into every results feed, so the site opens with months of auction results instead of a few days.
+
+The asking price history only starts on the first run: medians, movers and price cuts need about a week of daily runs before they mean anything, and the 90 day charts need 90 days.
+
+## Things to know
+
+**Terms of use.** Most marketplaces and several auction sites prohibit automated collection in their terms, and AutoTrader and Cars.com run heavy bot protection. That is why asking prices default to MarketCheck, which licenses that data, and why the direct marketplace adapters ship switched off. Before enabling any direct scraper, read that site's terms, keep the polite defaults (robots.txt on, one request every few seconds per host), and set a real contact address in `user_agent`. This is not legal advice.
+
+**The name.** The brand is Rosso Ledger, so "Ferrari", a trademark Ferrari S.p.A. enforces actively, is used only to describe what the site covers. Keep it out of the domain, logo and social handles, keep the footer's non affiliation notice, and avoid Ferrari's logos, the prancing horse and the Scuderia shield. A quick trademark search on your chosen domain is still worth doing before launch.
+
+**Photos.** The reference site uses car photos. This build uses price charts instead, because photos scraped from listings belong to the dealers and photographers. Licensed or your own photography can be added later.
+
+## Project layout
+
+```
+config/sources.yaml        every source, on or off, with its settings
+content/takes/*.md         editorial takes (front matter plus paragraphs)
+pipeline/                  the data pipeline (see above)
+pipeline/sources/          one adapter per kind of source
+site/index.html            the website (fragment, wrapped by scripts/build_site.py)
+site/data/                 written by the pipeline
+tests/                     model matching, parsing, dedupe, mover rule, removal safety, end to end run
+```

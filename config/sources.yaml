@@ -1,0 +1,176 @@
+# Rosso Ledger data sources
+#
+# Each source has an adapter (how it is read) and enabled (whether the daily run uses it).
+# Adapters: bringatrailer, browser_json, static_page, static_then_browser, marketcheck, apify, demo
+#
+# status notes:
+#   verified    data feed inspected in a real browser on 2026-10-31, adapter tested against captured responses
+#   unverified  configured from the site's general structure; confirm on the first live run (README)
+#
+# To add another auction house or dealer: copy a browser_json block, change start_urls and label. That is all.
+
+settings:
+  db: data/ferrari.db
+  raw_dir: data/raw
+  site_dir: site
+  content_dir: content
+  user_agent: "RossoLedgerBot/1.0 (+https://rossoledger.example/bot)"   # put your real site and a contact address here
+  min_interval_seconds: 4          # per host, between requests
+  respect_robots_txt: true
+  max_retries: 3
+  timeout_seconds: 30
+  removal_after_missed_runs: 2     # a listing counts as gone after its source misses it on 2 successful runs
+  min_model_confidence: 0.5
+  fx_live: true                    # refresh exchange rates each run, falling back to the table below
+  fx_url: https://api.frankfurter.app/latest?from=USD
+  fx: {USD: 1.0, CAD: 0.73, EUR: 1.08, GBP: 1.27, CHF: 1.12, AUD: 0.66, JPY: 0.0066, AED: 0.2723}
+
+llm_fallback:                      # optional: Claude reads pages where structured data comes back empty
+  enabled: false                   # needs ANTHROPIC_API_KEY
+  model: claude-haiku-5-5
+  max_chars: 60000
+
+news_feeds:                        # headlines and links only; confirm each feed URL before enabling
+  # - {name: Motor1, url: https://www.motor1.com/rss/make/ferrari/}
+  # - {name: Ferrari Media, url: https://www.ferrari.com/en-EN/media/rss}
+
+sources:
+
+  # ============================================================ asking prices (dealers and private sellers)
+
+  ferrari_approved:                # verified. Every car at a Ferrari dealer, US ~1,200 and Canada ~100; flags certified cars
+    adapter: ferrari_approved
+    enabled: true
+    countries: [usa, canada]
+    max_pages: 200                 # 11 cars per page, ~120 pages, about 8 minutes at 4 seconds per request
+
+  marketcheck:                     # built, needs a paid key. AutoTrader, Cars.com, CarGurus and dealer sites, US and Canada
+    adapter: marketcheck
+    enabled: false                 # set MARKETCHECK_API_KEY, then true
+    channels: [dealer, private]
+    countries: [us, ca]
+    car_type: used
+    max_rows_per_channel: 5000
+    fetch: {respect_robots_txt: false, min_interval_seconds: 0.5}
+
+  dupont_registry:                 # unverified
+    adapter: browser_json
+    enabled: false
+    kind: listing
+    label: duPont Registry
+    start_urls: [https://www.dupontregistry.com/autos/results/ferrari]
+    scrolls: 10
+
+  dealer_sites:                    # unverified. Add independent dealers' inventory pages; most publish JSON-LD
+    adapter: static_page
+    enabled: false
+    kind: listing
+    label: dealer site
+    start_urls: []
+
+  # Direct marketplace adapters stay off: heavy bot protection and terms that prohibit scraping.
+  # MarketCheck carries the same inventory under licence.
+  autotrader_us:
+    adapter: browser_json
+    enabled: false
+    kind: listing
+    label: autotrader.com
+    start_urls: [https://www.autotrader.com/cars-for-sale/ferrari]
+  autotrader_ca:
+    adapter: browser_json
+    enabled: false
+    kind: listing
+    label: autotrader.ca
+    currency: CAD
+    start_urls: [https://www.autotrader.ca/cars/ferrari/]
+  cars_com:
+    adapter: browser_json
+    enabled: false
+    kind: listing
+    label: cars.com
+    start_urls: [https://www.cars.com/shopping/ferrari/]
+
+  # ============================================================ auctions
+
+  bringatrailer:                   # verified. Live lots from the auctions page, results from BaT's results endpoint (~7,000 Ferrari)
+    adapter: bringatrailer
+    enabled: true
+    live_urls: [https://bringatrailer.com/auctions/]
+    result_pages: 3                # 36 per page, newest first; raise for a one off history import
+
+  carsandbids:                     # verified. Requests are signed, so the browser captures the page's own feed
+    adapter: browser_json
+    enabled: true
+    kind: auction
+    label: Cars & Bids
+    start_urls: [https://carsandbids.com/search/ferrari]
+    json_url_contains: ["/v2/autos/auctions"]
+    url_template: "https://carsandbids.com/auctions/{id}"
+    scrolls: 6
+
+  somo:                            # verified. Sotheby's Motorsport listings API (live, preview, sold)
+    adapter: somo
+    enabled: true
+    sold_pages: 4
+
+  dupont_live:                     # verified. duPont Registry Live listings API. Some results look implausible
+    adapter: dupont_live           # (an F12tdf at $2.66M); the outlier guard keeps those out of insights
+    enabled: true
+    sold_pages: 4
+
+  rmsothebys:                      # verified. Search API, ~3,200 Ferrari results worldwide plus lots on offer
+    adapter: rmsothebys
+    enabled: true
+    result_pages: 3
+    on_offer_pages: 1
+
+  mecum:                           # verified. Algolia index wp_posts_lot (needs Chromium once per run to read the public key)
+    adapter: mecum
+    enabled: true
+    lookback_days: 400
+
+  broadarrow:                      # unverified. JSON-LD present, but the price unit is unclear (cents?). Check before enabling
+    adapter: browser_json
+    enabled: false
+    kind: auction
+    label: Broad Arrow
+    start_urls: ["https://www.broadarrowauctions.com/vehicles/results?q[make]=Ferrari"]
+
+  gooding:                         # unverified
+    adapter: browser_json
+    enabled: false
+    kind: auction
+    label: Gooding Christie's
+    start_urls: ["https://www.goodingco.com/vehicles/?make=Ferrari"]
+
+  bonhams:                         # unverified
+    adapter: browser_json
+    enabled: false
+    kind: auction
+    label: Bonhams Cars
+    start_urls: ["https://cars.bonhams.com/search/?q=ferrari"]
+
+  pcarmarket:                      # unverified
+    adapter: browser_json
+    enabled: false
+    kind: auction
+    label: PCARMARKET
+    start_urls: ["https://www.pcarmarket.com/search/?q=ferrari"]
+
+  # ============================================================ managed backups (paid, maintained by others)
+  apify_bringatrailer:
+    adapter: apify
+    enabled: false
+    kind: auction
+    label: Bring a Trailer
+    actor: jongoose/bring-a-trailer-scraper
+    input: {startUrls: [{url: "https://bringatrailer.com/ferrari/"}], maxItems: 500}
+    fetch: {respect_robots_txt: false}
+  apify_carsandbids:
+    adapter: apify
+    enabled: false
+    kind: auction
+    label: Cars & Bids
+    actor: solidcode/carsandbids-com-scraper
+    input: {searchQueries: ["Ferrari"], auctionStatus: all, maxResults: 500}
+    fetch: {respect_robots_txt: false}

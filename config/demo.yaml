@@ -1,0 +1,14 @@
+# Offline demo: a simulated Ferrari market, so the site can be built without network access.
+#   python -m pipeline.run --config config/demo.yaml --backfill 120
+settings:
+  db: data/demo.db
+  raw_dir: data/raw
+  site_dir: site
+  content_dir: content
+  respect_robots_txt: false
+  fx_live: false
+  fx: {USD: 1.0, CAD: 0.73, EUR: 1.08, GBP: 1.27, CHF: 1.12}
+sources:
+  demo:
+    adapter: demo
+    enabled: true
