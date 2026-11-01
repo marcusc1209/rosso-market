@@ -84,7 +84,7 @@ MODELS: list[Model] = [
     M("f430", "F430", "Mid engine V8", "coupe", (2005, 2009), (r"\bf430\b", r"\b430\b"), "f430-spider"),
     M("360-challenge-stradale", "360 Challenge Stradale", "Mid engine V8", "coupe", (2003, 2004), (r"challenge stradale",)),
     M("360-spider", "360 Spider", "Mid engine V8", "spider", (2001, 2005), (r"360 spider", r"360 spyder"), "360-modena"),
-    M("360-modena", "360 Modena", "Mid engine V8", "coupe", (1999, 2005), (r"360 modena", r"\b360\b"), "360-spider"),
+    M("360-modena", "360 Modena", "Mid engine V8", "coupe", (1999, 2005), (r"360 modena", r"\b360\b", r"^\d{4} ferrari modena\b"), "360-spider"),
 
     # Front engine V12
     M("12cilindri-spider", "12Cilindri Spider", "Front engine V12", "spider", (2025, None), (r"12 ?cilindri spider",), "12cilindri"),
@@ -118,15 +118,15 @@ MODELS: list[Model] = [
     # Classics
     M("f355-spider", "F355 Spider", "Classics", "spider", (1995, 1999), (r"355 spider", r"355 spyder"), "f355"),
     M("f355", "F355", "Classics", "coupe", (1995, 1999), (r"\b(f ?)?355\b",), "f355-spider"),
-    M("348", "348", "Classics", "coupe", (1990, 1995), (r"\b348\b",)),
+    M("348", "348", "Classics", "coupe", (1990, 1995), (r"\b348\b", r"\b348 ?(ts|tb|gts|gtb|spider)\b")),
     M("328", "328 GTB and GTS", "Classics", "targa", (1986, 1989), (r"\b328\b",)),
     M("308", "308 GTB and GTS", "Classics", "targa", (1975, 1985), (r"\b308 gt[bs]",  r"\b308 gtsi", r"\b308 qv", r"\b308\b(?! gt4)")),
-    M("208-turbo", "208 GTB and GTS Turbo", "Classics", "targa", (1982, 1989), (r"\b208\b", r"\bgt[bs] turbo\b")),
-    M("dino-308-gt4", "Dino 308 GT4", "Classics", "coupe", (1974, 1980), (r"308 gt4",)),
+    M("208-turbo", "208 GTB and GTS", "Classics", "targa", (1980, 1989), (r"\b208\b(?! gt4)", r"\bgt[bs] turbo\b")),
+    M("dino-308-gt4", "Dino 208 and 308 GT4", "Classics", "coupe", (1974, 1980), (r"308 gt4", r"\b208 gt4", r"^\d{4} ferrari dino$")),
     M("dino-246", "Dino 246", "Classics", "coupe", (1969, 1974), (r"dino 246", r"246 gt", r"dino 206")),
     M("f512m", "F512 M", "Classics", "coupe", (1995, 1996), (r"f ?512 ?m\b",)),
     M("512-tr", "512 TR", "Classics", "coupe", (1992, 1994), (r"512 ?tr\b",)),
-    M("testarossa", "Testarossa", "Classics", "coupe", (1985, 1991), (r"testarossa",)),
+    M("testarossa", "Testarossa", "Classics", "coupe", (1985, 1991), (r"testarossa", r"\btesta rossa\b")),
     M("512-bb", "365 GT4 BB and 512 BB", "Classics", "coupe", (1973, 1984), (r"512 ?bbi?\b", r"berlinetta boxer", r"365 gt4 ?bb", r"\bbb 512")),
     M("mondial", "Mondial", "Classics", "gt", (1980, 1993), (r"mondial",), tracked=False),
     M("daytona", "365 GTB/4 Daytona", "Classics", "coupe", (1968, 1973), (r"365 gt[bs] ?4", r"\bdaytona\b(?! sp3)")),
@@ -134,7 +134,7 @@ MODELS: list[Model] = [
     M("275", "275 GTB and GTS", "Classics", "coupe", (1964, 1968), (r"\b275\b",)),
     M("365-gt-2-2", "365 GT 2+2 and GTC/4", "Classics", "gt", (1967, 1972), (r"365 gt 2 2", r"365 2 2", r"365 gtc 4", r"365 gtc\b", r"365 gts\b(?! 4)"), tracked=False),
     M("330-gt-2-2", "330 GT 2+2", "Classics", "gt", (1964, 1967), (r"330 gt 2 2", r"330 2 2", r"330 gt\b", r"330 america"), tracked=False),
-    M("400-412", "400 and 412", "Classics", "gt", (1976, 1989), (r"\b400i?\b", r"\b412\b"), tracked=False),
+    M("400-412", "365 GT4 2+2, 400 and 412", "Classics", "gt", (1972, 1989), (r"365 gt4 2 2", r"\b400i?\b", r"\b412\b"), tracked=False),
     M("250", "250 series", "Classics", "coupe", (1953, 1964), (r"\b250\b",), tracked=False),
     M("classic-other", "Other classics before 1975", "Classics", "coupe", (1947, 1975), (r"\b(166|195|212|225|340|342|375|410|500 (trc|mondial|superfast)|625|750 monza|860 monza|290 mm|315 s|335 s|330 p|365 p|206 s|196 s|246 s)\b",), tracked=False),
 ]
