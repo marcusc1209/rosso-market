@@ -206,3 +206,38 @@ def test_merge_keeps_both_runners_data(tmp_path):
     assert c.execute("select count(*) from sightings").fetchone()[0] == 1
     assert c.execute("select count(*) from lots").fetchone()[0] == 1
     assert c.execute("select count(*) from daily_asks where day='2026-11-01'").fetchone()[0] == 1
+
+
+def test_purge_drops_rows_that_newer_filters_reject(tmp_path):
+    from pipeline import clean, db
+    con = db.connect(tmp_path / "t.db")
+    for uid, title, price in [("bat:1", "1991 Ferrari F40", 3_000_000), ("bat:2", "Ferrari F40 Headlights", 14_739),
+                              ("bat:3", "Motoi Ferrari F40-Style Children’s Ride", 13_250)]:
+        con.execute("INSERT INTO lots (uid, source, model_id, title, status, price_usd, ends_at) VALUES (?,?,?,?,?,?,?)",
+                    (uid, "bat", "f40", title, "sold", price, "2026-05-01"))
+        con.execute("INSERT INTO lot_observations VALUES (?,?,?,?)", (uid, "2026-05-01", "sold", price))
+    assert clean.purge(con)["lots"] == 2
+    assert [r[0] for r in con.execute("SELECT uid FROM lots")] == ["bat:1"]
+    assert con.execute("SELECT COUNT(*) FROM lot_observations").fetchone()[0] == 1
+    assert con.execute("SELECT COUNT(*) FROM rejects WHERE reason LIKE 'purged%'").fetchone()[0] == 2
+
+
+def test_implausible_sold_prices_are_flagged(tmp_path):
+    from pipeline import clean, db
+    con = db.connect(tmp_path / "t.db")
+    rows = [(2_900_000, "2026-01-05"), (3_100_000, "2025-11-02"), (3_000_000, "2026-03-09"), (3_300_000, "2026-05-16"),
+            (2_800_000, "2025-08-20"), (21_000, "2026-04-01"),       # a mislabeled part
+            (290_000, "1999-05-01"),                                  # a real sale from another era
+            (19_000, None)]                                           # undated: never charted, never flagged
+    for i, (p, d) in enumerate(rows):
+        con.execute("INSERT INTO lots (uid, source, model_id, title, status, price_usd, ends_at) VALUES (?,?,?,?,?,?,?)",
+                    (f"x:{i}", "x", "f40", "1990 Ferrari F40", "sold", p, d))
+    assert clean.implausible_lots(con) == {"x:5"}
+
+
+def test_estimate_ranges_are_never_prices():
+    from pipeline.normalize import is_price_range
+    from pipeline.sources.rmsothebys import map_item
+    assert is_price_range("\u20ac275,000 - \u20ac300,000 EUR") and not is_price_range("$275,000")
+    withheld = {"publicName": "2017 Ferrari California T", "value": "\u20ac275,000 - \u20ac300,000 EUR", "valueType": "", "sold": True}
+    assert map_item(withheld, "rmsothebys", "Results") is None

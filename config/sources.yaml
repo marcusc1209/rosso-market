@@ -126,6 +126,7 @@ sources:
     enabled: true
     result_pages: 3
     on_offer_pages: 1
+    date_backfill: 300             # auction pages read per run to date results (cached, so only new auctions cost a request)
 
   mecum:                           # verified. Algolia index wp_posts_lot (needs Chromium once per run to read the public key)
     adapter: mecum

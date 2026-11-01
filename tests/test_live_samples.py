@@ -211,3 +211,35 @@ def test_carsandbids_feed_shape():
     assert recs["LiVe0001"].status == "live" and recs["LiVe0001"].url == "https://carsandbids.com/auctions/LiVe0001"
     assert outcome(recs["KVzMmnmM"]) == ("488-spider", 235000.0, 8100.0)
     assert outcome(recs["LiVe0001"])[2] == 21000.0
+
+
+def test_rm_results_are_dated_by_their_auction_page(tmp_path):
+    """Event JSON-LD as served on rmsothebys.com/auctions/lf26/ (2026-10-31)."""
+    from datetime import date
+    from pipeline import db
+    from pipeline.sources.base import Context
+    from pipeline.sources.rmsothebys import RMSothebys, auction_page, event_dates
+
+    page = ('<script type="application/ld+json">{"@context":"https://schema.org","@type":" Event",'
+            '"headline":"The London Auction 2026","startDate":"2026-10-31","endDate":"2026-10-31","organizer":{}}</script>')
+    assert event_dates(page) == ("2026-10-31", "2026-10-31")
+    assert auction_page("https://sealed.rmsothebys.com/auctions/s1226/lots/r0012-x/") == "https://rmsothebys.com/auctions/s1226/"
+    assert auction_page("https://rmsothebys.com/ps00/inventory/r6564-2003-ferrari-enzo/") is None
+
+    class FakeFetcher:
+        requests = 0
+        def get(self, url):
+            self.requests += 1
+            return type("R", (), {"text": page})()
+
+    con = db.connect(tmp_path / "t.db")
+    con.execute("INSERT INTO lots (uid, source, model_id, title, status, price_usd, url) VALUES (?,?,?,?,?,?,?)",
+                ("rmsothebys:1", "rmsothebys", "daytona-sp3", "2022 Ferrari Daytona SP3", "sold", 10_400_000,
+                 "https://rmsothebys.com/auctions/lf26/lots/r0063-2022-ferrari-daytona-sp3/"))
+    f = FakeFetcher()
+    src = RMSothebys("rmsothebys", {}, Context(fetcher=f, run_date=date(2026, 11, 1), con=con))
+    assert src.date_stored_results() == 1
+    assert con.execute("SELECT ends_at FROM lots").fetchone()[0].startswith("2026-10-31")
+    # a second source instance reads the cached date instead of fetching the page again
+    src2 = RMSothebys("rmsothebys", {}, Context(fetcher=f, run_date=date(2026, 11, 1), con=con))
+    assert src2.auction_end("https://rmsothebys.com/auctions/lf26/lots/other/") == "2026-10-31" and f.requests == 1

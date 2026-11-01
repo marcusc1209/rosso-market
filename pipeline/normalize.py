@@ -204,6 +204,13 @@ def infer_country(location: Optional[str], explicit: Optional[str] = None) -> Op
 
 # ---------------------------------------------------------------- record normalization
 
+_RANGE = re.compile(r"\d[\d,\.]*\s*[kKmM]?\s*(?:-|\u2013|\u2014|to)\s*\D{0,4}\d")
+
+
+def is_price_range(text) -> bool:
+    return bool(text and _RANGE.search(str(text)))
+
+
 class Reject(Exception):
     pass
 
@@ -227,7 +234,12 @@ def normalize(raw: RawRecord, fx: dict, min_confidence: float = 0.5) -> Normaliz
     if match.confidence < min_confidence:
         raise Reject("low model confidence: " + "; ".join(match.reasons))
 
-    price, cur = (raw.price, raw.currency) if raw.price is not None else parse_price(raw.price_text, raw.currency)
+    if raw.price is not None:
+        price, cur = raw.price, raw.currency
+    elif is_price_range(raw.price_text):
+        price, cur = None, raw.currency     # "$80,000 - $100,000" is an estimate, not a price
+    else:
+        price, cur = parse_price(raw.price_text, raw.currency)
     price_usd = to_usd(price, cur or "USD", fx)
     est_lo = to_usd(raw.estimate_low, raw.currency, fx)
     est_hi = to_usd(raw.estimate_high, raw.currency, fx)

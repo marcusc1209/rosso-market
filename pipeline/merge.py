@@ -18,7 +18,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from . import db
+from . import clean, db
 from .run import load_config
 
 
@@ -34,7 +34,7 @@ def merge(local: Path, remote: Path, our_sources: list[str], day: date) -> dict:
     for table in ("sightings", "lots"):
         cur = con.execute(f"INSERT OR REPLACE INTO main.{table} SELECT * FROM r.{table} WHERE source NOT IN ({q})", our_sources)
         counts[table] = cur.rowcount
-    for table in ("sighting_prices", "lot_observations", "news"):
+    for table in ("sighting_prices", "lot_observations", "news", "kv"):
         counts[table] = con.execute(f"INSERT OR IGNORE INTO main.{table} SELECT * FROM r.{table}").rowcount
     cols = "day, source, started_at, finished_at, status, fetched, accepted, rejected, requests, error"
     counts["runs"] = con.execute(
@@ -43,6 +43,7 @@ def merge(local: Path, remote: Path, our_sources: list[str], day: date) -> dict:
         our_sources).rowcount
     con.commit()
     con.execute("DETACH DATABASE r")
+    counts["purged"] = clean.purge(con)
     db.build_daily_asks(con, day)
     con.close()
     return counts

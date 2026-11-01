@@ -202,10 +202,12 @@ NON_CAR = re.compile(
     r"\b(wheels?|rims?|seats?|brochure|poster|sign|model car|scale model|diecast|die cast|1 ?[:x] ?(8|12|18|43)|"
     r"go ?kart|pedal car|engine only|transmission only|gearbox|tool kit|toolkit|luggage|helmet|watch|"
     r"memorabilia|steering wheel|hardtop only|parts|literature|replica|tribute|re ?creation|kit car|simulator|bumper|"
-    r"junior|childs?|kids?|neon|lighted|illuminated|clock|artwork|painting|sculpture|book|jacket|chair|desk|"
+    r"junior|childs?|children|kids?|ride on|ride in|neon|lighted|illuminated|clock|artwork|painting|sculpture|book|jacket|chair|desk|"
     r"engine stand|display engine|continuation|evocation|recreation|powered|arcade|game|table|display model|"
     r"half scale|scale|manuals?|passports?|booklets?|accessories|headlights?|taillights?|tail lights?|lights|exhaust|"
-    r"mirrors?|badges?|emblems?|key fob|keys|tool roll|car cover|luggage set|wheel set|brake kit)\b"
+    r"mirrors?|badges?|emblems?|key fob|keys|tool roll|car cover|luggage set|wheel set|brake kit|"
+    r"engine(?! out)|engines|shell|body shell|style body|body panels|wall art|intake|plenum|manifolds?|windshield|"
+    r"chronograph|perpetual calendar|glass hardtop|helmets|motorcycle|flight box)\b"
 )
 
 

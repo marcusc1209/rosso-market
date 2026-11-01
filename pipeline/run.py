@@ -18,7 +18,7 @@ from pathlib import Path
 
 import yaml
 
-from . import db, export, health as H
+from . import clean, db, export, health as H
 from .dedupe import vehicle_key
 from .fetch import Fetcher
 from .normalize import normalize, Reject
@@ -150,11 +150,14 @@ def main(argv=None):
                 scfg["lookback_days"] = 1500
     day = date.fromisoformat(a.date) if a.date else date.today()
     con = db.connect(Path(cfg["settings"].get("db", "data/ferrari.db")))
+    clean.purge(con)        # stored rows that today's filters would reject
 
     reports: list[dict] = []
     if not a.export_only:
         only = set(a.only.split(",")) if a.only else None
         sources = build_sources(cfg, day, only, a.where)
+        for _, _, ctx in sources:
+            ctx.con = con
         if not sources:
             log.error("no sources enabled")
             return 1

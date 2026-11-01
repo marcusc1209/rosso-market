@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS runs (
   status TEXT, fetched INT, accepted INT, rejected INT, requests INT, error TEXT
 );
 CREATE TABLE IF NOT EXISTS rejects (run_id INT, source TEXT, source_id TEXT, title TEXT, reason TEXT);
+CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT, updated TEXT);
 CREATE TABLE IF NOT EXISTS news (url TEXT PRIMARY KEY, title TEXT, outlet TEXT, published TEXT, image TEXT, first_seen TEXT);
 """
 
@@ -58,6 +59,16 @@ def connect(path: Path) -> sqlite3.Connection:
     con.executescript(SCHEMA)
     con.execute("PRAGMA journal_mode=WAL")
     return con
+
+
+def kv_get(con, key: str):
+    row = con.execute("SELECT value FROM kv WHERE key=?", (key,)).fetchone()
+    return None if row is None else row[0]
+
+
+def kv_set(con, key: str, value: str):
+    con.execute("INSERT OR REPLACE INTO kv (key, value, updated) VALUES (?, ?, ?)", (key, value, now()))
+    con.commit()
 
 
 def now() -> str:

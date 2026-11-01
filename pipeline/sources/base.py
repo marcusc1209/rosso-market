@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Iterator, Optional
+from typing import Any, Iterator, Optional
 
 from ..fetch import Fetcher, Browser
 from ..records import RawRecord
@@ -14,6 +14,7 @@ class Context:
     fetcher: Fetcher
     run_date: date
     llm_cfg: dict = field(default_factory=dict)
+    con: Any = None                 # the database, for sources that keep a small lookup cache
     _browser: Optional[Browser] = None
 
     @property

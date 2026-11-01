@@ -8,7 +8,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from . import analytics as A
-from . import taxonomy
+from . import clean, taxonomy
 
 
 def _takes(content_dir: Path) -> list[dict]:
@@ -118,11 +118,14 @@ def auction_stats(con, day: date) -> dict:
     """Per model auction record: what sold and for how much over the last 12 months."""
     since, since_prev = (day - timedelta(days=365)).isoformat(), (day - timedelta(days=730)).isoformat()
     out = {}
-    rows = con.execute("""SELECT model_id, status, price_usd, substr(ends_at,1,10) AS d FROM lots
+    rows = con.execute("""SELECT uid, model_id, status, price_usd, substr(ends_at,1,10) AS d FROM lots
                           WHERE status IN ('sold','unsold') AND ends_at IS NOT NULL AND substr(ends_at,1,10) <= ?""",
                        (day.isoformat(),)).fetchall()
+    skip = clean.implausible_lots(con)
     by = {}
     for r in rows:
+        if r["uid"] in skip:
+            continue
         by.setdefault(r["model_id"], []).append(r)
     for mid, rs in by.items():
         now = [r for r in rs if r["d"] > since]
@@ -150,11 +153,12 @@ def model_detail(con, model_id: str, day: date) -> dict:
              s.exterior_color, s.year
       FROM daily_asks a JOIN sightings s ON s.vehicle_key = a.vehicle_key AND s.removed_on IS NULL
       WHERE a.day=? AND a.model_id=? GROUP BY a.vehicle_key ORDER BY a.price_usd""", (day.isoformat(), model_id)).fetchall()
-    lots = con.execute("""SELECT title, url, auction_house, status, price_usd, ends_at, mileage_mi FROM lots
-                          WHERE model_id=? AND status IN ('sold','unsold') ORDER BY ends_at IS NULL, ends_at DESC LIMIT 60""",
-                       (model_id,)).fetchall()
+    skip = clean.implausible_lots(con)
+    lots = [r for r in con.execute("""SELECT uid, title, url, auction_house, status, price_usd, ends_at, mileage_mi FROM lots
+                          WHERE model_id=? AND status IN ('sold','unsold') ORDER BY ends_at IS NULL, ends_at DESC LIMIT 80""",
+                       (model_id,)) if r["uid"] not in skip][:60]
     # every dated result in the last three years, for the auction chart: [day, price, sold 1/0]
-    pts = con.execute("""SELECT substr(ends_at,1,10), price_usd, status='sold' FROM lots
+    pts = con.execute("""SELECT substr(ends_at,1,10), price_usd, status='sold', uid FROM lots
                          WHERE model_id=? AND status IN ('sold','unsold') AND price_usd > 0 AND ends_at IS NOT NULL
                            AND substr(ends_at,1,10) BETWEEN ? AND ? ORDER BY ends_at""",
                       (model_id, (day - timedelta(days=1095)).isoformat(), day.isoformat())).fetchall()
@@ -162,8 +166,8 @@ def model_detail(con, model_id: str, day: date) -> dict:
                               FROM lots WHERE model_id=? AND status IN ('live','upcoming') AND last_seen >= ? ORDER BY ends_at""",
                            (model_id, (day - timedelta(days=1)).isoformat())).fetchall()
     return {"id": model_id, "history": [[p["day"], p["median"], p["n"]] for p in hist],
-            "listings": [dict(r) for r in rows], "results": [dict(r) for r in lots],
-            "auction_points": [[r[0], round(r[1]), int(r[2])] for r in pts], "upcoming": [dict(r) for r in upcoming]}
+            "listings": [dict(r) for r in rows], "results": [{k: r[k] for k in r.keys() if k != "uid"} for r in lots],
+            "auction_points": [[r[0], round(r[1]), int(r[2])] for r in pts if r[3] not in skip], "upcoming": [dict(r) for r in upcoming]}
 
 
 def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
