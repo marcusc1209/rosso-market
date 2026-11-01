@@ -131,15 +131,20 @@ def _page(key: str, g: dict, prices: dict, comps: dict, stats: dict, today: str)
         raw = _raw(r["raw"])
         ph = _photos(raw, r["image_url"])
         series = prices.get(r["uid"], [])
+        extra = raw.get("extra") or {}
+        # the marketplace's own price history (AutoTrader keeps one) comes before what we observed
+        before = [(d, p) for d, p in (extra.get("price_history") or [])
+                  if isinstance(p, (int, float)) and (not series or d < series[0][0])]
         changes, last = [], None
-        for d, p in series:
+        for d, p in [*before, *series]:
             if p and p != last:
                 changes.append([d, _round(p)])
                 last = p
         active = r["removed_on"] is None
+        listed = min(x for x in [r["first_seen"], extra.get("listed_on")] if x) if (r["first_seen"] or extra.get("listed_on")) else None
         seller = r["dealer_name"] or r["marketplace"] or r["source"]
         events.append({
-            "date": r["first_seen"], "end": None if active else (r["removed_on"] or r["last_seen"]),
+            "date": listed, "end": None if active else (r["removed_on"] or r["last_seen"]),
             "kind": "listed" if active else "delisted",
             "label": ("Listed by " if active else "Previously listed by ") + seller,
             "price": changes[-1][1] if changes else None, "price_label": "Asking" if active else "Last asking",

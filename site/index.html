@@ -712,7 +712,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     const mList = document.getElementById("m-list");
     if (detail.listings.length) {
       switchable(mList, detail.listings, listingCard, listTable, { id: "listings", sorts: LISTING_SORTS,
-        note: "Listing dates are the day we first saw each car. Our dealer tracking began on Oct 31, 2026, so cars listed before then show that date." });
+        note: "AutoTrader listings carry the date the dealer listed them. For other sites it is the day we first saw the car, and our tracking began on Oct 31, 2026." });
     } else mList.innerHTML = '<div class="empty">No cars listed right now.</div>';
     const resTable = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Lot</th><th>House</th><th>Closed</th><th class="r">Mileage</th><th>Result</th><th class="r">Price</th></tr></thead><tbody>
       ${items.map(r => `<tr><td class="thumb">${photo(r.image, "")}</td><td class="name"><a ${carLink(r)}>${esc(r.title)}</a></td><td>${esc(r.auction_house)}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td><td class="r num">${miles(r.mileage_mi)}</td>
@@ -966,7 +966,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     app.innerHTML = pageHead("Methodology", "How we count", "Where the numbers come from and what each one means.")
       + `<section class="block"><div class="wrap"><div class="prose">
         <h3>Sources</h3>
-        <p>Asking prices come from the Ferrari dealer network's own used inventory, including cars certified under Ferrari Approved, and from licensed listing data where available. Auction results come from Bring a Trailer, Cars &amp; Bids, Sotheby's Motorsport, duPont Registry Live, RM Sotheby's and Mecum. We collect once a day.</p>
+        <p>Asking prices come from the Ferrari dealer network's own used inventory, including cars certified under Ferrari Approved, and from dealer marketplaces: AutoTrader in the US and Canada and duPont Registry. Auction results come from Bring a Trailer, Cars &amp; Bids, Sotheby's Motorsport, duPont Registry Live, RM Sotheby's and Mecum. We collect once a day.</p>
         <h3>One car, one count</h3>
         <p>The same car is often listed on several sites at once. We match cars by VIN, then by chassis number for older cars, then by model, year, mileage, colour and seller. Each physical car moves the numbers once. When one car shows two prices, the selling dealer's own price wins.</p>
         <h3>Median ask</h3>

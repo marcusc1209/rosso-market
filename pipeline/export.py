@@ -151,7 +151,8 @@ def model_detail(con, model_id: str, day: date, idx=None) -> dict:
     car = (lambda uid: idx.lot(uid)) if idx else (lambda uid: None)
     rows = con.execute("""
       SELECT a.vehicle_key, a.price_usd, s.title, s.url, s.mileage_mi, s.location, s.dealer_name, s.marketplace, s.certified,
-             s.exterior_color, s.year, MAX(s.image_url) AS image, MIN(s.first_seen) AS first_seen
+             s.exterior_color, s.year, MAX(s.image_url) AS image,
+             MIN(MIN(s.first_seen, COALESCE(CASE WHEN json_valid(s.raw) THEN json_extract(s.raw, '$.extra.listed_on') END, s.first_seen))) AS first_seen
       FROM daily_asks a JOIN sightings s ON s.vehicle_key = a.vehicle_key AND s.removed_on IS NULL
       WHERE a.day=? AND a.model_id=? GROUP BY a.vehicle_key ORDER BY a.price_usd""", (day.isoformat(), model_id)).fetchall()
     listings = [dict(r, car=idx.listing(r["vehicle_key"]) if idx else None) for r in rows]

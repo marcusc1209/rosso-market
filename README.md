@@ -198,3 +198,22 @@ stand alone, because loose fingerprints would join different cars.
 Each model file carries `points` for the market chart: sold, high bid, for sale and last
 asking price, each with its car id, title and photo, so hovering a dot shows the car and
 clicking it opens the car page.
+
+
+## Dealer marketplaces
+
+`pipeline/sources/dealer_marketplaces.py` reads three marketplaces, checked on 2026-11-01:
+
+| Source | Cars | Runner | Notes |
+| --- | --- | --- | --- |
+| AutoTrader.com | ~2,300 used | Mac | VIN, price history, days listed, dealer location, photos |
+| duPont Registry | ~1,800 used | cloud | schema.org list on each search page, VIN, dealer |
+| AutoTrader.ca | ~330 | Mac | AutoScout24 platform, prices in CAD, no VIN |
+
+Each one's robots.txt allows general crawlers on the search pages read here, and
+nothing else is read. Cars.com is off: every page, robots.txt included, sits behind a
+Cloudflare bot check, which this pipeline never works around. Cars that appear on
+several sites are one car (matched by VIN, or by fingerprint for AutoTrader.ca), so
+adding sources widens coverage without double counting. These sites' terms of use
+govern automated access; MarketCheck (`marketcheck`, needs a paid key) is the licensed
+route to the same inventory.

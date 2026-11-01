@@ -54,13 +54,10 @@ sources:
     max_rows_per_channel: 5000
     fetch: {respect_robots_txt: false, min_interval_seconds: 0.5}
 
-  dupont_registry:                 # unverified
-    adapter: browser_json
-    enabled: false
-    kind: listing
-    label: duPont Registry
-    start_urls: [https://www.dupontregistry.com/autos/results/ferrari]
-    scrolls: 10
+  dupont_registry:                 # verified 2026-11-01. Exotic dealer marketplace, ~1,800 used Ferraris, schema.org data on each page
+    adapter: dupont_registry
+    enabled: true
+    max_pages: 150
 
   dealer_sites:                    # unverified. Add independent dealers' inventory pages; most publish JSON-LD
     adapter: static_page
@@ -69,22 +66,19 @@ sources:
     label: dealer site
     start_urls: []
 
-  # Direct marketplace adapters stay off: heavy bot protection and terms that prohibit scraping.
-  # MarketCheck carries the same inventory under licence.
-  autotrader_us:
-    adapter: browser_json
-    enabled: false
-    kind: listing
-    label: autotrader.com
-    start_urls: [https://www.autotrader.com/cars-for-sale/ferrari]
-  autotrader_ca:
-    adapter: browser_json
-    enabled: false
-    kind: listing
-    label: autotrader.ca
-    currency: CAD
-    start_urls: [https://www.autotrader.ca/cars/ferrari/]
-  cars_com:
+  # Marketplaces. robots.txt allows general crawlers on these search pages (checked 2026-11-01).
+  # They run on the Mac like Ferrari Approved, since big marketplaces refuse data center addresses.
+  autotrader_us:                   # verified 2026-11-01. ~2,300 used Ferraris nationwide, VIN, price history, days listed
+    adapter: autotrader
+    enabled: true
+    runner: home
+    page_size: 100
+    max_pages: 40
+  autotrader_ca:                   # verified 2026-11-01. ~330 Ferraris in Canada (AutoScout24 platform), no VIN
+    adapter: autotrader_ca
+    enabled: true
+    runner: home
+  cars_com:                        # off: every page, robots.txt included, sits behind a Cloudflare bot check
     adapter: browser_json
     enabled: false
     kind: listing
