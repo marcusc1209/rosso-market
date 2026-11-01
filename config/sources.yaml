@@ -39,8 +39,9 @@ sources:
   # ============================================================ asking prices (dealers and private sellers)
 
   ferrari_approved:                # verified. Every car at a Ferrari dealer, US ~1,200 and Canada ~100; flags certified cars
-    adapter: ferrari_approved
-    enabled: true
+    adapter: ferrari_approved      # Refuses GitHub Actions addresses (403, even in a browser). Needs a residential proxy
+    enabled: true                  # (secret RESIDENTIAL_PROXY_URL) or a run from a home connection.
+    fetch: {proxy_env: RESIDENTIAL_PROXY_URL}
     countries: [usa, canada]
     max_pages: 200                 # 11 cars per page, ~120 pages, about 8 minutes at 4 seconds per request
 
@@ -111,6 +112,7 @@ sources:
   somo:                            # verified. Sotheby's Motorsport listings API (live, preview, sold)
     adapter: somo
     enabled: true
+    fetch: {proxy_env: RESIDENTIAL_PROXY_URL}
     sold_pages: 4
 
   dupont_live:                     # verified. duPont Registry Live listings API. Some results look implausible

@@ -42,6 +42,7 @@ MODELS: list[Model] = [
     M("f80", "F80", "Hypercars and limited series", "coupe", (2025, None), (r"\bf80\b",)),
     M("enzo", "Enzo", "Hypercars and limited series", "coupe", (2002, 2004), (r"\benzo\b",)),
     M("f50", "F50", "Hypercars and limited series", "spider", (1995, 1997), (r"\bf50\b",)),
+    M("288-gto", "288 GTO", "Hypercars and limited series", "coupe", (1984, 1987), (r"288 gto",)),
     M("f40", "F40", "Hypercars and limited series", "coupe", (1987, 1992), (r"\bf40\b",)),
     M("fxx-k", "FXX K", "Hypercars and limited series", "coupe", (2015, 2017), (r"fxx ?k\b",), tracked=False),
     M("fxx", "FXX", "Hypercars and limited series", "coupe", (2005, 2007), (r"\bfxx\b",), tracked=False),
@@ -106,6 +107,7 @@ MODELS: list[Model] = [
     M("california", "California", "Front engine V8 GT", "spider", (2009, 2014), (r"\bcalifornia\b(?! spider| spyder)",)),
 
     # Four seat GT and SUV
+    M("luce", "Luce", "Four seat GT and SUV", "gt", (2026, None), (r"\bluce\b",), tracked=False),
     M("purosangue", "Purosangue", "Four seat GT and SUV", "suv", (2023, None), (r"purosangue",)),
     M("gtc4lusso-t", "GTC4Lusso T", "Four seat GT and SUV", "gt", (2017, 2020), (r"gtc4 ?lusso t\b",)),
     M("gtc4lusso", "GTC4Lusso", "Four seat GT and SUV", "gt", (2017, 2020), (r"gtc4 ?lusso", r"gtc4")),
@@ -119,12 +121,13 @@ MODELS: list[Model] = [
     M("348", "348", "Classics", "coupe", (1990, 1995), (r"\b348\b",)),
     M("328", "328 GTB and GTS", "Classics", "targa", (1986, 1989), (r"\b328\b",)),
     M("308", "308 GTB and GTS", "Classics", "targa", (1975, 1985), (r"\b308 gt[bs]",  r"\b308 gtsi", r"\b308 qv", r"\b308\b(?! gt4)")),
+    M("208-turbo", "208 GTB and GTS Turbo", "Classics", "targa", (1982, 1989), (r"\b208\b", r"\bgt[bs] turbo\b")),
     M("dino-308-gt4", "Dino 308 GT4", "Classics", "coupe", (1974, 1980), (r"308 gt4",)),
     M("dino-246", "Dino 246", "Classics", "coupe", (1969, 1974), (r"dino 246", r"246 gt", r"dino 206")),
     M("f512m", "F512 M", "Classics", "coupe", (1995, 1996), (r"f ?512 ?m\b",)),
     M("512-tr", "512 TR", "Classics", "coupe", (1992, 1994), (r"512 ?tr\b",)),
     M("testarossa", "Testarossa", "Classics", "coupe", (1985, 1991), (r"testarossa",)),
-    M("512-bb", "512 BB", "Classics", "coupe", (1976, 1984), (r"512 ?bbi?\b", r"berlinetta boxer")),
+    M("512-bb", "365 GT4 BB and 512 BB", "Classics", "coupe", (1973, 1984), (r"512 ?bbi?\b", r"berlinetta boxer", r"365 gt4 ?bb", r"\bbb 512")),
     M("mondial", "Mondial", "Classics", "gt", (1980, 1993), (r"mondial",), tracked=False),
     M("daytona", "365 GTB/4 Daytona", "Classics", "coupe", (1968, 1973), (r"365 gt[bs] ?4", r"\bdaytona\b(?! sp3)")),
     M("330-gtc", "330 GTC and GTS", "Classics", "coupe", (1966, 1968), (r"330 gt[cs]",)),
@@ -210,7 +213,8 @@ OTHER_MAKES = ("abarth", "fiat", "lancia", "alfa romeo", "maserati", "lamborghin
                "pontiac", "toyota", "mercedes", "bmw", "jaguar", "shelby", "de tomaso", "iso", "bizzarrini", "lego")
 _OTHER = re.compile(r"\b(" + "|".join(OTHER_MAKES) + r")\b")
 _TRACK = re.compile(r"\b(challenge(?! stradale)|xx programme|corse clienti|gt3|gte|gt2 pro|competizione gt|333 sp|"
-                    r"f1 car|formula 1|f2004|f2003|f2002|f2001|race car|racecar)\b")
+                    r"f1 car|formula 1|f2004|f2003|f2002|f2001|race car|racecar|599 ?xx|xx evo|fxx|312 t\d?|312 b\d?|126 c\d?|"
+                    r"641|642|643|f92a|f93a|412 t\d|f310( b)?|f300|f399|f2005|248 f1|f2007|f2008|f60|f138|f14 t)\b")
 
 
 def other_make_first(title: str) -> bool:

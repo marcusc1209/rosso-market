@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 import random
 import time
 from pathlib import Path
@@ -32,6 +33,18 @@ def _is_challenge(body: str) -> bool:
     return len(body) < 60000 and any(m in head for m in _CHALLENGE)
 
 
+def _pw_proxy(url):
+    """Convert http://user:pass@host:port into Playwright's proxy settings."""
+    if not url:
+        return None
+    from urllib.parse import urlparse as _u
+    p = _u(url)
+    out = {"server": f"{p.scheme}://{p.hostname}:{p.port}"}
+    if p.username:
+        out.update(username=p.username, password=p.password or "")
+    return out
+
+
 class Blocked(Exception):
     """robots.txt disallows the URL, or the site answered with a bot challenge."""
 
@@ -49,7 +62,14 @@ class Fetcher:
         self._last: dict[str, float] = {}
         self._robots: dict[str, Optional[RobotFileParser]] = {}
         self.requests = 0
+        # Optional proxy, per source: `fetch: {proxy_env: RESIDENTIAL_PROXY_URL}` in sources.yaml.
+        # Some sites (Ferrari Approved, SOMO) refuse data center addresses such as GitHub Actions.
+        env = cfg.get("proxy_env")
+        self.proxy = os.environ.get(env) if env else None
+        if env and not self.proxy:
+            log.warning("%s: %s is not set, connecting directly", source, env)
         self.client = httpx.Client(
+            proxy=self.proxy,
             headers={"User-Agent": self.user_agent, "Accept-Language": "en-US,en;q=0.9"},
             timeout=float(cfg.get("timeout_seconds", 30)),
             follow_redirects=True,
@@ -162,7 +182,7 @@ class Browser:
         if not self.fetcher._allowed(url):
             raise Blocked(f"robots.txt disallows {url}")
         browser = self._ensure()
-        ctx = browser.new_context(user_agent=self.fetcher.user_agent, locale="en-US",
+        ctx = browser.new_context(user_agent=self.fetcher.user_agent, locale="en-US", proxy=_pw_proxy(self.fetcher.proxy),
                                   viewport={"width": 1400, "height": 1000})
         page = ctx.new_page()
         payloads: list = []
@@ -207,6 +227,7 @@ class Browser:
             raise Blocked(f"robots.txt disallows {url}")
         if getattr(self, "_page", None) is None:
             self._ctx = self._ensure().new_context(
+                proxy=_pw_proxy(self.fetcher.proxy),
                 user_agent=self.cfg.get("browser_user_agent") or
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36",
                 locale="en-US", viewport={"width": 1400, "height": 1000})
