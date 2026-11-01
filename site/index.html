@@ -207,6 +207,12 @@ table.sheet { width: 100%; border-collapse: collapse; font-size: 14px; min-width
 .kpi > span { font-size: 12px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
 .chart-box { background: var(--surface); border: 1px solid var(--line); padding: 18px 12px 8px; }
 .chart-box svg { width: 100%; height: auto; display: block; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.dot-sold, .dot-unsold { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.dot-sold { background: var(--rosso); }
+.dot-unsold { border: 1.5px solid var(--muted); }
+.line-med { width: 18px; height: 2px; background: var(--ink); display: inline-block; }
 .axis { fill: var(--muted); font: 11px var(--f-mono); }
 .grid-line { stroke: var(--line); stroke-width: 1; }
 .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -339,6 +345,34 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     </svg>`;
   }
 
+  function auctionChart(pts, label) {
+    if (!pts.length) return '<p class="flat">No dated auction results yet.</p>';
+    const W = 900, H = 320, L = 64, R = 18, T = 14, B = 34;
+    const prices = pts.map(p => p[1]).sort((a, b) => a - b);
+    // clip the axis at the 2nd and 98th percentile so one extreme lot does not flatten the rest
+    const lo = prices[Math.floor(prices.length * 0.02)], hi = prices[Math.min(prices.length - 1, Math.ceil(prices.length * 0.98) - 1)];
+    const ticks = niceTicks(lo * 0.9, hi * 1.08, 4);
+    const min = Math.min(ticks[0], lo * 0.9), max = Math.max(ticks[ticks.length - 1], hi * 1.08);
+    const t0 = Date.parse(pts[0][0]), t1 = Math.max(Date.parse(pts[pts.length - 1][0]), t0 + 86400000);
+    const x = d => L + (Date.parse(d) - t0) / (t1 - t0) * (W - L - R);
+    const y = v => T + (1 - (Math.min(Math.max(v, min), max) - min) / (max - min)) * (H - T - B);
+    const grid = ticks.map(t => `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text class="axis" x="${L - 8}" y="${y(t) + 4}" text-anchor="end">${short(t)}</text>`).join("");
+    const years = []; for (let yr = new Date(t0).getUTCFullYear() + 1; Date.UTC(yr, 0, 1) <= t1; yr++) years.push(yr);
+    const xt = years.map(yr => { const d = `${yr}-01-01`; return `<line class="grid-line" x1="${x(d)}" x2="${x(d)}" y1="${T}" y2="${H - B}"/><text class="axis" x="${x(d)}" y="${H - 10}" text-anchor="middle">${yr}</text>`; }).join("");
+    const dots = pts.map(p => p[2]
+      ? `<circle cx="${x(p[0]).toFixed(1)}" cy="${y(p[1]).toFixed(1)}" r="4" fill="var(--rosso)" fill-opacity=".75"><title>${p[0]}: ${money(p[1])}, sold</title></circle>`
+      : `<circle cx="${x(p[0]).toFixed(1)}" cy="${y(p[1]).toFixed(1)}" r="3.5" fill="none" stroke="var(--muted)" stroke-width="1.4"><title>${p[0]}: ${money(p[1])}, not sold</title></circle>`).join("");
+    // rolling median of the last 9 sold results
+    const sold = pts.filter(p => p[2]); let path = "";
+    if (sold.length >= 6) {
+      const med = a => { const s = [...a].sort((p, q) => p - q); return s[Math.floor(s.length / 2)]; };
+      path = sold.map((p, i) => [p[0], med(sold.slice(Math.max(0, i - 8), i + 1).map(q => q[1]))]).slice(4)
+        .map((p, i) => (i ? "L" : "M") + x(p[0]).toFixed(1) + " " + y(p[1]).toFixed(1)).join("");
+    }
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">${grid}${xt}${dots}
+      ${path ? `<path d="${path}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-opacity=".8"/>` : ""}</svg>`;
+  }
+
   function heroChart(index) {
     if (!index || index.length < 2) return "";
     const W = 1200, H = 420, vals = index.map(p => p[1]);
@@ -388,15 +422,15 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
 
   function modelsTable(models, opts = {}) {
     return `<div class="tbl-wrap"><table class="sheet">
-      <thead><tr>${opts.rank ? '<th class="p">Pos</th>' : ""}<th>Model</th><th class="r">Listings</th><th class="r">Median ask</th><th class="r">Middle half</th><th class="r">7 days</th><th class="r">30 days</th><th class="r">Days listed</th><th style="width:120px">90 days</th></tr></thead>
+      <thead><tr>${opts.rank ? '<th class="p">Pos</th>' : ""}<th>Model</th><th class="r">For sale</th><th class="r">Median ask</th><th class="r">7 days</th><th class="r">Sold, 12 mo</th><th class="r">Median sold</th><th class="r">vs last year</th><th class="r">Sell through</th></tr></thead>
       <tbody>${models.map((m, i) => `<tr class="click" data-href="${modelLink(m.id)}">
         ${opts.rank ? `<td class="p">P${i + 1}</td>` : ""}
         <td class="name"><a href="${modelLink(m.id)}">${esc(m.name)}</a></td>
-        <td class="r num">${m.listings}</td><td class="r num">${money(m.median)}</td>
-        <td class="r num">${short(m.p25)} to ${short(m.p75)}</td>
-        <td class="r">${chg(m.change_7d)}</td><td class="r">${chg(m.change_30d)}</td>
-        <td class="r num">${m.days_on_market ?? ""}</td>
-        <td>${spark((byId[m.id] || m).spark, "var(--muted)")}</td></tr>`).join("")}</tbody></table></div>`;
+        <td class="r num">${m.listings || ""}</td><td class="r num">${m.median ? money(m.median) : ""}</td>
+        <td class="r">${m.listings ? chg(m.change_7d) : ""}</td>
+        <td class="r num">${(m.auction || {}).sold_12m || ""}</td><td class="r num">${(m.auction || {}).median_sold_12m ? money(m.auction.median_sold_12m) : ""}</td>
+        <td class="r">${(m.auction || {}).change_yoy != null ? chg(m.auction.change_yoy) : ""}</td>
+        <td class="r num">${(m.auction || {}).sell_through_12m != null ? m.auction.sell_through_12m + "%" : ""}</td></tr>`).join("")}</tbody></table></div>`;
   }
 
   // ------------------------------------------------------------ views
@@ -457,7 +491,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     <section class="block" id="families"><div class="wrap">
       <div class="sec-head"><div><div class="eyebrow">Explore by Model</div><h2>Go deeper into each family</h2></div></div>
       <div class="families">${D.families.map(f => `<a class="family" href="#family-${f.slug}">
-        <h3>${esc(f.name)}</h3><div class="n">${plural(f.listings, "tracked listing")}, ${plural(f.models.length, "model")}</div>
+        <h3>${esc(f.name)}</h3><div class="n">${f.listings ? plural(f.listings, "car") + " for sale, " : ""}${plural(f.sold_12m || 0, "auction sale")} in 12 months, ${plural(f.models.length, "model")}</div>
         <div class="sig"><span>${esc(f.signal)}</span>${f.change != null ? chg(f.change) : ""}</div>
         <span class="go">Explore ${esc(f.name)} →</span></a>`).join("")}</div>
     </div></section>
@@ -511,13 +545,19 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   async function viewModel(id) {
     const m = byId[id];
     if (!m) return notFound();
-    const st = m.sell_through;
+    const a = m.auction || {};
+    const kpis = [];
+    if (m.listings) kpis.push([money(m.median), "Median ask"], [chg(m.change_7d), "7 days"], [m.listings, "For sale now"], [m.days_on_market ?? "n/a", "Median days listed"]);
+    kpis.push([a.median_sold_12m ? money(a.median_sold_12m) : "n/a", "Median sold, 12 months"], [a.sold_12m ?? 0, "Sold at auction, 12 months"],
+      [a.change_yoy != null ? chg(a.change_yoy) : "n/a", "Median sold vs a year earlier"], [a.sell_through_12m != null ? a.sell_through_12m + "%" : "n/a", "Sell through, 12 months"]);
+    if (a.last_sold) kpis.push([money(a.last_sold.price), "Last sale, " + dateLong(a.last_sold.day)]);
     app.innerHTML = pageHead(`<a href="#family-${slug(m.family)}">${esc(m.family)}</a>`, esc(m.name),
-      `Asking prices for the Ferrari ${esc(m.name)} across dealers and private sellers in the US and Canada, with auction results from every house we track.`,
-      [[money(m.median), "Median ask"], [chg(m.change_7d), "7 days"], [chg(m.change_30d), "30 days"], [m.listings, "Tracked listings"],
-       [`${short(m.p25)} to ${short(m.p75)}`, "Middle half of asks"], [m.days_on_market ?? "n/a", "Median days listed"],
-       [st && st.rate_30d != null ? st.rate_30d + "%" : "n/a", "Sell through, 30 days"]])
-      + `<section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Median ask</div><h2>Price history</h2></div></div>
+      `Auction results for the Ferrari ${esc(m.name)} from every house we track, with asking prices from dealers in the US and Canada as they come in.`, kpis)
+      + `<section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Every result, last three years</div><h2>Auction results</h2></div>
+         <div class="legend"><span><i class="dot-sold"></i>Sold</span><span><i class="dot-unsold"></i>Not sold, high bid</span><span><i class="line-med"></i>Rolling median sold</span></div></div>
+         <div class="chart-box" id="m-auc"><p class="flat">Loading results</p></div></div></section>
+         <section class="block" id="m-up-sec" hidden><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Coming up</div><h2>Live and upcoming lots</h2></div></div><div class="lots" id="m-up"></div></div></section>
+         <section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Median ask</div><h2>Asking price history</h2></div></div>
          <div class="chart-box" id="m-chart"><p class="flat">Loading history</p></div></div></section>
          <section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">For sale now</div><h2>Tracked listings</h2></div></div><div id="m-list"><p class="flat">Loading listings</p></div></div></section>
          <section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Auction results</div><h2>Recent hammer prices</h2></div></div><div id="m-res"></div></div></section>`;
@@ -528,13 +568,16 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       catch (e) { document.getElementById("m-chart").innerHTML = '<p class="flat">Could not load this model\'s history. Refresh to try again.</p>'; return; }
     }
     if (location.hash !== "#model-" + id) return;
-    document.getElementById("m-chart").innerHTML = lineChart(detail.history.map(p => [p[0], p[1]]), { label: `${m.name} median ask` });
+    document.getElementById("m-chart").innerHTML = detail.history.length >= 2 ? lineChart(detail.history.map(p => [p[0], p[1]]), { label: `${m.name} median ask` })
+      : '<p class="flat">Asking price history starts once dealer inventory is collected daily. It fills in from the first week.</p>';
+    document.getElementById("m-auc").innerHTML = auctionChart(detail.auction_points || [], `${m.name} auction results`);
+    if ((detail.upcoming || []).length) { document.getElementById("m-up-sec").hidden = false; document.getElementById("m-up").innerHTML = detail.upcoming.map(lotCard).join(""); }
     document.getElementById("m-list").innerHTML = detail.listings.length ? `<div class="tbl-wrap"><table class="sheet"><thead><tr><th>Car</th><th class="r">Mileage</th><th>Colour</th><th>Seller</th><th>Seen on</th><th class="r">Asking</th></tr></thead><tbody>
       ${detail.listings.slice(0, 60).map(l => `<tr><td class="name"><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title)}</a>${l.certified ? ' <span class="chip sold">Approved</span>' : ""}</td>
       <td class="r num">${miles(l.mileage_mi)}</td><td>${esc(l.exterior_color || "")}</td><td>${esc(l.dealer_name || "")}${l.location ? `<div class="flat" style="font-size:12px">${esc(l.location)}</div>` : ""}</td><td>${esc(l.marketplace || "")}</td><td class="r num">${money(l.price_usd)}</td></tr>`).join("")}
       </tbody></table></div>${detail.listings.length > 60 ? `<p class="flat">Showing the 60 lowest asks of ${detail.listings.length}.</p>` : ""}` : '<div class="empty">No cars listed right now.</div>';
-    document.getElementById("m-res").innerHTML = detail.results.length ? `<div class="tbl-wrap"><table class="sheet"><thead><tr><th>Lot</th><th>House</th><th>Closed</th><th>Result</th><th class="r">Price</th></tr></thead><tbody>
-      ${detail.results.map(r => `<tr><td class="name"><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a></td><td>${esc(r.auction_house)}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td>
+    document.getElementById("m-res").innerHTML = detail.results.length ? `<div class="tbl-wrap"><table class="sheet"><thead><tr><th>Lot</th><th>House</th><th>Closed</th><th class="r">Mileage</th><th>Result</th><th class="r">Price</th></tr></thead><tbody>
+      ${detail.results.map(r => `<tr><td class="name"><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a></td><td>${esc(r.auction_house)}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td><td class="r num">${miles(r.mileage_mi)}</td>
       <td><span class="chip ${r.status}">${r.status === "sold" ? "Sold" : "Not sold"}</span></td><td class="r num">${money(r.price_usd)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">No auction results recorded yet.</div>';
   }
 
@@ -543,9 +586,10 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   function viewFamily(s) {
     const f = D.families.find(x => x.slug === s);
     if (!f) return notFound();
-    const models = f.models.map(id => byId[id]).filter(Boolean).sort((a, b) => b.listings - a.listings);
+    const models = f.models.map(id => byId[id]).filter(Boolean)
+      .sort((a, b) => (b.listings - a.listings) || (((b.auction || {}).sold_12m || 0) - ((a.auction || {}).sold_12m || 0)));
     const med = models.reduce((a, m) => a + m.listings, 0);
-    app.innerHTML = pageHead(esc(f.name), esc(f.name), esc(f.signal) + ".", [[med, "Tracked listings"], [models.length, "Models"]])
+    app.innerHTML = pageHead(esc(f.name), esc(f.name), esc(f.signal) + ".", [[med, "For sale now"], [f.sold_12m || 0, "Auction sales, 12 months"], [models.length, "Models"]])
       + `<section class="block"><div class="wrap">${modelsTable(models)}</div></section>`;
     wireRows(); window.scrollTo(0, 0);
   }
@@ -639,7 +683,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   // ------------------------------------------------------------ chrome
   function buildMenu() {
     document.getElementById("menu-grid").innerHTML = D.families.map(f => `<div><h4>${esc(f.name)}</h4>
-      ${f.models.map(id => byId[id]).filter(Boolean).map(m => `<a href="${modelLink(m.id)}"><span>${esc(m.name)}</span><span class="num">${m.listings}</span></a>`).join("")}</div>`).join("");
+      ${f.models.map(id => byId[id]).filter(Boolean).map(m => `<a href="${modelLink(m.id)}"><span>${esc(m.name)}</span><span class="num">${m.listings || (m.auction || {}).sold_12m || ""}</span></a>`).join("")}</div>`).join("");
   }
 
   function buildFooter() {

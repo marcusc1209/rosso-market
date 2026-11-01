@@ -25,11 +25,20 @@ def parse_feed(xml_text: str, outlet: str) -> list[dict]:
         except (TypeError, ValueError):
             published = ""
         img = None
-        m = it.find("media:content", ns) or it.find("media:thumbnail", ns)
+        m = it.find("media:content", ns)
+        if m is None:
+            m = it.find("media:thumbnail", ns)
+        if m is None:
+            m = it.find("enclosure")
         if m is not None:
             img = m.get("url")
         out.append({"title": re.sub(r"\s+", " ", title), "url": link.strip(), "published": published, "outlet": outlet, "image": img})
     return out
+
+
+# the site covers road cars: leave racing news to racing sites
+RACING = re.compile(r"\b(f1|formula (1|one)|grand prix|gp\b|leclerc|hamilton|vasseur|scuderia ferrari hp|le mans|wec|hypercar class|"
+                    r"499p|qualifying|podium|pole position|race win)\b", re.I)
 
 
 def fetch_news(fetcher, feeds: list[dict], keyword: str = "ferrari") -> Iterator[dict]:
@@ -39,5 +48,5 @@ def fetch_news(fetcher, feeds: list[dict], keyword: str = "ferrari") -> Iterator
         except Exception:
             continue
         for item in parse_feed(xml_text, f.get("name", "")):
-            if keyword in item["title"].lower():
+            if keyword in item["title"].lower() and not RACING.search(item["title"]):
                 yield item

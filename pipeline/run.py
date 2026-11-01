@@ -49,7 +49,7 @@ def fx_rates(cfg: dict, fetcher: Fetcher | None) -> dict:
     return fx
 
 
-def build_sources(cfg: dict, day: date, only: set | None):
+def build_sources(cfg: dict, day: date, only: set | None, where: str = "all"):
     settings = cfg["settings"]
     raw_root = Path(settings.get("raw_dir", "data/raw"))
     out = []
@@ -57,6 +57,10 @@ def build_sources(cfg: dict, day: date, only: set | None):
         if only and name not in only:
             continue
         if not only and not scfg.get("enabled", False):
+            continue
+        # runner: home marks sources that refuse data center addresses and run on the owner's Mac
+        runner = scfg.get("runner", "cloud")
+        if not only and where != "all" and runner != where:
             continue
         adapter = ADAPTERS.get(scfg.get("adapter"))
         if adapter is None:
@@ -128,6 +132,8 @@ def main(argv=None):
     ap.add_argument("--only", default=None, help="comma separated source names")
     ap.add_argument("--backfill", type=int, default=0)
     ap.add_argument("--export-only", action="store_true")
+    ap.add_argument("--where", choices=["all", "cloud", "home"], default="all",
+                    help="cloud: GitHub's servers, home: sources marked runner: home (the Mac)")
     ap.add_argument("--report", default=None, help="write each source's health as JSON to this path")
     ap.add_argument("-v", "--verbose", action="store_true")
     a = ap.parse_args(argv)
@@ -148,7 +154,7 @@ def main(argv=None):
     reports: list[dict] = []
     if not a.export_only:
         only = set(a.only.split(",")) if a.only else None
-        sources = build_sources(cfg, day, only)
+        sources = build_sources(cfg, day, only, a.where)
         if not sources:
             log.error("no sources enabled")
             return 1
@@ -156,7 +162,7 @@ def main(argv=None):
         for back in range(a.backfill, -1, -1):
             reports = run_day(con, cfg, day - timedelta(days=back), sources, fx)
         feeds = cfg.get("news_feeds") or []
-        if feeds and not only:
+        if feeds and not only and a.where != "home":
             try:
                 db.save_news(con, list(fetch_news(sources[0][2].fetcher, feeds)), day)
             except Exception as e:

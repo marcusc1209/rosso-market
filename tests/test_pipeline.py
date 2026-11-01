@@ -182,3 +182,27 @@ def test_demo_end_to_end(tmp_path, monkeypatch):
     assert data["sample"] is True and data["brief"]["tracked_listings"] > 500 and data["auctions"]["live"]
     text = json.dumps([data["brief"], data["insights"]])
     assert "—" not in text and ";" not in text
+
+
+def test_merge_keeps_both_runners_data(tmp_path):
+    from pipeline.merge import merge
+    day = date(2026, 11, 1)
+    base = tmp_path / "base.db"
+    db.connect(base).close()
+    import shutil
+    local, remote = tmp_path / "local.db", tmp_path / "remote.db"
+    shutil.copy(base, local); shutil.copy(base, remote)
+    # the Mac (remote) saved a Ferrari Approved listing
+    rc = db.connect(remote)
+    n = normalize(RawRecord("ferrari_approved", LISTING, "V1", "u", "2021 Ferrari F8 Spider", price=380000, vin="ZFF93LMA0M0260001"), FX)
+    n.vehicle_key = vehicle_key(n); db.upsert(rc, n, day); rc.commit(); rc.close()
+    # GitHub (local) saved a Bring a Trailer result
+    lc = db.connect(local)
+    lot = normalize(RawRecord("bringatrailer", AUCTION, "L1", "u", "2017 Ferrari 488 Spider", price=305000, status="sold",
+                              ends_at="2026-10-30T20:00:00+00:00"), FX)
+    lot.vehicle_key = vehicle_key(lot); db.upsert(lc, lot, day); lc.commit(); lc.close()
+    merge(local, remote, ["bringatrailer", "carsandbids"], day)
+    c = sqlite3.connect(local)
+    assert c.execute("select count(*) from sightings").fetchone()[0] == 1
+    assert c.execute("select count(*) from lots").fetchone()[0] == 1
+    assert c.execute("select count(*) from daily_asks where day='2026-11-01'").fetchone()[0] == 1

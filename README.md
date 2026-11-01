@@ -125,6 +125,24 @@ Everything marked verified and on above runs free.
 
 ## Running it every day
 
+Two workflows share the work:
+
+| Workflow | Runs on | Sources | When |
+|---|---|---|---|
+| Daily market run (`daily.yml`) | GitHub's servers | Bring a Trailer, Cars & Bids, duPont Registry Live, RM Sotheby's, Mecum | 4:17 am Pacific |
+| Home sources (`home.yml`) | the owner's Mac (self hosted runner) | Ferrari Approved, SOMO | 7:37 am Pacific, or when the Mac wakes |
+
+Ferrari Approved and SOMO refuse GitHub's server addresses, so they run from a home connection. Sources are assigned with `runner: home` in `config/sources.yaml`. Each workflow merges in anything the other saved before writing the database (`pipeline/merge.py`), and the home run asks the daily workflow to republish the site when it finishes.
+
+### Setting up the Mac runner
+
+1. In the repository go to Settings, Actions, Runners, New self hosted runner, and pick macOS and ARM64.
+2. Open Terminal and paste the Download and Configure commands GitHub shows. Accept the defaults (the labels `self-hosted` and `macOS` are added automatically).
+3. Instead of `./run.sh`, install it as a background service so it starts at login: `./svc.sh install` then `./svc.sh start`.
+4. Keep the repository setting "Require approval for all outside collaborators" for fork pull request workflows. A self hosted runner on a public repository must never run code from strangers' pull requests. These workflows only run on a schedule or by hand.
+
+If the Mac is asleep at 7:37 am, the job waits in the queue and starts when it wakes (GitHub keeps it for up to 24 hours).
+
 `.github/workflows/daily.yml` runs at 11:17 UTC: tests, pipeline, site build, deploy to GitHub Pages. It keeps the database on a `market-data` branch so the price history survives between runs, and opens an issue when a source breaks.
 
 `.github/workflows/update.yml` ("Apply update") applies a code change sent as a compressed patch: `git diff | gzip -9 | base64 -w0`, pasted into the workflow's form. It runs the tests before committing. Changes under `.github/` have to be made in GitHub's web editor, because workflow tokens are not allowed to modify workflows.

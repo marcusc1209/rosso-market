@@ -67,7 +67,7 @@ class Fetcher:
         env = cfg.get("proxy_env")
         self.proxy = os.environ.get(env) if env else None
         if env and not self.proxy:
-            log.warning("%s: %s is not set, connecting directly", source, env)
+            log.info("%s: %s is not set, connecting directly", source, env)
         self.client = httpx.Client(
             proxy=self.proxy,
             headers={"User-Agent": self.user_agent, "Accept-Language": "en-US,en;q=0.9"},
