@@ -318,3 +318,121 @@ def test_broadarrow_sitemap_keeps_only_ferrari_lots():
            "<url><loc>https://www.broadarrowauctions.com/vehicles/ql26_r0010/2025-bugatti-w16-mistral</loc></url>"
            "<url><loc>https://www.broadarrowauctions.com/events</loc></url></urlset>").encode()
     assert lot_urls(gzip.compress(xml)) == ["https://www.broadarrowauctions.com/vehicles/am26_r0187/2003-ferrari-enzo"]
+
+
+# ---- Gooding Christie's: getVehicles records as served 2026-10-31
+GOODING = [
+    {"objectID": "4YASVkhagzZtay8EjNSyMd", "title": "1969 Ferrari 365 GTC", "modelYear": 1969, "model": "365 GTC",
+     "itemType": "Cars", "auctionType": "Live Auction", "auctionName": "Pebble Beach Auctions", "lotNumber": 150,
+     "lowEstimate": 750000, "highEstimate": 850000, "uniqueEstimate": None, "salePrice": "841000",
+     "privateSalesPrice": False, "currency": "USD", "auctionEndDate": "1786838400000",
+     "upcomingAuctionEndDate": "9999999999999", "slug": "1969-ferrari-365-gtc-pb26", "hasReservePrice": True},
+    {"objectID": "6bxA31H1XZt5mMKPUNId3", "title": "1971 Ferrari Dino 246 GT", "modelYear": 1971, "model": "Dino 246 GT",
+     "itemType": "Cars", "auctionType": "Live Auction", "auctionName": "Geneva Auction", "lotNumber": 7,
+     "lowEstimate": 275000, "highEstimate": 325000, "uniqueEstimate": None, "salePrice": None,
+     "privateSalesPrice": None, "currency": "CHF", "auctionEndDate": None, "upcomingAuctionEndDate": "1794175200000",
+     "slug": "1971-ferrari-dino-246-gt-gn26", "hasReservePrice": True},
+    {"objectID": "4SeHAicDeeFI5wL9RMK5WD", "title": "2024 Ferrari 499P Modificata", "modelYear": 2024,
+     "itemType": "Cars", "auctionType": "Live Auction", "auctionName": "Geneva Auction", "lotNumber": 17,
+     "lowEstimate": None, "highEstimate": None, "uniqueEstimate": "In excess of CHF 7,500,000", "salePrice": None,
+     "currency": "CHF", "auctionEndDate": None, "upcomingAuctionEndDate": "1794175200000", "slug": "2024-ferrari-499p-modificata"},
+    {"objectID": "5uVM5xJFu8fnfshxIWZnJm", "title": "2017 Ferrari F12 Berlinetta 70th Anniversary Edition", "modelYear": 2017,
+     "itemType": "Cars", "auctionType": "Live Auction", "auctionName": "Scottsdale 2020", "lotNumber": 164,
+     "lowEstimate": 375000, "highEstimate": 450000, "salePrice": None, "privateSalesPrice": False, "currency": "USD",
+     "auctionEndDate": "1579365000000", "upcomingAuctionEndDate": "9999999999999",
+     "slug": "2017-ferrari-f12-berlinetta-70th-anniversary-edition-3", "hasReservePrice": True},
+    {"objectID": "NVJEGkiTYG1V00ZPGs93O", "title": "1984 Ferrari 512 BBi", "itemType": "Cars", "auctionType": "Private Sale",
+     "askingPrice": 475000, "currency": "USD", "upcomingAuctionEndDate": "9999999999998", "slug": "1984-ferrari-512-bbi-ps"},
+    {"objectID": "x1", "title": "1957 Ferrari 250 Testa Rossa", "itemType": "Cars", "auctionType": "Live Auction",
+     "salePrice": "1", "privateSalesPrice": True, "currency": "USD", "auctionEndDate": "1579365000000", "slug": "x"},
+]
+
+
+def test_gooding_vehicles():
+    from datetime import datetime, timezone
+    from pipeline.sources.gooding import map_vehicle
+    now = datetime(2026, 11, 1, tzinfo=timezone.utc)
+    sold, upcoming, unique, unsold, private, withheld = [map_vehicle(v, "gooding", now) for v in GOODING]
+    assert sold.status == "sold" and sold.price == 841_000 and sold.ends_at.startswith("2026-08-16")
+    assert sold.url == "https://www.goodingco.com/lot/1969-ferrari-365-gtc-pb26/" and sold.estimate_low == 750_000
+    assert upcoming.status == "upcoming" and upcoming.price is None and upcoming.currency == "CHF"
+    assert (upcoming.estimate_low, upcoming.estimate_high) == (275_000, 325_000) and upcoming.ends_at.startswith("2026-11-08")
+    assert unique.estimate_low == 7_500_000 and unique.estimate_high is None
+    assert unsold.status == "unsold" and unsold.price is None and unsold.ends_at.startswith("2020-01-18")
+    assert private is None and withheld is None
+
+
+# ---- Bonhams: Typesense documents as served 2026-10-31
+BONHAMS_SOLD = {"id": "32045-145", "title": "1968 Ferrari Dino 206 GT Chassis no. 00150 Engine no. 135B 29", "status": "SOLD",
+                "auctionType": "PUBLIC", "price": {"hammerPremium": 563500, "hammerPrice": 490000, "estimateLow": 500000,
+                                                   "estimateHigh": 550000},
+                "currency": {"iso_code": "EUR"}, "auctionEndDate": {"timestamp": 1791755999}, "auctionId": "32045",
+                "lotId": "145", "slug": "1968-ferrari-dino-206-gt-chassis-no-00150-engine-no-135b-29",
+                "country": {"code": "BE", "name": "Belgium"}, "flags": {"isResultPublished": True, "isWithoutReserve": False},
+                "department": {"name": "Cars"}}
+
+
+def test_bonhams_documents():
+    import copy
+    from pipeline.sources.bonhams import map_lot, find_key
+    rec = map_lot(BONHAMS_SOLD, "bonhams")
+    assert rec.status == "sold" and rec.price == 563_500 and rec.currency == "EUR" and rec.country == "BE"
+    assert rec.ends_at.startswith("2026-10-11") and rec.no_reserve is False
+    assert rec.url == "https://www.bonhams.com/auction/32045/lot/145/1968-ferrari-dino-206-gt-chassis-no-00150-engine-no-135b-29/"
+    bi = copy.deepcopy(BONHAMS_SOLD); bi.update(status="BI"); bi["price"].update(hammerPremium=0, hammerPrice=0)
+    assert map_lot(bi, "bonhams").status == "unsold" and map_lot(bi, "bonhams").price is None
+    new = copy.deepcopy(BONHAMS_SOLD); new.update(status="NEW")
+    up = map_lot(new, "bonhams")
+    assert up.status == "upcoming" and up.price is None and up.estimate_low == 500_000
+    for st in ("WD", "CS"):
+        other = copy.deepcopy(BONHAMS_SOLD); other["status"] = st
+        assert map_lot(other, "bonhams") is None
+    hidden = copy.deepcopy(BONHAMS_SOLD); hidden["flags"]["isResultPublished"] = False
+    assert map_lot(hidden, "bonhams") is None
+    assert find_key('let i={host:"api01.bonhams.com",port:Number("443"),protocol:"https",path:"/search-proxy",apiKey:"abc123XYZ"}') == "abc123XYZ"
+
+
+# ---- PCARMARKET: card markup and lot page text as served 2026-10-31
+PCAR_CARDS = """
+<a href="/results/2000-ferrari-550-maranello-3" class="group block"><article><div><div></div></div>
+  <h2>22k-Mile 2000 Ferrari 550 Maranello</h2><p>Thousand Oaks, CA</p><div><span><span>49 Bids</span></span></div>
+  <div><div><span>Bid to</span><span>$300,000</span></div></div></article></a>
+<a href="/results/2012-ferrari-458-spider-1791812243893132258"><article><div><span>Sold</span></div>
+  <h2>5,500-Mile 2012 Ferrari 458 Spider</h2><p>Westhampton, NY</p><div><span>102 Bids</span></div>
+  <div><span>Sold price</span><span>$450,000</span></div></article></a>
+<a href="/results/hachette-ferrari-collection"><article><h2>Hachette Ferrari Model Car Collection</h2>
+  <p>Albuquerque, NM, United States</p><span>13 Bids</span><span>Sold price</span><span>$1,600</span></article></a>
+<a href="/auction/1999-ferrari-360-modena-f1-1792436127235961256"><article><span>Current bid</span><span>$35,750</span>
+  <h2>7k-Mile 1999 Ferrari 360 Modena F1</h2><p>Chilliwack, BC</p><span>16 Bids</span><span>Current bid</span>
+  <span>$35,750</span><span>Ends in</span><span>2D 16H 56M</span></article></a>
+"""
+
+PCAR_DETAIL = "".join(f"<span>{t}</span>" for t in (
+    "Comments | — | Bids | 49 | Bid to | $300,000 | Ended | Oct 15, 2026 | Location | Thousand Oaks, CA | United States | "
+    "Comments | — | Bids | 49 | Inquire | Car Details | Year | 2000 | Make | Ferrari | Model | 550 Maranello | VIN | "
+    "ZFFZS49A7Y0119584 | Mileage Shown | 22,143 mi | Transmission | 6-Speed Manual | Title | Clean | Exterior Color | "
+    "Grigio Titano | Interior | Blu Scuro | Auction Details | Auction Type | Reserve | Seller Type | Dealer | Dealer Fee | "
+    "$0.00 | Location | Thousand Oaks, CA | Zip Code | 91362 | Country | United States | Ended | Oct 15, 2026, 7:28 PM"
+).split(" | "))
+
+
+def test_pcarmarket_cards_and_lot_page():
+    from pipeline.sources.pcarmarket import parse_cards, parse_detail, to_record
+    cards = parse_cards(PCAR_CARDS)
+    assert [c["label"] for c in cards] == ["Bid to", "Sold price", "Sold price", "Current bid"]
+    c550, c458, junk, live = cards
+    assert c550["title"] == "22k-Mile 2000 Ferrari 550 Maranello" and c550["location"] == "Thousand Oaks, CA" and c550["bids"] == 49
+    assert c458["title"] == "5,500-Mile 2012 Ferrari 458 Spider" and c458["value"] == "$450,000"
+    assert live["title"] == "7k-Mile 1999 Ferrari 360 Modena F1"
+
+    d = parse_detail(PCAR_DETAIL)
+    assert d["ends_at"].startswith("2026-10-15") and d["year"] == "2000" and d["make"] == "Ferrari"
+    assert d["model"] == "550 Maranello" and d["vin"] == "ZFFZS49A7Y0119584" and d["mileage"] == "22,143 mi"
+
+    rec = to_record(c550, d, "pcarmarket")
+    assert rec.status == "unsold" and rec.price == 300_000 and rec.mileage == 22_143 and rec.vin == "ZFFZS49A7Y0119584"
+    assert rec.url == "https://www.pcarmarket.com/results/2000-ferrari-550-maranello-3" and rec.year == 2000
+    sold = to_record(c458, {}, "pcarmarket")
+    assert sold.status == "sold" and sold.price == 450_000
+    assert to_record(live, {}, "pcarmarket").status == "live"
+    assert to_record(c550, {**d, "make": "Porsche"}, "pcarmarket") is None

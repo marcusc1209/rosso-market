@@ -149,6 +149,8 @@ def main(argv=None):
                     scfg[k] = max(int(scfg[k]), 60)
             if "lookback_days" in scfg:
                 scfg["lookback_days"] = 1500
+            if "lot_pages" in scfg:
+                scfg["lot_pages"] = max(int(scfg["lot_pages"]), 600)
     day = date.fromisoformat(a.date) if a.date else date.today()
     con = db.connect(Path(cfg["settings"].get("db", "data/ferrari.db")))
     clean.purge(con)        # stored rows that today's filters would reject

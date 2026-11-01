@@ -8,6 +8,9 @@ from .rmsothebys import RMSothebys
 from .online_auctions import SothebysMotorsport, DupontLive
 from .mecum import Mecum
 from .broadarrow import BroadArrow
+from .gooding import Gooding
+from .bonhams import Bonhams
+from .pcarmarket import PCarMarket
 
 ADAPTERS = {
     "bringatrailer": BringATrailer,
@@ -23,4 +26,7 @@ ADAPTERS = {
     "dupont_live": DupontLive,
     "mecum": Mecum,
     "broadarrow": BroadArrow,
+    "gooding": Gooding,
+    "bonhams": Bonhams,
+    "pcarmarket": PCarMarket,
 }

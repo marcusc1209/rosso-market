@@ -140,26 +140,19 @@ sources:
     fetch:
       min_interval_seconds: 10
 
-  gooding:                         # unverified
-    adapter: browser_json
-    enabled: false
-    kind: auction
-    label: Gooding Christie's
-    start_urls: ["https://www.goodingco.com/vehicles/?make=Ferrari"]
+  gooding:                         # verified. GraphQL getVehicles at cdn.goodingco.com, ~940 Ferrari lots
+    adapter: gooding
+    enabled: true
 
-  bonhams:                         # unverified
-    adapter: browser_json
-    enabled: false
-    kind: auction
-    label: Bonhams Cars
-    start_urls: ["https://cars.bonhams.com/search/?q=ferrari"]
+  bonhams:                         # verified. Typesense search proxy (public key read from the site's own script), ~1,800 Ferrari car lots
+    adapter: bonhams
+    enabled: true
 
-  pcarmarket:                      # unverified
-    adapter: browser_json
-    enabled: false
-    kind: auction
-    label: PCARMARKET
-    start_urls: ["https://www.pcarmarket.com/search/?q=ferrari"]
+  pcarmarket:                      # verified. Server rendered search plus one page per car lot (robots.txt allows; no AI training)
+    adapter: pcarmarket
+    enabled: true
+    result_pages: 3                # newest results pages read each run (24 a page); history mode reads all ~60
+    lot_pages: 60
 
   # ============================================================ managed backups (paid, maintained by others)
   apify_bringatrailer:

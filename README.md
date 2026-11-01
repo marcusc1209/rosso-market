@@ -85,7 +85,10 @@ Each verified source was inspected in a real browser on 2026-10-31, and its adap
 | MarketCheck | licensed API | AutoTrader, Cars.com, CarGurus and dealer sites, US and Canada | Built, needs a paid key |
 | Broad Arrow | sitemap, then one page per lot, 10 s apart (robots.txt bars the results search) | ~370 Ferrari lots: results with price, unsold lots, upcoming lots with estimates | Verified, on |
 | Barrett-Jackson | | Results show "Register to View Price" | Off: prices are only shown to signed in users |
-| Gooding, Bonhams, PCARMARKET, duPont Registry dealer listings | generic browser adapter | | Off, unverified |
+| Gooding Christie's | GraphQL `getVehicles` at `cdn.goodingco.com/graphql` | ~940 Ferrari lots: results, unsold, upcoming with estimates | Verified, on |
+| Bonhams | Typesense `multi_search` at `api01.bonhams.com/search-proxy` (the public search key is read from the site's own script each run) | ~1,800 Ferrari car lots | Verified, on |
+| PCARMARKET | server rendered search, then one page per car lot for the date, VIN and mileage | Live lots and results (most of its ~1,400 Ferrari items are parts, which are skipped) | Verified, on |
+| duPont Registry dealer listings | generic browser adapter | | Off, unverified |
 | AutoTrader, Cars.com direct | | | Off on purpose (terms, bot protection) |
 
 ### Quirks found in the live data, and how they are handled
@@ -97,6 +100,9 @@ Each verified source was inspected in a real browser on 2026-10-31, and its adap
 * **RM Sotheby's results have no sale date in the search API.** Each lot link names its auction (`/auctions/lf26/...`), and every auction page carries a schema.org Event with its dates. The adapter reads each auction page once, caches the dates in the `kv` table and dates results by the auction's last day. RM also publishes some sold results with only the estimate showing; those are skipped, because the estimate is not a price. Private sales and sealed bid sales are skipped.
 * **What counts as an auction result, for every house.** A result needs a published price. Private sales, private treaty offers and sealed bid sales are left out entirely, because no hammer price is ever made public. A lot marked sold with no price is left out. An upcoming lot appears only under upcoming auctions with its estimate, and never counts as a sale or an asking price. An unsold lot with no published high bid still counts toward sell through, since it really did fail to sell, but never toward any price.
 * **Broad Arrow** prints the price as text ("Sold Price: $15,185,000", "CHF 75'000", "€184.250"). Its JSON-LD price is ten times the real figure and is ignored. "Sold After Auction" and "Sold Before Auction" publish no price and are skipped. A lot still showing only an estimate after its sale date published no result and is skipped. Results are dated from the auction list on /past-auctions, whose names are spelled slightly differently from the lot pages.
+* **Gooding** marks withheld results with `privateSalesPrice: true` and a sale price of "1"; those and its private sales are skipped. A past lot with no sale price counts as unsold.
+* **Bonhams** statuses: SOLD (price with premium), BI (bought in, unsold, no bid published), WD (withdrawn) and CS (conditional sale), both skipped, NEW (upcoming). Bonhams titles carry "Chassis no." and "Engine no.", so the parts filter ignores "engine no".
+* **PCARMARKET** has no API. Its robots.txt allows general crawlers and sets the content signal ai-train=no, which this project respects (it trains nothing). "Bid to" means the reserve was not met.
 * **Stored rows are rechecked on every run.** `pipeline/clean.py` passes saved titles through the current filters (parts, toys, track cars), drops anything that now fails into `rejects` with a `purged:` reason, renames cars the taxonomy has learned to recognize, and keeps sold prices that are wildly below the same model's sales from the same period out of the medians.
 * **Auction titles carry mileage** ("20k-Mile 2003 Ferrari 360 Spider", "48k-Kilometer 1996 F355"). It is read and converted to miles.
 * **Non cars share the make**: luggage, wheels, signs, arcade games, kids' cars, half scale models, re-creations, and other makers' cars with a Ferrari link (Abarth 695 Tributo Ferrari). All filtered.
