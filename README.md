@@ -206,7 +206,7 @@ clicking it opens the car page.
 
 | Source | Cars | Runner | Notes |
 | --- | --- | --- | --- |
-| AutoTrader.com | ~2,300 used | Mac | VIN, price history, days listed, dealer location, photos |
+| AutoTrader.com | off | | blocks automated access ("page unavailable") from plain requests and headless browsers; the reader is kept for a licensed route |
 | duPont Registry | ~1,800 used | cloud | schema.org list on each search page, VIN, dealer |
 | AutoTrader.ca | ~330 | Mac | AutoScout24 platform, prices in CAD, no VIN |
 

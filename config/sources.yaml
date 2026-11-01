@@ -68,9 +68,9 @@ sources:
 
   # Marketplaces. robots.txt allows general crawlers on these search pages (checked 2026-11-01).
   # They run on the Mac like Ferrari Approved, since big marketplaces refuse data center addresses.
-  autotrader_us:                   # verified 2026-11-01. ~2,300 used Ferraris nationwide, VIN, price history, days listed
-    adapter: autotrader
-    enabled: true
+  autotrader_us:                   # off 2026-11-01: answers both plain requests and the Mac's headless browser
+    adapter: autotrader            # with "Autotrader - page unavailable" (its bot block). Not worked around.
+    enabled: false                 # MarketCheck (marketcheck, paid key) carries AutoTrader inventory under licence
     runner: home
     page_size: 100
     max_pages: 40
