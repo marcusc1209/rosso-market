@@ -9,6 +9,10 @@ on:
         description: "Import extra auction history this run (first run only)"
         type: boolean
         default: false
+      publish_only:
+        description: "Only rebuild and publish the site from the saved data"
+        type: boolean
+        default: false
 
 permissions:
   contents: write     # push the database to the market-data branch
@@ -16,7 +20,7 @@ permissions:
   pages: write
   id-token: write
 
-concurrency: { group: daily-run, cancel-in-progress: false }
+concurrency: { group: market-cloud, cancel-in-progress: false }
 
 jobs:
   run:
@@ -30,6 +34,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12", cache: pip }
       - run: pip install -r requirements.txt && playwright install --with-deps chromium
+        if: ${{ inputs.publish_only != true }}
 
       # The database is the market's memory. It lives on its own branch so it survives
       # cache eviction, and each run replaces it (no history bloat on that branch).
@@ -38,6 +43,7 @@ jobs:
           mkdir -p data
           if git fetch --depth 1 origin market-data 2>/dev/null; then
             git show origin/market-data:ferrari.db > data/ferrari.db
+            git rev-parse origin/market-data > data/base.sha
             echo "restored $(du -h data/ferrari.db | cut -f1)"
           else
             echo "no market-data branch yet: first run"
@@ -47,8 +53,9 @@ jobs:
 
       - name: Run pipeline
         run: |
+          if [ "${{ inputs.publish_only }}" = "true" ]; then python -m pipeline.run --export-only; exit 0; fi
           if [ "${{ inputs.history }}" = "true" ]; then export FM_HISTORY=1; fi
-          python -m pipeline.run --report data/report.json
+          python -m pipeline.run --where cloud --report data/report.json
         env:
           MARKETCHECK_API_KEY: ${{ secrets.MARKETCHECK_API_KEY }}
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
@@ -56,10 +63,16 @@ jobs:
           RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
 
       - name: Save database
-        if: always()
+        if: ${{ always() && inputs.publish_only != true }}
         run: |
           [ -f data/ferrari.db ] || exit 0
           sqlite3 data/ferrari.db "PRAGMA wal_checkpoint(TRUNCATE);" || true
+          # the other workflow may have saved since we started: merge its rows in first
+          git fetch -q --depth 1 origin market-data 2>/dev/null || true
+          if [ -f data/base.sha ] && [ "$(git rev-parse origin/market-data 2>/dev/null)" != "$(cat data/base.sha)" ]; then
+            git show origin/market-data:ferrari.db > data/remote.db
+            python -m pipeline.merge data/remote.db --where cloud
+          fi
           tmp=$(mktemp -d); cp data/ferrari.db "$tmp/"
           cd "$tmp" && git init -q -b market-data && git add ferrari.db
           git -c user.name="rosso-market-bot" -c user.email="bot@users.noreply.github.com" commit -qm "Market data $(date -u +%F)"
