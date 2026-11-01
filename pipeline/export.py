@@ -47,7 +47,8 @@ def build(con, day: date, cfg: dict, health: list[dict]) -> dict:
     ovn = A.overnight(con, day)
     auc = A.auctions(con, day, stats)
     ins = A.insights(stats, auc, day, A.certified_split(con, day))
-    br = A.brief(stats, mv, ovn, auc)
+    history_days = con.execute("SELECT COUNT(DISTINCT day) FROM daily_asks WHERE day <= ?", (day.isoformat(),)).fetchone()[0]
+    br = A.brief(stats, mv, ovn, auc, history_days)
     index = A.market_index(con, day, 90)
     sample = bool(con.execute("SELECT 1 FROM sightings WHERE sample=1 AND removed_on IS NULL LIMIT 1").fetchone()
                   or con.execute("SELECT 1 FROM lots WHERE sample=1 LIMIT 1").fetchone())

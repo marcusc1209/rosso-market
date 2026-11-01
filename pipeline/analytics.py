@@ -171,6 +171,20 @@ def auctions(con, day: date, stats: dict) -> dict:
             lot["outlier"] = s["listings"] >= 5 and not (OUTLIER_LOW <= r["price_usd"] / s["median"] <= OUTLIER_HIGH)
         results.append(lot)
 
+    # Second opinion for each result: the median of every sold result we hold for that model
+    # (all houses, all dates, undated RM results included). Catches data errors on models
+    # with too few dealer listings to compare against.
+    sold_by_model = defaultdict(list)
+    for r in con.execute("SELECT model_id, price_usd FROM lots WHERE status='sold' AND price_usd > 0"):
+        sold_by_model[r[0]].append(r[1])
+    for lot in results:
+        prices = sold_by_model.get(lot["model_id"], [])
+        if lot.get("price_usd") and len(prices) >= 5:
+            med = st.median(prices)
+            lot["auction_median"] = round(med)
+            if not (OUTLIER_LOW <= lot["price_usd"] / med <= OUTLIER_HIGH):
+                lot["outlier"] = True
+
     by_model = defaultdict(lambda: {"sold": 0, "unsold": 0, "sold_prev": 0, "unsold_prev": 0})
     for lot in results:
         recent = lot["ends_at"][:10] > _d(day, 30)
@@ -220,12 +234,22 @@ def insights(stats: dict, auc: dict, day: date, cert: dict) -> list[dict]:
         out.append({"label": "Auction", "headline": l["title"],
                     "body": f"Sold for {_money(l['price_usd'])} at {l['auction_house']}. That is {abs(l['vs_ask_pct']):.0f}% {side} "
                             f"the median dealer ask for the model, {_money(l['median_ask'])}.", "url": l["url"], "model": l["model_id"]})
+    # biggest sale of the past week
+    week = [l for l in auc["results"] if l["status"] == "sold" and l.get("price_usd") and not l.get("outlier")
+            and l["ends_at"][:10] > _d(day, 7)]
+    if week:
+        l = max(week, key=lambda l: l["price_usd"])
+        out.append({"label": "Top result", "headline": l["title"],
+                    "body": f"The week's highest Ferrari sale: {_money(l['price_usd'])} at {l['auction_house']}"
+                            + (f", against a median of {_money(l['auction_median'])} for the model at auction." if l.get("auction_median") else "."),
+                    "url": l["url"], "model": l["model_id"]})
     # sell through change
     cand = [(mid, v) for mid, v in auc["sell_through"].items() if v["closed_30d"] >= 4 and (v["closed_prior_60d"] or 0) >= 4]
     if cand:
         mid, v = min(cand, key=lambda x: (x[1]["rate_30d"] or 0) - (x[1]["rate_prior_60d"] or 0))
-        if stats.get(mid) and v["rate_30d"] is not None and v["rate_prior_60d"] is not None and v["rate_30d"] < v["rate_prior_60d"]:
-            out.append({"label": "Sell through", "headline": f"{stats[mid]['name']} sell through slips to {v['rate_30d']}%",
+        name = stats[mid]["name"] if stats.get(mid) else getattr(taxonomy.BY_ID.get(mid), "name", mid)
+        if v["rate_30d"] is not None and v["rate_prior_60d"] is not None and v["rate_30d"] < v["rate_prior_60d"]:
+            out.append({"label": "Sell through", "headline": f"{name} sell through slips to {v['rate_30d']}%",
                         "body": f"{v['rate_30d']}% of {v['closed_30d']} lots sold in the last 30 days, against {v['rate_prior_60d']}% "
                                 f"of {v['closed_prior_60d']} in the 60 days before.", "model": mid})
     # Ferrari Approved premium
@@ -258,9 +282,27 @@ def certified_split(con, day: date) -> dict:
 
 # ---------------------------------------------------------------- brief
 
-def brief(stats: dict, mv: list, ovn: dict, auc: dict) -> dict:
+def brief(stats: dict, mv: list, ovn: dict, auc: dict, history_days: int = 99) -> dict:
     tracked = sum(s["listings"] for s in stats.values())
     cuts = sum(s["cut_7d"] for s in stats.values())
+    sold_30 = [l for l in auc["results"] if l["status"] == "sold"]
+    if tracked == 0 or history_days < 8:
+        # Not enough daily snapshots for week over week numbers yet: say so plainly.
+        if tracked == 0:
+            headline = "Auction results are in. Dealer asking prices start with the next inventory run"
+        else:
+            headline = f"Tracking {tracked:,} Ferraris for sale. Weekly price moves begin after seven days of data"
+        bullets = []
+        if auc["live"]:
+            bullets.append({"label": "Live now", "text": f"{len(auc['live'])} Ferrari auctions are open across the houses we follow."})
+        sold_30 = [l for l in sold_30 if not l.get("outlier")]
+        if sold_30:
+            top = max(sold_30, key=lambda l: l["price_usd"] or 0)
+            bullets.append({"label": "Recent results", "text": f"{len(sold_30)} Ferraris sold at auction in the last 90 days at the houses we date results for. "
+                            f"The highest was {top['title']} at {_money(top['price_usd'])}."})
+        bullets.append({"label": "History", "text": f"{history_days} day{'s' if history_days != 1 else ''} of daily asking price snapshots so far."})
+        return {"headline": headline, "bullets": bullets, "tracked_listings": tracked, "active_auctions": len(auc["live"]),
+                "overnight_changes": ovn["total"], "overnight": ovn, "price_cuts_7d": cuts, "warming_up": True}
     # headline prefers models with real depth; thin models still appear in the movers list
     deep = [m for m in mv if m["listings"] >= 10] or mv
     down = [m for m in deep if m["direction"] == "down"]

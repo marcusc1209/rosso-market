@@ -201,7 +201,8 @@ NON_CAR = re.compile(
     r"memorabilia|steering wheel|hardtop only|parts|literature|replica|tribute|re ?creation|kit car|simulator|bumper|"
     r"junior|childs?|kids?|neon|lighted|illuminated|clock|artwork|painting|sculpture|book|jacket|chair|desk|"
     r"engine stand|display engine|continuation|evocation|recreation|powered|arcade|game|table|display model|"
-    r"half scale|scale|manuals?|passports?|booklets?|accessories)\b"
+    r"half scale|scale|manuals?|passports?|booklets?|accessories|headlights?|taillights?|tail lights?|lights|exhaust|"
+    r"mirrors?|badges?|emblems?|key fob|keys|tool roll|car cover|luggage set|wheel set|brake kit)\b"
 )
 
 
