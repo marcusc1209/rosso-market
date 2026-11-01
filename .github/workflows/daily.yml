@@ -20,7 +20,7 @@ concurrency: { group: daily-run, cancel-in-progress: false }
 
 jobs:
   run:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     environment:
       name: github-pages
@@ -61,7 +61,7 @@ jobs:
           sqlite3 data/ferrari.db "PRAGMA wal_checkpoint(TRUNCATE);" || true
           tmp=$(mktemp -d); cp data/ferrari.db "$tmp/"
           cd "$tmp" && git init -q -b market-data && git add ferrari.db
-          git -c user.name="rosso-ledger-bot" -c user.email="bot@users.noreply.github.com" commit -qm "Market data $(date -u +%F)"
+          git -c user.name="rosso-market-bot" -c user.email="bot@users.noreply.github.com" commit -qm "Market data $(date -u +%F)"
           git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" market-data
 
       - name: Alert on broken sources
