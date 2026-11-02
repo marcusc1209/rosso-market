@@ -73,3 +73,10 @@ def test_rm_archive_sales_are_not_dated_today():
     assert clean.rm_code_year("https://rmsothebys.com/auctions/mo06/lots/r35-x/") == 2006
     assert clean.rm_code_year("https://rmsothebys.com/auctions/lf26/lots/r0001-x/") == 2026
     assert clean.rm_code_year("https://www.bonhams.com/auction/1/") is None
+
+
+def test_listing_country_trusts_the_location_over_the_site_stamp():
+    from pipeline import sales
+    assert sales.listing_country("US", "Toronto, ON") == "Canada"
+    assert sales.listing_country("US", "Naples, FL") == "United States"
+    assert sales.listing_country("CA", None) == "Canada"

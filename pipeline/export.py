@@ -171,7 +171,7 @@ def model_detail(con, model_id: str, day: date, idx=None) -> dict:
       FROM daily_asks a JOIN sightings s ON s.vehicle_key = a.vehicle_key AND s.removed_on IS NULL
       WHERE a.day=? AND a.model_id=? GROUP BY a.vehicle_key ORDER BY a.price_usd""", (day.isoformat(), model_id)).fetchall()
     listings = [dict(r, car=idx.listing(r["vehicle_key"]) if idx else None,
-                     country=sales.country_name(r["country"], r["location"])) for r in rows]
+                     country=sales.listing_country(r["country"], r["location"])) for r in rows]
     skip = clean.implausible_lots(con)
     lots = [r for r in con.execute("""SELECT uid, title, url, auction_house, status, price_usd, ends_at, mileage_mi, image_url AS image,
                                  source, country, location, raw FROM lots

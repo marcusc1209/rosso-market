@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import unicodedata
 from collections import defaultdict
 from typing import Iterable
 
@@ -35,6 +36,42 @@ def vehicle_key(n: Normalized) -> str:
     seller = (n.raw.dealer_name or n.raw.source or "").lower().strip()
     basis = "|".join([n.model_id, str(n.year or ""), miles_band, _color(n.raw.exterior_color), seller])
     return "fp:" + hashlib.sha1(basis.encode()).hexdigest()[:16]
+
+
+_GENERIC = {"ferrari", "of", "the", "inc", "ltd", "llc", "motors", "motorcars", "motor", "cars", "auto", "group", "and"}
+
+
+def dealer_words(name) -> set[str]:
+    t = unicodedata.normalize("NFKD", name or "").encode("ascii", "ignore").decode().lower()
+    return {w for w in re.split(r"[^a-z0-9]+", t) if len(w) >= 3 and w not in _GENERIC}
+
+
+def link_listings(con) -> int:
+    """Give a listing without a VIN the VIN of the one car that matches it at the same dealer.
+
+    AutoTrader.ca shows no VINs, so 'Ferrari of Alberta, 2021 F8 Spider, 3,410 mi' there and the
+    same car in Ferrari Approved were two cars. A match needs the same model and year, a dealer
+    name sharing a word, and mileage within 2% (or 60 miles), and must be the only such car.
+    Linked, the car is counted once and takes the listing date AutoTrader.ca publishes."""
+    rows = con.execute("""SELECT uid, vehicle_key, model_id, year, mileage_mi, dealer_name FROM sightings
+                          WHERE removed_on IS NULL AND vehicle_key IS NOT NULL AND model_id IS NOT NULL""").fetchall()
+    by_car = defaultdict(list)
+    for uid, vk, mid, year, mi, dealer in rows:
+        if vk.startswith("vin:") and mi is not None:
+            by_car[mid, year].append((vk, mi, dealer_words(dealer)))
+    linked = 0
+    for uid, vk, mid, year, mi, dealer in rows:
+        if not vk.startswith("fp:") or mi is None or not year:
+            continue
+        words = dealer_words(dealer)
+        if not words:
+            continue
+        hits = {v for v, m, w in by_car.get((mid, year), []) if w & words and abs(m - mi) <= max(60, 0.02 * mi)}
+        if len(hits) == 1:
+            con.execute("UPDATE sightings SET vehicle_key=? WHERE uid=?", (hits.pop(), uid))
+            linked += 1
+    con.commit()
+    return linked
 
 
 def assign_keys(records: Iterable[Normalized]) -> list[Normalized]:

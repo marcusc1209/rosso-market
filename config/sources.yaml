@@ -44,6 +44,9 @@ sources:
     fetch: {proxy_env: RESIDENTIAL_PROXY_URL}
     countries: [usa, canada]
     max_pages: 200                 # 11 cars per page, ~120 pages, about 8 minutes at 4 seconds per request
+    wayback_lookups: 25            # dealers asked of the Wayback Machine per run (12 s apart), each asked once ever.
+                                   # Ads stopped carrying the VIN in Jan 2026, so this dates only older stock;
+                                   # most cars take their date from the same car on duPont or AutoTrader.ca
 
   marketcheck:                     # built, needs a paid key. AutoTrader, Cars.com, CarGurus and dealer sites, US and Canada
     adapter: marketcheck
@@ -92,6 +95,7 @@ sources:
     enabled: true
     max_pages: 25
     detail_pages: 150              # each listing page is read once, then reused
+    wayback_lookups: 40            # archived home page captures read per run to date listing numbers (12 s apart)
   cars_com:                        # off: every page, robots.txt included, sits behind a Cloudflare bot check
     adapter: browser_json
     enabled: false

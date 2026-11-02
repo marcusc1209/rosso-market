@@ -235,13 +235,20 @@ car's own page ("Date Listed", createdTimestampWithOffset). Each page is read on
 (`date_pages` caps a run) and the date is kept with the listing. A car listed on several
 sites takes the earliest published date, so a Ferrari Approved car (whose feed date is
 refreshed daily and means nothing) shows the date the same VIN went up on duPont Registry.
-Sites with no date of their own are dated from the Wayback Machine (`pipeline/wayback.py`):
-Ferrari Approved's archived ad addresses used to end in the VIN and the ad's creation time
-(`.../ZFF99SLA2R0300845-1724919183952`), and a ClassicCars.com listing was up by the day the
-archive first captured it. A car is dated from the start of its latest unbroken stretch of
-archive evidence (no gap over 180 days, reaching to today), so a car that sold and came back
-is not dated by its old listing. Each dealer or page is looked up once and kept in kv; when
-the archive is down the lookup waits for the next run. Cars with no evidence anywhere keep
+AutoTrader.ca shows no VINs, so `dedupe.link_listings` gives each of its listings the VIN of
+the one car at the same dealer with the same model, year and mileage (within 2%): the car is
+counted once and takes AutoTrader.ca's date. ClassicCars.com numbers its listings in order
+(`pipeline/idclock.py`): archived captures of its home page pin the highest number to a day
+(1,676,304 on Jan 1 2023), each run pins today's, and a car's number read against those pins
+dates it to within 10 days. The few captures needed are read once and kept in kv. Ferrari
+Approved's archived ad addresses used to end in the VIN and the ad's creation time
+(`.../ZFF99SLA2R0300845-1724919183952`, `pipeline/wayback.py`), which dates older stock; since
+Jan 2026 its addresses carry an opaque token and the archive no longer captures them, so
+newer Ferrari Approved cars are dated from the same car elsewhere. A car is dated from the
+start of its latest unbroken stretch of archive evidence (no gap over 180 days, reaching to
+today), so a car that sold and came back is not dated by its old listing. Archive requests
+go 12 seconds apart (its index server refuses quicker ones) and three failures in a row put
+the rest off to the next run. Cars with no evidence anywhere keep
 the first day we saw them. Cars.com is off: every page, robots.txt included, sits behind a
 Cloudflare bot check, which this pipeline never works around. Cars that appear on
 several sites are one car (matched by VIN, or by fingerprint for AutoTrader.ca), so

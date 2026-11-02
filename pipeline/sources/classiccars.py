@@ -30,7 +30,7 @@ from bs4 import BeautifulSoup
 from .dealer_marketplaces import _Marketplace, _int
 from .pcarmarket import stored_record
 from ..records import RawRecord, LISTING
-from .. import wayback
+from .. import idclock, wayback
 
 SITE = "https://classiccars.com"
 SEARCH = SITE + "/listings/find/all-years/ferrari"
@@ -129,15 +129,33 @@ class ClassicCars(_Marketplace):
             seen.update(c["id"] for c in got)
             cards += got
         budget = int(self.cfg.get("detail_pages", 150))
-        archive = wayback.Lookups(self.ctx.con, self.ctx.fetcher, int(self.cfg.get("wayback_lookups", 100)))
+        clock = self._clock()
+        dated = 0
         for rec in self._cards(cards, budget):
-            # ClassicCars shows no listing date: the archive's first capture of the listing page
-            # says it was up by then (kept with the listing, so asked about once)
-            if not rec.extra.get("listed_on"):
-                day = archive.first_capture(f"classiccars.com/listings/view/{rec.source_id}/")
+            # ClassicCars shows no listing date, but numbers its listings in order: the listing
+            # number, read against archived captures of the home page, says when it went up
+            if not rec.extra.get("listed_on") and clock is not None and rec.source_id.isdigit():
+                day = clock.date_of(int(rec.source_id))
                 if day:
-                    rec.extra.update(listed_on=day, listed_how="web archive")
+                    rec.extra.update(listed_on=day, listed_how="listing number")
+                    dated += 1
             yield rec
+        if clock is not None:
+            self.log.info("%d listings dated from their listing numbers (%d archive requests, %d answered)",
+                          dated, clock.lk.asked, clock.lk.answered)
+
+    def _clock(self):
+        if self.ctx.con is None:
+            return None
+        lookups = wayback.Lookups(self.ctx.con, self.ctx.fetcher, int(self.cfg.get("wayback_lookups", 40)))
+        clock = idclock.Clock(self.ctx.con, lookups, self.name, "https://classiccars.com/",
+                              r"/listings/view/(\d+)/", self.ctx.run_date)
+        try:
+            # today's pin: the newest listings, straight from the site
+            clock.pin(self.ctx.run_date.isoformat(), clock.max_id(self._html(SITE + "/listings/find")))
+        except Exception as e:                       # the clock is a nicety: never fail the source for it
+            self.log.info("newest listings page not read (%s)", e)
+        return clock
 
     def _cards(self, cards, budget) -> Iterator[RawRecord]:
         read = reused = 0

@@ -100,6 +100,12 @@ def country_name(code: Optional[str] = None, text: Optional[str] = None) -> Opti
     return None
 
 
+def listing_country(code: Optional[str], location: Optional[str]) -> Optional[str]:
+    """Where a car for sale is: its location first, since US listing sites stamp every car US
+    (duPont Registry lists Toronto dealers' cars), then the site's country code."""
+    return country_name(None, location) or country_name(code)
+
+
 def broadarrow_event(name: Optional[str]) -> dict:
     """Lot pages and the auction list spell sale names differently ('The Zürich Auction 2026' and
     'The Zurich Auction 2026', 'Global Icons: Spring Online 2026' and '... Online Auction 2026')."""

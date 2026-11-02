@@ -158,7 +158,7 @@ def _page(key: str, g: dict, prices: dict, comps: dict, stats: dict, today: str)
             "mileage": r["mileage_mi"], "location": r["location"], "photo": ph[0] if ph else None, "n_photos": len(ph),
             "certified": bool(r["certified"]), "changes": changes if len(changes) > 1 else [],
             "date_how": how,
-            "country": sales.country_name(r["country"], r["location"]),
+            "country": sales.listing_country(r["country"], r["location"]),
         })
         photos = photos or ph
         stamp = r["last_seen"] or r["first_seen"] or ""

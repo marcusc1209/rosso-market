@@ -18,7 +18,7 @@ from pathlib import Path
 
 import yaml
 
-from . import clean, db, export, health as H
+from . import clean, db, dedupe, export, health as H
 from .dedupe import vehicle_key
 from .fetch import Fetcher
 from .normalize import normalize, Reject
@@ -122,6 +122,7 @@ def run_day(con, cfg, day: date, sources, fx) -> list[dict]:
     for name, src, ctx in sources:
         ctx.run_date = day
         reports.append(run_source(con, name, src, ctx, day, fx, cfg))
+    log.info("%d listings without a VIN linked to the same car at the same dealer", dedupe.link_listings(con))
     n = db.build_daily_asks(con, day)
     log.info("%s: %d tracked cars in snapshot", day, n)
     return reports

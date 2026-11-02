@@ -85,7 +85,8 @@ class FerrariApproved(Source):
                 rec.extra.update(listed_on=day, listed_how="web archive")
                 dated += 1
             yield rec
-        self.log.info("%d cars dated from the Wayback Machine", dated)
+        self.log.info("%d cars dated from the Wayback Machine (%d dealer archives asked, %d answered)",
+                      dated, archive.asked, archive.answered)
 
     def _ads(self) -> Iterator[RawRecord]:
         self.use_browser = bool(self.cfg.get("browser"))
