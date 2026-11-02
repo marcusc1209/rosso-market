@@ -59,6 +59,7 @@ def available_days(con) -> list[str]:
 def model_stats(con, day: date) -> dict[str, dict]:
     now, wk, mo = snapshot(con, day), snapshot(con, day - timedelta(days=7)), snapshot(con, day - timedelta(days=30))
     first_seen = {r[0]: r[1] for r in con.execute("SELECT vehicle_key, MIN(day) FROM daily_asks GROUP BY vehicle_key")}
+    week_base, week_change = weekly_change(con, day)
     stats = {}
     for mid, cars in now.items():
         m = taxonomy.BY_ID.get(mid)
@@ -74,14 +75,55 @@ def model_stats(con, day: date) -> dict[str, dict]:
         dom = [(day - date.fromisoformat(first_seen[k])).days for k in cars if k in first_seen]
         stats[mid] = dict(
             id=mid, name=m.name, family=m.family, body=m.body, tracked=m.tracked, pair=m.pair,
+            change_7d_since=week_base,
             listings=len(prices), median=round(med), p25=round(_q(prices, 0.25)), p75=round(_q(prices, 0.75)),
             low=round(min(prices)), high=round(max(prices)),
-            median_7d_ago=None if med_wk is None else round(med_wk), change_7d=_pct(med, med_wk) if len(prices) >= MOVER_MIN_CARS else None,
+            median_7d_ago=None if med_wk is None else round(med_wk), change_7d=week_change.get(mid),
             median_30d_ago=None if med_mo is None else round(med_mo), change_30d=_pct(med, med_mo) if len(prices) >= MOVER_MIN_CARS else None,
             same_cars=len(same), cut_7d=down, raised_7d=up, new_7d=len(cars.keys() - wk.get(mid, {}).keys()),
             days_on_market=None if not dom else round(st.median(dom)),
         )
     return stats
+
+
+def weekly_base(con, day: date) -> str | None:
+    """The day the 7 day change compares with: a week ago, else the closest earlier snapshot
+    (up to 10 days back), else, while tracking is younger than a week, the oldest day we have."""
+    days = [d for d in available_days(con) if d < day.isoformat()]
+    if not days:
+        return None
+    week = _d(day, 7)
+    older = [d for d in days if _d(day, 10) <= d <= week]
+    return older[-1] if older else (days[0] if days[0] > week else None)
+
+
+def weekly_change(con, day: date) -> tuple[str | None, dict]:
+    """Each model's change in median asking price since weekly_base, compared model year by
+    model year (2023 cars against 2023 cars) like Market Movers, weighted by today's cars.
+    Every model with cars on both days gets a figure, however small; a model whose years do
+    not overlap falls back to its plain median."""
+    base = weekly_base(con, day)
+    if not base:
+        return None, {}
+    # cars without a known model year still count, as one group of their own
+    year_or_0 = lambda rows: [(k, mid, y or 0, p) for k, mid, y, p in rows]
+    now = _group(year_or_0(_asks_with_year(con, day.isoformat())))
+    then = _group(year_or_0(_asks_with_year(con, base)))
+    out = {}
+    for mid, years in now.items():
+        prev = then.get(mid) or {}
+        num = den = 0.0
+        for y, prices in years.items():
+            if prev.get(y):
+                num += len(prices) * (st.median(prices) / st.median(prev[y]) - 1) * 100
+                den += len(prices)
+        if den:
+            out[mid] = round(num / den, 2)
+        elif prev:
+            a = st.median([p for ps in years.values() for p in ps])
+            b = st.median([p for ps in prev.values() for p in ps])
+            out[mid] = round((a / b - 1) * 100, 2)
+    return base, out
 
 
 def movers(stats: dict) -> list[dict]:
@@ -216,7 +258,7 @@ def week_over_week(con, day: date) -> dict:
 def _group(rows) -> dict:
     g = defaultdict(lambda: defaultdict(list))
     for _, mid, year, price in rows:
-        if mid and year and price:
+        if mid and year is not None and price:
             g[mid][year].append(price)
     return g
 

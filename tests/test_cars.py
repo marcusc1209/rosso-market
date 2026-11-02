@@ -64,3 +64,15 @@ def test_galleries_from_lot_pages():
     d = parse_detail(page)
     assert d["photos"] == ["https://assets.basta.app/accounts/a-1/images/b-2?width=1280&quality=80&format=webp"]
     assert d["ends_at"].startswith("2026-10-21")
+
+
+def test_search_index_keeps_every_car_with_a_vin_or_chassis():
+    from pipeline.cars import search_index
+    pages = {
+        "a1": {"title": "2006 Ferrari F430", "vin": "ZFFEW58A160147999", "status": "off_market", "price": 119990, "specs": []},
+        "b2": {"title": "1967 Ferrari 275 GTB/4", "vin": None, "status": "sold", "price": 3000000, "specs": [["Chassis", "10245"]]},
+        "c3": {"title": "No number", "vin": None, "status": "for_sale", "price": 1, "specs": [["Chassis", "-"]]},
+    }
+    idx = search_index(pages)
+    assert [r[0] for r in idx] == ["10245", "ZFFEW58A160147999"]
+    assert idx[1][1:4] == ["a1", "2006 Ferrari F430", "No longer listed"]

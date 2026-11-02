@@ -180,7 +180,8 @@ def describe(r) -> dict:
         out["sale"] = ONLINE[src]
         out["sale_url"] = lot_url(r)
         out["online"] = True
-        out["country"] = country_name(code, loc)
+        # duPont Registry Live sells only cars located in the United States
+        out["country"] = country_name(code, loc) or ("United States" if src == "dupont_live" else None)
     else:
         out["sale"] = ex.get("auction")
         out["country"] = country_name(code, loc)

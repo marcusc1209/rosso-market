@@ -207,6 +207,10 @@ where the car is). RM Sotheby's sale pages come from the lot link; Bonhams' name
 countries from its sales index; Broad Arrow's from its auction list; Gooding's pages from its
 sitemap; Mecum's from the sale name (always in the US). The adapters keep these lookups in kv.
 
+Every car we have ever seen keeps its page, including cars that sold or left the market, and
+`data/search.json` lists each one's VIN (or chassis number) so the search box in the header
+finds it. Cars no longer for sale drop off the lists but stay findable by VIN.
+
 Each model file carries `points` for the market chart: sold, high bid, for sale and last
 asking price, each with its car id, title and photo, so hovering a dot shows the car and
 clicking it opens the car page.

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 from collections import defaultdict
 from datetime import date, timedelta
@@ -76,7 +77,6 @@ class Index:
 
 def build(con, day: date, stats: dict) -> tuple[dict[str, dict], Index]:
     today = day.isoformat()
-    since_listing = (day - timedelta(days=730)).isoformat()
     skip = clean.implausible_lots(con)
     cars: dict[str, dict] = defaultdict(lambda: {"listings": [], "lots": []})
     idx = Index()
@@ -85,8 +85,9 @@ def build(con, day: date, stats: dict) -> tuple[dict[str, dict], Index]:
     for uid, d, p in con.execute("SELECT uid, day, price_usd FROM sighting_prices ORDER BY uid, day"):
         prices[uid].append((d, p))
 
-    for r in con.execute("""SELECT * FROM sightings WHERE model_id IS NOT NULL
-                            AND (removed_on IS NULL OR removed_on >= ?)""", (since_listing,)):
+    # every car we have ever seen keeps its page: a car that sold or left the market drops off
+    # the lists but stays findable by its VIN in the site's search
+    for r in con.execute("SELECT * FROM sightings WHERE model_id IS NOT NULL"):
         k = group_key(r["vehicle_key"], r["uid"], "listing")
         cars[k]["listings"].append(r)
         cid = car_id(k)
@@ -253,6 +254,23 @@ def _merge_listings(events: list[dict]) -> list[dict]:
     return out
 
 
+STATUS_WORD = {"for_sale": "For sale", "off_market": "No longer listed", "sold": "Sold", "unsold": "Not sold",
+               "live": "Live auction", "upcoming": "Upcoming auction"}
+
+
+def search_index(pages: dict[str, dict]) -> list[list]:
+    """[VIN or chassis number, car id, title, status, price] for every car that has one,
+    including cars no longer for sale. The site's search box loads it on first use."""
+    out = []
+    for cid, p in pages.items():
+        chassis = next((v for k, v in p.get("specs") or [] if k == "Chassis"), None)
+        key = re.sub(r"[^A-Z0-9]", "", str(p.get("vin") or chassis or "").upper())
+        if len(key) >= 4:
+            out.append([key, cid, p.get("title"), STATUS_WORD.get(p.get("status"), p.get("status")), p.get("price")])
+    out.sort(key=lambda r: r[0])
+    return out
+
+
 def write(pages: dict[str, dict], site_dir: Path) -> int:
     d = site_dir / "data" / "cars"
     if d.exists():
@@ -260,4 +278,6 @@ def write(pages: dict[str, dict], site_dir: Path) -> int:
     d.mkdir(parents=True)
     for cid, page in pages.items():
         (d / f"{cid}.json").write_text(json.dumps(page, separators=(",", ":"), default=str), encoding="utf-8")
+    (site_dir / "data" / "search.json").write_text(json.dumps(search_index(pages), separators=(",", ":"), default=str),
+                                                   encoding="utf-8")
     return len(pages)
