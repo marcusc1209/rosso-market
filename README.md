@@ -252,7 +252,8 @@ the rest off to the next run. Cars that still have no date are looked up on CLAS
 (`pipeline/classic_com.py`): it tracks dealer inventory and shows the day each listing was
 posted. Only a card for the same VIN that is for sale now counts, each VIN is asked once (again
 after a week if CLASSIC.COM did not have it yet), and a bot check stops the step for the run.
-CarGurus is not used: it sits behind DataDome bot protection. Cars with no evidence anywhere keep
+It is off: CLASSIC.COM answers automated requests with 403 from any address we have, so it
+waits for a permitted route. CarGurus is not used: it sits behind DataDome bot protection. Cars with no evidence anywhere keep
 the first day we saw them. Cars.com is off: every page, robots.txt included, sits behind a
 Cloudflare bot check, which this pipeline never works around. Cars that appear on
 several sites are one car (matched by VIN, or by fingerprint for AutoTrader.ca), so

@@ -89,7 +89,7 @@ def undated_vins(con) -> list[str]:
     rows = con.execute("""SELECT vehicle_key, MAX(CASE WHEN json_valid(raw) THEN json_extract(raw, '$.extra.listed_on') END)
                           FROM sightings WHERE removed_on IS NULL AND vehicle_key LIKE 'vin:%'
                           GROUP BY vehicle_key""").fetchall()
-    return sorted(k[4:] for k, d in rows if not d and _VIN.match(k[4:]))
+    return sorted(k[4:] for k, d in rows if not d and _VIN.match(k[4:]) and "000000" not in k[4:])
 
 
 def run(con, cfg: dict, raw_dir, today: date) -> int:

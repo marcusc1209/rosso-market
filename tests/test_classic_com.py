@@ -44,7 +44,8 @@ def test_run_dates_undated_cars_once(tmp_path, monkeypatch):
     con = db.connect(tmp_path / "t.db")
     for uid, vk, extra in [("ferrari_approved:1", "vin:" + VIN, {}),
                            ("dupont_registry:2", "vin:ZFF00000000000002", {"listed_on": "2026-09-01"}),
-                           ("dupont_registry:3", "vin:00000000000019145", {})]:      # not a real VIN: never asked
+                           ("dupont_registry:3", "vin:00000000000019145", {}),        # stand-ins, not real VINs:
+                           ("dupont_registry:4", "vin:ZFF00000000015343", {})]:      # never asked
         con.execute("INSERT INTO sightings(uid, source, vehicle_key, raw) VALUES (?,?,?,?)",
                     (uid, uid.split(":")[0], vk, json.dumps({"extra": extra})))
     FakeFetcher.calls = []

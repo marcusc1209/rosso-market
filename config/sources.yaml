@@ -34,8 +34,10 @@ news_feeds:                        # headlines and links only, racing news filte
   - {name: Motor1, url: https://www.motor1.com/rss/make/ferrari/}   # verified 2026-10-31
 
 classic_com:                       # listing dates for cars no listing site dates (pipeline/classic_com.py)
-  enabled: true
-  runner: home                     # CLASSIC.COM answers GitHub's servers with 403 (checked 2026-11-02), so the Mac asks
+  enabled: false                   # off: CLASSIC.COM answers automated requests with 403 from GitHub's servers and
+                                   # from the Mac alike (checked 2026-11-02), and that refusal is not worked around.
+                                   # The reader is kept for a permitted route (their partner data access)
+  runner: home
   lookups: 150                     # VINs asked per run (3 s apart, about 8 minutes), each once (again after a week)
   fetch: {min_interval_seconds: 3}
 
