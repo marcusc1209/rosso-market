@@ -18,7 +18,7 @@ from pathlib import Path
 
 import yaml
 
-from . import classic_com, clean, db, dedupe, export, health as H
+from . import classic_com, clean, db, dedupe, export, overrides, health as H
 from .dedupe import vehicle_key
 from .fetch import Fetcher
 from .normalize import normalize, Reject
@@ -82,10 +82,12 @@ def run_source(con, name, source, ctx, day: date, fx: dict, cfg: dict) -> dict:
     fetched = accepted = rejected = 0
     t0 = time.time()
     classic = classic_com.known(con)
+    entered = cfg.get("_listing_history") or {}
     try:
         for raw in source.fetch():
             fetched += 1
             classic_com.apply(raw, classic)
+            overrides.apply(raw, entered)
             if raw.kind == "auction" and raw.ends_at is None and raw.status in ("sold", "unsold") \
                     and not (raw.extra or {}).get("keep_undated"):
                 known = con.execute("SELECT ends_at FROM lots WHERE uid=?", (f"{raw.source}:{raw.source_id}",)).fetchone()
@@ -150,6 +152,7 @@ def main(argv=None):
     logging.basicConfig(level=logging.DEBUG if a.verbose else logging.INFO, format="%(asctime)s %(name)s %(message)s", datefmt="%H:%M:%S")
 
     cfg = load_config(a.config)
+    cfg["_listing_history"] = overrides.load(a.config)      # dates and price histories entered by hand
     if os.environ.get("FM_HISTORY"):
         # one off import of older auction results: deeper paging on every results feed
         for scfg in (cfg.get("sources") or {}).values():
@@ -196,6 +199,8 @@ def main(argv=None):
         reports = [dict(source=r["source"], state=r["status"], detail=r["error"] or "", accepted=r["accepted"])
                    for r in con.execute("SELECT * FROM runs WHERE id IN (SELECT MAX(id) FROM runs GROUP BY source)")]
 
+    if cfg["_listing_history"]:
+        log.info("%d stored listings updated from listing_history.yaml", overrides.apply_db(con, cfg["_listing_history"]))
     if a.report:
         Path(a.report).parent.mkdir(parents=True, exist_ok=True)
         Path(a.report).write_text(__import__("json").dumps(reports, default=str, indent=1))

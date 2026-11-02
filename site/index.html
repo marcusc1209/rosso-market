@@ -331,6 +331,13 @@ table.sheet { width: 100%; border-collapse: collapse; font-size: 14px; min-width
 .dot-sold { background: var(--rosso); }
 .dot-unsold { border: 1.5px solid var(--muted); }
 .line-med { width: 18px; height: 2px; background: var(--ink); display: inline-block; }
+.pc { grid-column: 1 / -1; margin-top: 4px; border-top: 1px solid var(--line); padding-top: 10px; font-size: 14px; }
+.pc-head { font-weight: 600; margin-bottom: 6px; }
+.pc-row { display: grid; grid-template-columns: 9.5em 1fr auto 5.5em; gap: 10px; padding: 3px 0; align-items: baseline; }
+.pc-row .dn { color: var(--down); text-align: right; } .pc-row .up { color: var(--up); text-align: right; }
+.pc details summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+.pc-row .num { white-space: nowrap; }
+@media (max-width: 560px) { .pc-row { grid-template-columns: 1fr auto 5.6em; gap: 8px; } .pc-row > span:nth-child(2) { display: none; } }
 .line-ask { width: 18px; height: 3px; border-radius: 2px; background: var(--ask); display: inline-block; vertical-align: middle; margin-right: 6px; }
 .band { width: 18px; height: 10px; background: var(--ink); opacity: .14; display: inline-block; }
 .axis { fill: var(--muted); font: 11px var(--f-mono); }
@@ -1068,9 +1075,17 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
           <ol class="timeline">${c.history.map(e => {
             const p = e.kind === "upcoming" && e.estimate ? `${short(e.estimate[0])} to ${short(e.estimate[1])}` : e.price ? money(e.price) : "not published";
             const seen = (e.seen_on || []).length > 1 ? `<details><summary>Seen on ${e.seen_on.length} sites</summary>${e.seen_on.map(x => `<div><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.where)} ↗</a></div>`).join("")}</details>` : "";
-            const changes = (e.changes || []).length > 1 ? `<details><summary>${e.changes.length - 1} price change${e.changes.length > 2 ? "s" : ""}</summary>${e.changes.map(([d, v]) => `<div><span class="num">${dateLong(d)}</span> &nbsp; <b class="num">${money(v)}</b></div>`).join("")}</details>` : "";
+            // price history: every change this seller made, in the seller's own box
+            const ch = e.changes || [];
+            const rows = ch.map(([d, v], i) => {
+              const prev = i ? ch[i - 1][1] : null, pct = prev ? (v - prev) / prev * 100 : null;
+              const tag = i === 0 ? "Listed at" : v < prev ? "Price cut" : "Price raised";
+              return `<div class="pc-row"><span class="num">${dateLong(d)}</span><span>${tag}</span><b class="num">${money(v)}</b>${pct != null ? `<span class="${pct < 0 ? "dn" : "up"} num">${chg(pct)}</span>` : "<span></span>"}</div>`;
+            });
+            const cuts = ch.filter(([, v], i) => i && v < ch[i - 1][1]).length;
+            const changes = ch.length > 1 ? `<div class="pc"><div class="pc-head">${ch.length - 1} price change${ch.length > 2 ? "s" : ""}${cuts ? `, ${cuts} cut${cuts > 1 ? "s" : ""}` : ""}, ${chg((ch[ch.length - 1][1] - ch[0][1]) / ch[0][1] * 100)} in all</div>${rows.length > 6 ? `${rows.slice(-5).join("")}<details><summary>Earlier changes (${rows.length - 5})</summary>${rows.slice(0, -5).join("")}</details>` : rows.join("")}</div>` : "";
             return `<li class="${e.kind}"><div class="ev"><div>
-              <div class="when">${e.date ? dateLong(e.date) : "Date not published"}${e.end ? " to " + dateLong(e.end) : ""}${e.date_how === "web archive" ? ' <span class="flat">(listed by this date, from the Wayback Machine)</span>' : e.date_how === "listing number" ? ' <span class="flat">(listed by this date, from its listing number and archived ClassicCars.com pages)</span>' : e.date_how === "classic.com" ? ' <span class="flat">(listing date from CLASSIC.COM)</span>' : ""}</div>
+              <div class="when">${e.date ? dateLong(e.date) : "Date not published"}${e.end ? " to " + dateLong(e.end) : ""}${e.date_how === "web archive" ? ' <span class="flat">(listed by this date, from the Wayback Machine)</span>' : e.date_how === "listing number" ? ' <span class="flat">(listed by this date, from its listing number and archived ClassicCars.com pages)</span>' : e.date_how && e.date_how !== "the listing site" ? ` <span class="flat">(listing date from ${esc(e.date_how)})</span>` : ""}</div>
               <h3>${esc(e.label)}</h3>${e.sale ? `<div class="sale">${saleLink(e)}</div>` : ""}${e.country || e.online ? `<div class="country">${esc(countryOf(e))}</div>` : ""}<div><span class="sub">${esc(e.price_label)}:</span> <span class="pr num">${p}</span></div>
               <div class="sub">${[e.mileage ? miles(e.mileage) : "", e.location || "", e.lot_number ? "lot " + e.lot_number : "", e.bids ? e.bids + " bids" : ""].filter(Boolean).map(esc).join(" · ")}</div>
               ${e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">View source ↗</a>` : ""}</div>

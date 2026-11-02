@@ -139,7 +139,12 @@ def _page(key: str, g: dict, prices: dict, comps: dict, stats: dict, today: str)
         before = [(d, p) for d, p in (extra.get("price_history") or [])
                   if isinstance(p, (int, float)) and (not series or d < series[0][0])]
         changes, last = [], None
-        for d, p in [*before, *series]:
+        for i, (d, p) in enumerate([*before, *series]):
+            # where the earlier history meets what we observed, a gap under 1% is the two sites
+            # rounding the same price differently, not a price change
+            if before and i == len(before) and last and p and abs(p - last) / last < 0.01:
+                last = p
+                continue
             if p and p != last:
                 changes.append([d, _round(p)])
                 last = p

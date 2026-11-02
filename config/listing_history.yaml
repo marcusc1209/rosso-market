@@ -1,0 +1,17 @@
+# Listing dates and price histories read by hand from sites the pipeline can not read
+# (cars.com, AutoTrader.com and CarGurus sit behind bot checks). One entry per VIN:
+#
+#   VIN:
+#     listed_on: YYYY-MM-DD        the day the car was first listed
+#     source: cars.com             where it was read (shown on the car page)
+#     url: https://...             optional, the page it was read from
+#     prices:                      optional, the price history, oldest first
+#       - [YYYY-MM-DD, 1199000]
+#
+# An entry is used when its date is earlier than any date a site publishes for the car.
+# The next run (or a republish) shows it on the site.
+
+ZFF90HLA3L0251840:                 # 2020 488 Pista, Wide World Ferrari (duPont Registry says Oct 16, 2026)
+  listed_on: 2026-08-29
+  source: cars.com
+  url: https://www.cars.com/vehicledetail/ecec9220-20e5-4b3f-a2b1-37d519200453/
