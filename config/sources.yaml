@@ -78,10 +78,10 @@ sources:
     adapter: autotrader_ca
     enabled: true
     runner: home
-  autostoday:                      # verified 2026-11-01. ~2,400 used Ferraris from dealers' own inventory feeds, VIN and days on market
-    adapter: autostoday
-    enabled: true
-    runner: home                   # answers GitHub's servers with 403, like Ferrari Approved
+  autostoday:                      # off 2026-11-01: ~2,400 used Ferraris, but it answers automated readers with 403,
+    adapter: autostoday            # from GitHub's servers and from the Mac alike (plain requests and the browser).
+    enabled: false                 # That is a bot block, so it is not worked around. The reader is kept.
+    runner: home
     max_pages: 120
   classiccars:                     # verified 2026-11-01. ~180 classic and modern Ferraris from dealers and private sellers
     adapter: classiccars
