@@ -31,13 +31,17 @@ MAX_MILES = 250_000
 def points(con, model_id: str, day: date, idx=None, skip=frozenset()) -> list[list]:
     """[miles, price, kind l (for sale) or s (sold), car id, title, photo, where, date]"""
     today, since = day.isoformat(), (day - timedelta(days=SOLD_DAYS)).isoformat()
-    out = []
+    out, seen = [], set()
     for r in con.execute("""
         SELECT a.vehicle_key, a.price_usd, MAX(s.mileage_mi) mi, MAX(s.title) title, MAX(s.image_url) img,
                MAX(COALESCE(s.dealer_name, s.marketplace, s.source)) who, MIN(s.first_seen) d
         FROM daily_asks a JOIN sightings s ON s.vehicle_key = a.vehicle_key AND s.removed_on IS NULL
         WHERE a.day=? AND a.model_id=? GROUP BY a.vehicle_key""", (today, model_id)):
         if r["mi"] is not None and r["price_usd"] and 0 <= r["mi"] < MAX_MILES:
+            same = (round(r["mi"]), round(r["price_usd"]))
+            if same in seen:
+                continue          # one car listed twice without a shared VIN (AutoTrader.ca and the dealer, say)
+            seen.add(same)
             out.append([round(r["mi"]), round(r["price_usd"]), "l", idx.listing(r["vehicle_key"]) if idx else None,
                         r["title"], r["img"], r["who"], r["d"]])
     for r in con.execute("""

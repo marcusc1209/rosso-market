@@ -45,6 +45,10 @@ def test_points_use_listings_now_and_recent_sales_only(tmp_path):
     con.execute("""INSERT INTO sightings (uid, source, vehicle_key, model_id, title, mileage_mi, first_seen, last_seen)
                    VALUES ('a:1','a','vin:X1','f8-tributo','2021 Ferrari F8 Tributo',5000,'2026-10-01','2026-11-01')""")
     con.execute("INSERT INTO daily_asks (day, vehicle_key, model_id, price_usd) VALUES ('2026-11-01','vin:X1','f8-tributo',290000)")
+    # the same car again under a fingerprint key, same mileage and price: counted once
+    con.execute("""INSERT INTO sightings (uid, source, vehicle_key, model_id, title, mileage_mi, first_seen, last_seen)
+                   VALUES ('c:1','c','fp:x','f8-tributo','2021 Ferrari F8 Tributo',5000,'2026-10-02','2026-11-01')""")
+    con.execute("INSERT INTO daily_asks (day, vehicle_key, model_id, price_usd) VALUES ('2026-11-01','fp:x','f8-tributo',290000)")
     rows = [("b:1", "2026-06-01", 8000, "sold"), ("b:2", "2024-01-15", 9000, "sold"),     # too old
             ("b:3", "2026-07-01", 7000, "unsold"), ("b:4", "2026-08-01", None, "sold")]   # not sold, no mileage
     for uid, d, mi, st in rows:
