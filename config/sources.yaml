@@ -35,8 +35,8 @@ news_feeds:                        # headlines and links only, racing news filte
 
 classic_com:                       # listing dates for cars no listing site dates (pipeline/classic_com.py)
   enabled: true
-  runner: cloud                    # set to home if CLASSIC.COM refuses GitHub's servers
-  lookups: 250                     # VINs asked per run, each once (again after a week if it was not there yet)
+  runner: home                     # CLASSIC.COM answers GitHub's servers with 403 (checked 2026-11-02), so the Mac asks
+  lookups: 150                     # VINs asked per run (3 s apart, about 8 minutes), each once (again after a week)
   fetch: {min_interval_seconds: 3}
 
 sources:

@@ -35,6 +35,7 @@ SEARCH = "https://www.classic.com/search/?q={vin}"
 KEY = "classic:dates"
 RETRY_DAYS = 7
 _DATE = re.compile(r"\b([A-Z][a-z]{2}) (\d{1,2}), (\d{4})\b")
+_VIN = re.compile(r"^Z(?:FF|SG|DF)[A-HJ-NPR-Z0-9]{14}$")      # a Ferrari VIN: not a stand-in like 00000000000019145
 _ACTIVE = re.compile(r"\b(For Sale|Pending Sale)\b", re.I)
 
 
@@ -88,7 +89,7 @@ def undated_vins(con) -> list[str]:
     rows = con.execute("""SELECT vehicle_key, MAX(CASE WHEN json_valid(raw) THEN json_extract(raw, '$.extra.listed_on') END)
                           FROM sightings WHERE removed_on IS NULL AND vehicle_key LIKE 'vin:%'
                           GROUP BY vehicle_key""").fetchall()
-    return sorted(k[4:] for k, d in rows if not d)
+    return sorted(k[4:] for k, d in rows if not d and _VIN.match(k[4:]))
 
 
 def run(con, cfg: dict, raw_dir, today: date) -> int:
