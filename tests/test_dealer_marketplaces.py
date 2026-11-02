@@ -135,3 +135,7 @@ def test_listing_dates_are_read_once_and_remembered(tmp_path):
     out = list(src._with_listing_dates(recs, dupont_listed_on))
     assert [r.extra["listed_on"] for r in out] == ["2026-05-01", "2026-08-06"]
     assert pages == ["https://x/new"]                      # the stored date was not read again
+    # a car the pipeline rejected (never stored as a listing) is not read again either
+    recs = [RawRecord(source="dupont_registry", kind=LISTING, source_id="new", url="https://x/new", title="t")]
+    out = list(src._with_listing_dates(recs, dupont_listed_on))
+    assert out[0].extra["listed_on"] == "2026-08-06" and pages == ["https://x/new"]

@@ -43,6 +43,7 @@ from typing import Iterator, Optional
 from bs4 import BeautifulSoup
 
 from .base import Source
+from .. import db
 from ..fetch import Blocked
 from ..records import RawRecord, LISTING
 
@@ -83,8 +84,14 @@ class _Marketplace(Source):
         read once; the date is kept with the listing so later runs never read it again.
         `date_pages` caps how many pages one run reads (the rest wait for the next run)."""
         budget, read, known, stop = int(self.cfg.get("date_pages", 400)), 0, 0, False
+        # every page read is remembered here too: cars the pipeline rejects (not a Ferrari, no
+        # model match) are never stored as listings, and would otherwise be read again each run
+        con, key = self.ctx.con, f"listed:{self.name}"
+        seen = json.loads(db.kv_get(con, key) or "{}") if con is not None else {}
         for rec in recs:
             old = self._stored_extra(rec.source_id)
+            if not (old.get("listed_on") or old.get("listed_unknown")) and rec.source_id in seen:
+                old = {"listed_on": seen[rec.source_id]} if seen[rec.source_id] else {"listed_unknown": True}
             if old.get("listed_on") or old.get("listed_unknown"):
                 rec.extra.update({k: old[k] for k in ("listed_on", "listed_unknown") if k in old})
                 known += 1
@@ -101,9 +108,13 @@ class _Marketplace(Source):
                     day = None
                 if day:
                     rec.extra["listed_on"] = day
+                    seen[rec.source_id] = day
                 elif not stop:
                     rec.extra["listed_unknown"] = True    # read, and the page has no date
+                    seen[rec.source_id] = ""
             yield rec
+        if con is not None:
+            db.kv_set(con, key, json.dumps(seen))
         self.log.info("listing dates: %d pages read, %d already known", read, known)
 
     def _html(self, url: str) -> str:
