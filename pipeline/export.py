@@ -8,7 +8,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from . import analytics as A
-from . import cars, clean, mileage, taxonomy
+from . import cars, clean, mileage, sales, taxonomy
 
 
 def _takes(content_dir: Path) -> list[dict]:
@@ -165,30 +165,36 @@ def model_detail(con, model_id: str, day: date, idx=None) -> dict:
     hist = A.history(con, model_id, day, 365)
     car = (lambda uid: idx.lot(uid)) if idx else (lambda uid: None)
     rows = con.execute("""
-      SELECT a.vehicle_key, a.price_usd, s.title, s.url, s.mileage_mi, s.location, s.dealer_name, s.marketplace, s.certified,
+      SELECT a.vehicle_key, a.price_usd, s.title, s.url, s.mileage_mi, s.location, MAX(s.country) AS country, s.dealer_name, s.marketplace, s.certified,
              s.exterior_color, s.year, MAX(s.image_url) AS image,
              MIN(MIN(s.first_seen, COALESCE(CASE WHEN json_valid(s.raw) THEN json_extract(s.raw, '$.extra.listed_on') END, s.first_seen))) AS first_seen
       FROM daily_asks a JOIN sightings s ON s.vehicle_key = a.vehicle_key AND s.removed_on IS NULL
       WHERE a.day=? AND a.model_id=? GROUP BY a.vehicle_key ORDER BY a.price_usd""", (day.isoformat(), model_id)).fetchall()
-    listings = [dict(r, car=idx.listing(r["vehicle_key"]) if idx else None) for r in rows]
+    listings = [dict(r, car=idx.listing(r["vehicle_key"]) if idx else None,
+                     country=sales.country_name(r["country"], r["location"])) for r in rows]
     skip = clean.implausible_lots(con)
-    lots = [r for r in con.execute("""SELECT uid, title, url, auction_house, status, price_usd, ends_at, mileage_mi, image_url AS image FROM lots
+    lots = [r for r in con.execute("""SELECT uid, title, url, auction_house, status, price_usd, ends_at, mileage_mi, image_url AS image,
+                                 source, country, location, raw FROM lots
                           WHERE model_id=? AND status IN ('sold','unsold') ORDER BY ends_at IS NULL, ends_at DESC LIMIT 80""",
                        (model_id,)) if r["uid"] not in skip][:60]
     upcoming = con.execute("""SELECT uid, title, url, auction_house, status, price_usd, estimate_low_usd, estimate_high_usd, ends_at, location,
-                                     image_url AS image FROM lots WHERE model_id=? AND status IN ('live','upcoming') AND last_seen >= ? ORDER BY ends_at""",
+                                     image_url AS image, source, country, raw FROM lots
+                              WHERE model_id=? AND status IN ('live','upcoming') AND last_seen >= ? ORDER BY ends_at""",
                            (model_id, (day - timedelta(days=1)).isoformat())).fetchall()
+    lot_out = lambda r: {k: r[k] for k in r.keys() if k not in ("uid", "raw", "source", "country")} | A.sale_fields(r) | {"car": car(r["uid"])}
 
     # Market chart, like classic.com: every dated auction result (sold, or not sold at its high bid),
     # every car for sale now (at the day it was first listed) and cars that left the market (last ask).
     # Each point: [day, price, kind s|u|f|a, car id, title, photo, where]
     pts = []
-    for r in con.execute("""SELECT uid, substr(ends_at,1,10) d, price_usd, status, title, image_url, auction_house FROM lots
+    for r in con.execute("""SELECT uid, substr(ends_at,1,10) d, price_usd, status, title, image_url, auction_house,
+                                   source, url, country, location, ends_at, raw FROM lots
                             WHERE model_id=? AND status IN ('sold','unsold') AND price_usd > 0 AND ends_at IS NOT NULL
                               AND substr(ends_at,1,10) <= ? ORDER BY ends_at""", (model_id, day.isoformat())):
         if r["uid"] not in skip:
+            sl = sales.describe(r)
             pts.append([r["d"], round(r["price_usd"]), "s" if r["status"] == "sold" else "u", car(r["uid"]),
-                        r["title"], r["image_url"], r["auction_house"]])
+                        r["title"], r["image_url"], r["auction_house"], sl["sale"], sl["country"]])
     for l in listings:
         if l["price_usd"]:
             pts.append([l["first_seen"] or day.isoformat(), round(l["price_usd"]), "f", l["car"], l["title"], l["image"],
@@ -203,10 +209,10 @@ def model_detail(con, model_id: str, day: date, idx=None) -> dict:
     pts.sort(key=lambda p: p[0])
     return {"id": model_id, "history": [[p["day"], p["median"], p["n"]] for p in hist],
             "listings": listings,
-            "results": [dict({k: r[k] for k in r.keys() if k != "uid"}, car=car(r["uid"])) for r in lots],
+            "results": [lot_out(r) for r in lots],
             "points": pts,
             "auction_points": [[p[0], p[1], 1 if p[2] == "s" else 0] for p in pts if p[2] in "su"],
-            "upcoming": [dict({k: r[k] for k in r.keys() if k != "uid"}, car=car(r["uid"])) for r in upcoming],
+            "upcoming": [lot_out(r) for r in upcoming],
             "mileage": mileage.curve(con, model_id, day, idx, skip)}
 
 
@@ -214,6 +220,7 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
     site_dir = Path(cfg["settings"].get("site_dir", "site"))
     data_dir = site_dir / "data"
     (data_dir / "models").mkdir(parents=True, exist_ok=True)
+    sales.prime(con)                     # sale names and links the adapters keep in kv
     payload = build(con, day, cfg, health)
     # one page per car, and every card on the site points at it
     pages, idx = cars.build(con, day, A.model_stats(con, day))

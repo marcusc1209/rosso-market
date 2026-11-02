@@ -23,7 +23,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Optional
 
-from . import clean, taxonomy
+from . import clean, sales, taxonomy
 
 STRONG = ("vin:", "chassis:")
 AGGREGATORS = {"cars.com", "autotrader.com", "autotrader.ca", "cargurus.com", "cargurus", "carfax", "edmunds", "dupont registry"}
@@ -103,14 +103,16 @@ def build(con, day: date, stats: dict) -> tuple[dict[str, dict], Index]:
     # recent sales of each model, for the "comparable sales" strip
     comps = defaultdict(list)
     for mid in {r[0] for r in con.execute("SELECT DISTINCT model_id FROM lots WHERE model_id IS NOT NULL")}:
-        for r in con.execute("""SELECT uid, title, image_url, price_usd, ends_at, auction_house, year, mileage_mi FROM lots
+        for r in con.execute("""SELECT uid, title, image_url, price_usd, ends_at, auction_house, year, mileage_mi,
+                                       source, url, country, location, raw FROM lots
                                 WHERE status='sold' AND price_usd > 0 AND ends_at IS NOT NULL AND model_id=?
                                 AND substr(ends_at,1,10) <= ? ORDER BY ends_at DESC LIMIT 14""", (mid, today)):
             if r["uid"] in skip:
                 continue
+            sl = sales.describe(r)
             comps[mid].append({"id": idx.by_uid.get(r["uid"]), "title": r["title"], "image": r["image_url"],
                                "price": _round(r["price_usd"]), "date": r["ends_at"][:10], "house": r["auction_house"],
-                               "mileage": r["mileage_mi"]})
+                               "mileage": r["mileage_mi"], "sale": sl["sale"], "country": sl["country"]})
 
     out = {}
     for key, g in cars.items():
@@ -151,6 +153,7 @@ def _page(key: str, g: dict, prices: dict, comps: dict, stats: dict, today: str)
             "where": r["marketplace"] or r["source"], "seller": seller, "url": r["url"],
             "mileage": r["mileage_mi"], "location": r["location"], "photo": ph[0] if ph else None, "n_photos": len(ph),
             "certified": bool(r["certified"]), "changes": changes if len(changes) > 1 else [],
+            "country": sales.country_name(r["country"], r["location"]),
         })
         photos = photos or ph
         stamp = r["last_seen"] or r["first_seen"] or ""
@@ -166,10 +169,12 @@ def _page(key: str, g: dict, prices: dict, comps: dict, stats: dict, today: str)
         label = {"sold": "Sold at ", "unsold": "Not sold at ", "live": "Live at ", "upcoming": "Coming up at "}.get(st, "Offered at ") + house
         plabel = {"sold": "Sold for", "unsold": "High bid", "live": "Current bid", "upcoming": "Estimate"}.get(st, "Price")
         d = (r["ends_at"] or "")[:10] or r["first_seen"]
+        sl = sales.describe(r)
         events.append({
             "date": d, "end": None, "kind": st, "label": label, "price": _round(r["price_usd"]), "price_label": plabel,
             "estimate": [_round(r["estimate_low_usd"]), _round(r["estimate_high_usd"])] if r["estimate_low_usd"] else None,
-            "where": house, "seller": house, "url": r["url"], "mileage": r["mileage_mi"], "location": r["location"],
+            "where": house, "seller": house, "url": sales.lot_url(r), "mileage": r["mileage_mi"], "location": r["location"],
+            "sale": sl["sale"], "sale_url": sl["sale_url"], "country": sl["country"], "online": sl["online"],
             "lot_number": r["lot_number"], "bids": r["bid_count"], "ends_at": r["ends_at"], "no_reserve": r["no_reserve"],
             "photo": ph[0] if ph else None, "n_photos": len(ph),
         })
@@ -212,6 +217,7 @@ def _page(key: str, g: dict, prices: dict, comps: dict, stats: dict, today: str)
         "vin": vin, "photos": photos[:60], "status": status,
         "price": now["price"], "price_label": now["price_label"], "estimate": now.get("estimate"),
         "date": now["date"], "ends_at": now.get("ends_at"), "url": now["url"], "where": now["where"], "seller": now["seller"],
+        "sale": now.get("sale"), "sale_url": now.get("sale_url"), "country": now.get("country"),
         "location": now.get("location"), "certified": now.get("certified", False), "no_reserve": now.get("no_reserve"),
         "specs": [[k, v] for k, v in spec if v not in (None, "")],
         "history": events,

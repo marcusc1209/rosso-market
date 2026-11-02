@@ -19,7 +19,7 @@ import statistics as st
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 
-from . import taxonomy
+from . import sales, taxonomy
 
 MOVER_MIN_PCT = 0.0             # any move counts; repricing must agree in direction
 MOVER_MIN_CARS = 5
@@ -328,9 +328,17 @@ def overnight(con, day: date) -> dict:
 # ---------------------------------------------------------------- auctions
 
 def _lot(r) -> dict:
-    return {k: r[k] for k in ("uid", "title", "url", "auction_house", "status", "price_usd", "estimate_low_usd",
-                              "estimate_high_usd", "no_reserve", "ends_at", "location", "model_id", "year", "mileage_mi",
-                              "lot_number", "bid_count")} | {"image": r["image_url"]}
+    d = {k: r[k] for k in ("uid", "title", "url", "auction_house", "status", "price_usd", "estimate_low_usd",
+                           "estimate_high_usd", "no_reserve", "ends_at", "location", "model_id", "year", "mileage_mi",
+                           "lot_number", "bid_count")} | {"image": r["image_url"]}
+    return d | sale_fields(r)
+
+
+def sale_fields(r) -> dict:
+    """The sale a lot was in, a link to it and the country (see sales.py)."""
+    s = sales.describe(r)
+    return {"url": sales.lot_url(r), "sale": s["sale"], "sale_url": s["sale_url"], "country": s["country"],
+            "online": s["online"]}
 
 
 def auctions(con, day: date, stats: dict) -> dict:

@@ -200,6 +200,10 @@ table.sheet { width: 100%; border-collapse: collapse; font-size: 14px; min-width
 .view-switch button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
 .insight .ph { margin-bottom: 4px; aspect-ratio: 16 / 9; }
 .lot .house { color: var(--muted); font-size: 13px; }
+.lot .sale, .timeline .sale { font-size: 13px; font-weight: 500; }
+.sale-link, .sale a, .row a { color: var(--rosso); text-decoration: none; cursor: pointer; }
+.sale-link:hover, .sale a:hover, .row a:hover { text-decoration: underline; }
+.lot .country, .timeline .country { font-size: 13px; color: var(--ink); letter-spacing: .02em; }
 .lot .bid { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
 .lot .bid b { font: 500 20px/1 var(--f-mono); font-variant-numeric: tabular-nums; }
 .lot .bid span { color: var(--muted); font-size: 12px; text-align: right; }
@@ -541,6 +545,23 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
 
   // Cards and rows open our own car page. Only records without one go straight to the source.
   const carLink = l => l.car ? `href="#car-${l.car}"` : `href="${esc(l.url)}" target="_blank" rel="noopener"`;
+  // Where a car was offered: the sale by name (linked to the sale's own page) and the country.
+  // Inside a card, which is itself a link, the sale opens through data-href.
+  const countryOf = l => l.country || (l.online ? "Online" : "");
+  const saleLink = (l, inCard) => !l.sale ? "" : !l.sale_url ? esc(l.sale)
+    : inCard ? `<span class="sale-link" role="link" tabindex="0" data-href="${esc(l.sale_url)}">${esc(l.sale)} ↗</span>`
+    : `<a href="${esc(l.sale_url)}" target="_blank" rel="noopener">${esc(l.sale)} ↗</a>`;
+  const salePlace = (l, inCard) => (l.sale || countryOf(l)) ? `<div class="sale">${saleLink(l, inCard)}</div>${countryOf(l) ? `<div class="country">${esc(countryOf(l))}</div>` : ""}` : "";
+  document.addEventListener("click", e => {
+    const t = e.target.closest("[data-href]");
+    if (!t) return;
+    e.preventDefault(); e.stopPropagation();
+    window.open(t.dataset.href, "_blank", "noopener");
+  }, true);
+  document.addEventListener("keydown", e => {
+    const t = e.target.closest && e.target.closest("[data-href]");
+    if (t && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); window.open(t.dataset.href, "_blank", "noopener"); }
+  });
 
   function listingCard(l) {
     const chips = l.certified ? '<span class="chip sold">Ferrari Approved</span>' : "";
@@ -549,6 +570,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       <div class="body"><h3>${esc(l.title)}</h3>
         <div class="specs">${[miles(l.mileage_mi), l.exterior_color].filter(Boolean).map(esc).join(" · ")}</div>
         <div class="house">${esc(l.dealer_name || l.marketplace || "")}${l.location ? ", " + esc(l.location) : ""}</div>
+        ${l.country ? `<div class="country">${esc(l.country)}</div>` : ""}
         <div class="bid"><div><div class="eyebrow">Asking</div><b>${money(l.price_usd)}</b></div><span>${l.first_seen ? "Listed " + dateLong(l.first_seen) : ""}<br>${esc(l.marketplace || "")}</span></div>
       </div></a>`;
   }
@@ -572,7 +594,8 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     return `<a class="lot" ${carLink(l)}>
       ${photo(l.image, l.title, chips.join(""))}
       <div class="body"><h3>${esc(l.title)}</h3>
-      <div class="house">${esc(l.auction_house)}${l.location ? ", " + esc(l.location) : ""}${l.lot_number ? ", lot " + esc(l.lot_number) : ""}</div>
+      ${salePlace(l, true)}
+      <div class="house">${esc(l.auction_house)}${!l.sale && l.location ? ", " + esc(l.location) : ""}${l.lot_number ? ", lot " + esc(l.lot_number) : ""}</div>
       ${l.mileage_mi ? `<div class="specs">${miles(l.mileage_mi)}</div>` : ""}
       <div class="bid"><div><div class="eyebrow">${label}</div><b>${value}</b></div><span>${when}${est}${vs}</span></div>
       </div></a>`;
@@ -730,8 +753,8 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       switchable(mList, detail.listings, listingCard, listTable, { id: "listings", sorts: LISTING_SORTS,
         note: "AutoTrader listings carry the date the dealer listed them. For other sites it is the day we first saw the car, and our tracking began on Oct 31, 2026." });
     } else mList.innerHTML = '<div class="empty">No cars listed right now.</div>';
-    const resTable = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Lot</th><th>House</th><th>Closed</th><th class="r">Mileage</th><th>Result</th><th class="r">Price</th></tr></thead><tbody>
-      ${items.map(r => `<tr><td class="thumb">${photo(r.image, "")}</td><td class="name"><a ${carLink(r)}>${esc(r.title)}</a></td><td>${esc(r.auction_house)}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td><td class="r num">${miles(r.mileage_mi)}</td>
+    const resTable = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Lot</th><th>Sale</th><th>Country</th><th>Closed</th><th class="r">Mileage</th><th>Result</th><th class="r">Price</th></tr></thead><tbody>
+      ${items.map(r => `<tr><td class="thumb">${photo(r.image, "")}</td><td class="name"><a ${carLink(r)}>${esc(r.title)}</a></td><td>${saleLink(r) || esc(r.auction_house)}<div class="flat" style="font-size:12px">${esc(r.auction_house)}</div></td><td>${esc(countryOf(r))}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td><td class="r num">${miles(r.mileage_mi)}</td>
       <td><span class="chip ${r.status}">${r.status === "sold" ? "Sold" : "Not sold"}</span></td><td class="r num">${money(r.price_usd)}</td></tr>`).join("")}</tbody></table></div>`;
     const mRes = document.getElementById("m-res");
     if (detail.results.length) switchable(mRes, detail.results, lotCard, resTable);
@@ -822,7 +845,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       const p = vis[i], [cx, cy] = pos[i];
       ring.setAttribute("cx", cx); ring.setAttribute("cy", cy); ring.style.display = "";
       tip.innerHTML = `${p[5] ? photo(p[5], p[4]) : ""}<div class="tb"><b class="t">${esc(p[4] || "")}</b><span class="pr">${money(p[1])}</span>
-        <span class="sub">${KINDS[p[2]][0]}${p[6] ? ", " + esc(p[6]) : ""}</span><span class="sub">${dateLong(p[0])}</span>${p[3] ? '<span class="go">Open this car →</span>' : ""}</div>`;
+        <span class="sub">${KINDS[p[2]][0]}${p[6] ? ", " + esc(p[6]) : ""}</span>${p[7] || p[8] ? `<span class="sub">${[p[7], p[8]].filter(Boolean).map(esc).join(" · ")}</span>` : ""}<span class="sub">${dateLong(p[0])}</span>${p[3] ? '<span class="go">Open this car →</span>' : ""}</div>`;
       tip.hidden = false;
       const sr = svg.getBoundingClientRect(), br = box.getBoundingClientRect();
       const px = sr.left - br.left + cx / W * sr.width, py = sr.top - br.top + cy / H * sr.height;
@@ -985,6 +1008,8 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
           <div><div class="eyebrow">${esc(c.price_label || "")}</div><div class="big">${priceTxt}</div>${vsAsk ? `<div style="font-size:13px;margin-top:4px">${vsAsk} vs median ask</div>` : ""}</div>
           ${c.no_reserve ? '<span class="chip" style="justify-self:start">No reserve</span>' : ""}${c.certified ? '<span class="chip sold" style="justify-self:start">Ferrari Approved</span>' : ""}
           <div class="row"><span>${c.status === "for_sale" || c.status === "off_market" ? "Seller" : "Auction house"}</span><span>${esc(c.seller || "")}</span></div>
+          ${c.sale ? `<div class="row"><span>Sale</span><span>${saleLink(c)}</span></div>` : ""}
+          ${c.country ? `<div class="row"><span>Country</span><span>${esc(c.country)}</span></div>` : ""}
           ${ask ? `<div class="row"><span>Median ask, ${esc(c.model.name)}</span><span class="num">${money(ask)}</span></div>` : ""}
           ${(m.auction || {}).median_sold_12m ? `<div class="row"><span>Median sold, 12 months</span><span class="num">${money(m.auction.median_sold_12m)}</span></div>` : ""}
           ${ext}
@@ -1000,7 +1025,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
             const changes = (e.changes || []).length > 1 ? `<details><summary>${e.changes.length - 1} price change${e.changes.length > 2 ? "s" : ""}</summary>${e.changes.map(([d, v]) => `<div><span class="num">${dateLong(d)}</span> &nbsp; <b class="num">${money(v)}</b></div>`).join("")}</details>` : "";
             return `<li class="${e.kind}"><div class="ev"><div>
               <div class="when">${e.date ? dateLong(e.date) : "Date not published"}${e.end ? " to " + dateLong(e.end) : ""}</div>
-              <h3>${esc(e.label)}</h3><div><span class="sub">${esc(e.price_label)}:</span> <span class="pr num">${p}</span></div>
+              <h3>${esc(e.label)}</h3>${e.sale ? `<div class="sale">${saleLink(e)}</div>` : ""}${e.country || e.online ? `<div class="country">${esc(countryOf(e))}</div>` : ""}<div><span class="sub">${esc(e.price_label)}:</span> <span class="pr num">${p}</span></div>
               <div class="sub">${[e.mileage ? miles(e.mileage) : "", e.location || "", e.lot_number ? "lot " + e.lot_number : "", e.bids ? e.bids + " bids" : ""].filter(Boolean).map(esc).join(" · ")}</div>
               ${e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">View source ↗</a>` : ""}</div>
               <div style="position:relative">${photo(e.photo, "")}${e.n_photos > 1 ? `<span class="n">${e.n_photos}</span>` : ""}</div>${seen}${changes}</div></li>`;
@@ -1008,7 +1033,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
         <div class="car-sec"><h2>Mileage curve</h2><p class="flat" style="margin:-6px 0 16px;font-size:14px">How mileage moves ${esc(c.model.name)} prices: every one for sale now and every auction sale in the last 18 months that gave its mileage. Older sales are left out.</p><div id="car-miles"><p class="flat">Loading the curve</p></div></div>
         <div class="car-sec"><h2>${esc(c.model.name)} market</h2><p class="flat" style="margin:-6px 0 16px;font-size:14px">This car is ringed in yellow. Hover a dot to see which car it is.</p><div id="car-mkt"><p class="flat">Loading the market</p></div></div>
         ${c.comps.length ? `<div class="car-sec"><h2>Recent ${esc(c.model.name)} sales</h2><div class="lots">${c.comps.map(x => `<a class="lot" ${carLink({ car: x.id, url: "#" })}>${photo(x.image, x.title, '<span class="chip sold">Sold</span>')}
-          <div class="body"><h3>${esc(x.title)}</h3><div class="house">${esc(x.house || "")}</div>${x.mileage ? `<div class="specs">${miles(x.mileage)}</div>` : ""}
+          <div class="body"><h3>${esc(x.title)}</h3>${salePlace(x, true)}<div class="house">${esc(x.house || "")}</div>${x.mileage ? `<div class="specs">${miles(x.mileage)}</div>` : ""}
           <div class="bid"><div><div class="eyebrow">Sold for</div><b>${money(x.price)}</b></div><span>${dateLong(x.date)}</span></div></div></a>`).join("")}</div></div>` : ""}
       </div><div></div></div></section>`;
     app.querySelectorAll("[data-p]").forEach(b => b.addEventListener("click", () => openPhotos(ph, +b.dataset.p)));
@@ -1060,8 +1085,8 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       app.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === k));
       const arr = tabs.find(t => t[0] === k)[2];
       const body = document.getElementById("tab-body");
-      const table = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Lot</th><th>House</th><th>${k === "results" ? "Closed" : "Ends"}</th><th>Result</th><th class="r">Price</th><th class="r">vs median ask</th></tr></thead><tbody>
-          ${items.map(r => `<tr><td class="thumb">${photo(r.image, "")}</td><td class="name"><a ${carLink(r)}>${esc(r.title)}</a></td><td>${esc(r.auction_house)}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td>
+      const table = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Lot</th><th>Sale</th><th>Country</th><th>${k === "results" ? "Closed" : "Ends"}</th><th>Result</th><th class="r">Price</th><th class="r">vs median ask</th></tr></thead><tbody>
+          ${items.map(r => `<tr><td class="thumb">${photo(r.image, "")}</td><td class="name"><a ${carLink(r)}>${esc(r.title)}</a></td><td>${saleLink(r) || esc(r.auction_house)}<div class="flat" style="font-size:12px">${esc(r.auction_house)}</div></td><td>${esc(countryOf(r))}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td>
           <td>${r.status === "sold" || r.status === "unsold" ? `<span class="chip ${r.status}">${r.status === "sold" ? "Sold" : "Not sold"}</span>` : `<span class="chip">${r.status === "live" ? "Live" : "Upcoming"}</span>`}</td>
           <td class="r num">${r.status === "upcoming" ? (r.estimate_low_usd ? short(r.estimate_low_usd) + " to " + short(r.estimate_high_usd) : "") : money(r.price_usd)}</td><td class="r">${r.status === "sold" ? chg(r.vs_ask_pct) : ""}</td></tr>`).join("")}</tbody></table></div>`;
       if (!arr.length) body.innerHTML = '<div class="empty">Nothing here right now.</div>';

@@ -201,6 +201,12 @@ log price (a steady percentage per mile, or a log of miles shape, whichever miss
 by less), refitted after setting aside cars far off it. Each car page draws it with the car
 ringed and says how far above or below the curve the car is priced.
 
+Every auction lot also says where it was offered (`pipeline/sales.py`): the house's sale by
+name, linked to the sale's own page, and the country it was held in (for online auctions,
+where the car is). RM Sotheby's sale pages come from the lot link; Bonhams' names, venues and
+countries from its sales index; Broad Arrow's from its auction list; Gooding's pages from its
+sitemap; Mecum's from the sale name (always in the US). The adapters keep these lookups in kv.
+
 Each model file carries `points` for the market chart: sold, high bid, for sale and last
 asking price, each with its car id, title and photo, so hovering a dot shows the car and
 clicking it opens the car page.
