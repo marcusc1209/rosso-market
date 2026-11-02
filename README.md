@@ -215,6 +215,7 @@ clicking it opens the car page.
 | AutoTrader.com | off | | blocks automated access ("page unavailable") from plain requests and headless browsers; the reader is kept for a licensed route |
 | duPont Registry | ~1,800 used | cloud | schema.org list on each search page, VIN, dealer |
 | AutoTrader.ca | ~330 | Mac | AutoScout24 platform, prices in CAD, no VIN |
+| AutosToday | ~2,400 used | cloud | `autostoday.py`: dealers' own inventory feeds, VIN, days on market. The model a VIN encodes is used when the title is loose ("488 Base") |
 | ClassicCars.com | ~180 | cloud | `classiccars.py`: 12 search pages, then each listing page once for odometer, colours, VIN or chassis and photos. Cars consigned to auctions are skipped |
 
 Each one's robots.txt allows general crawlers on the search pages read here, and
@@ -228,5 +229,5 @@ route to the same inventory.
 Also checked on 2026-11-01 and left out: CarGurus and Carfax (DataDome), TrueCar
 (PerimeterX), JamesEdition (Cloudflare challenge), iSeeCars (nationwide results need a
 token its own script makes), Autolist (its results are CarGurus inventory) and
-Exotic Car Trader (about 20 live Ferraris). eBay Motors has an official free API that
+Exotic Car Trader (about 20 live Ferraris), carsforsale.com (Cloudflare challenge). eBay Motors has an official free API that
 needs the owner's developer keys.

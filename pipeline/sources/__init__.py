@@ -13,6 +13,7 @@ from .bonhams import Bonhams
 from .pcarmarket import PCarMarket
 from .dealer_marketplaces import AutoTrader, AutoTraderCA, DupontRegistry
 from .classiccars import ClassicCars
+from .autostoday import AutosToday
 
 ADAPTERS = {
     "bringatrailer": BringATrailer,
@@ -34,5 +35,6 @@ ADAPTERS = {
     "autotrader": AutoTrader,
     "autotrader_ca": AutoTraderCA,
     "classiccars": ClassicCars,
+    "autostoday": AutosToday,
     "dupont_registry": DupontRegistry,
 }

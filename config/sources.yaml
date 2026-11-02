@@ -78,6 +78,10 @@ sources:
     adapter: autotrader_ca
     enabled: true
     runner: home
+  autostoday:                      # verified 2026-11-01. ~2,400 used Ferraris from dealers' own inventory feeds, VIN and days on market
+    adapter: autostoday
+    enabled: true
+    max_pages: 120
   classiccars:                     # verified 2026-11-01. ~180 classic and modern Ferraris from dealers and private sellers
     adapter: classiccars
     enabled: true
