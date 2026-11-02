@@ -248,7 +248,11 @@ newer Ferrari Approved cars are dated from the same car elsewhere. A car is date
 start of its latest unbroken stretch of archive evidence (no gap over 180 days, reaching to
 today), so a car that sold and came back is not dated by its old listing. Archive requests
 go 12 seconds apart (its index server refuses quicker ones) and three failures in a row put
-the rest off to the next run. Cars with no evidence anywhere keep
+the rest off to the next run. Cars that still have no date are looked up on CLASSIC.COM by VIN
+(`pipeline/classic_com.py`): it tracks dealer inventory and shows the day each listing was
+posted. Only a card for the same VIN that is for sale now counts, each VIN is asked once (again
+after a week if CLASSIC.COM did not have it yet), and a bot check stops the step for the run.
+CarGurus is not used: it sits behind DataDome bot protection. Cars with no evidence anywhere keep
 the first day we saw them. Cars.com is off: every page, robots.txt included, sits behind a
 Cloudflare bot check, which this pipeline never works around. Cars that appear on
 several sites are one car (matched by VIN, or by fingerprint for AutoTrader.ca), so

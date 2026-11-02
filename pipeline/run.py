@@ -18,7 +18,7 @@ from pathlib import Path
 
 import yaml
 
-from . import clean, db, dedupe, export, health as H
+from . import classic_com, clean, db, dedupe, export, health as H
 from .dedupe import vehicle_key
 from .fetch import Fetcher
 from .normalize import normalize, Reject
@@ -81,9 +81,11 @@ def run_source(con, name, source, ctx, day: date, fx: dict, cfg: dict) -> dict:
     run_id = db.start_run(con, day, name)
     fetched = accepted = rejected = 0
     t0 = time.time()
+    classic = classic_com.known(con)
     try:
         for raw in source.fetch():
             fetched += 1
+            classic_com.apply(raw, classic)
             if raw.kind == "auction" and raw.ends_at is None and raw.status in ("sold", "unsold") \
                     and not (raw.extra or {}).get("keep_undated"):
                 known = con.execute("SELECT ends_at FROM lots WHERE uid=?", (f"{raw.source}:{raw.source_id}",)).fetchone()
@@ -117,12 +119,17 @@ def run_source(con, name, source, ctx, day: date, fx: dict, cfg: dict) -> dict:
     return report
 
 
-def run_day(con, cfg, day: date, sources, fx) -> list[dict]:
+def run_day(con, cfg, day: date, sources, fx, where: str = "all") -> list[dict]:
     reports = []
     for name, src, ctx in sources:
         ctx.run_date = day
         reports.append(run_source(con, name, src, ctx, day, fx, cfg))
     log.info("%d listings without a VIN linked to the same car at the same dealer", dedupe.link_listings(con))
+    if where == "all" or (cfg.get("classic_com") or {}).get("runner", "cloud") == where:
+        try:
+            classic_com.run(con, cfg, Path(cfg["settings"].get("raw_dir", "data/raw")) / day.isoformat(), day)
+        except Exception as e:                      # listing dates are a nicety: never fail the run
+            log.warning("CLASSIC.COM listing dates skipped: %s", e)
     n = db.build_daily_asks(con, day)
     log.info("%s: %d tracked cars in snapshot", day, n)
     return reports
@@ -174,7 +181,7 @@ def main(argv=None):
             return 1
         fx = fx_rates(cfg, sources[0][2].fetcher if cfg["settings"].get("fx_live") else None)
         for back in range(a.backfill, -1, -1):
-            reports = run_day(con, cfg, day - timedelta(days=back), sources, fx)
+            reports = run_day(con, cfg, day - timedelta(days=back), sources, fx, a.where)
         feeds = cfg.get("news_feeds") or []
         if feeds and not only and a.where != "home":
             try:
