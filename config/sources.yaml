@@ -81,6 +81,7 @@ sources:
   autostoday:                      # verified 2026-11-01. ~2,400 used Ferraris from dealers' own inventory feeds, VIN and days on market
     adapter: autostoday
     enabled: true
+    runner: home                   # answers GitHub's servers with 403, like Ferrari Approved
     max_pages: 120
   classiccars:                     # verified 2026-11-01. ~180 classic and modern Ferraris from dealers and private sellers
     adapter: classiccars
