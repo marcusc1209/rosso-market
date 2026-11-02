@@ -145,6 +145,9 @@ def _page(key: str, g: dict, prices: dict, comps: dict, stats: dict, today: str)
                 last = p
         active = r["removed_on"] is None
         listed = min(x for x in [r["first_seen"], extra.get("listed_on")] if x) if (r["first_seen"] or extra.get("listed_on")) else None
+        # where the date came from, when it is not the day we first saw the car
+        how = (extra.get("listed_how") or "the listing site") if extra.get("listed_on") and listed == extra.get("listed_on") \
+            and listed != r["first_seen"] else None
         seller = r["dealer_name"] or r["marketplace"] or r["source"]
         events.append({
             "date": listed, "end": None if active else (r["removed_on"] or r["last_seen"]),
@@ -154,6 +157,7 @@ def _page(key: str, g: dict, prices: dict, comps: dict, stats: dict, today: str)
             "where": r["marketplace"] or r["source"], "seller": seller, "url": r["url"],
             "mileage": r["mileage_mi"], "location": r["location"], "photo": ph[0] if ph else None, "n_photos": len(ph),
             "certified": bool(r["certified"]), "changes": changes if len(changes) > 1 else [],
+            "date_how": how,
             "country": sales.country_name(r["country"], r["location"]),
         })
         photos = photos or ph
@@ -243,7 +247,8 @@ def _merge_listings(events: list[dict]) -> list[dict]:
         own = next((e for e in evs if (e["where"] or "").lower() not in AGGREGATORS), None)
         if own:
             best["url"], best["where"] = own["url"], own["where"]
-        best["date"] = min(e["date"] or "9999" for e in evs)
+        first = min(evs, key=lambda e: e["date"] or "9999")
+        best["date"], best["date_how"] = first["date"], first.get("date_how")
         ends = [e["end"] for e in evs if e["end"]]
         best["end"] = max(ends) if ends else None
         best["seen_on"] = [{"where": e["where"], "url": e["url"]} for e in evs]

@@ -58,8 +58,9 @@ sources:
     adapter: dupont_registry
     enabled: true
     max_pages: 150
-    date_pages: 1700               # each car's own page is read once for its "Date Listed", then remembered
-    fetch: {min_interval_seconds: 1.5}
+    date_pages: 200                # each car's own page is read once for its "Date Listed", then remembered.
+                                   # Kept small and at the normal pace: a faster first pass on 2026-11-02 was
+                                   # met with 403s, so the rest are dated a few hundred a day.
 
   dealer_sites:                    # unverified. Add independent dealers' inventory pages; most publish JSON-LD
     adapter: static_page

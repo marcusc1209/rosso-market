@@ -30,6 +30,7 @@ from bs4 import BeautifulSoup
 from .dealer_marketplaces import _Marketplace, _int
 from .pcarmarket import stored_record
 from ..records import RawRecord, LISTING
+from .. import wayback
 
 SITE = "https://classiccars.com"
 SEARCH = SITE + "/listings/find/all-years/ferrari"
@@ -128,6 +129,17 @@ class ClassicCars(_Marketplace):
             seen.update(c["id"] for c in got)
             cards += got
         budget = int(self.cfg.get("detail_pages", 150))
+        archive = wayback.Lookups(self.ctx.con, self.ctx.fetcher, int(self.cfg.get("wayback_lookups", 100)))
+        for rec in self._cards(cards, budget):
+            # ClassicCars shows no listing date: the archive's first capture of the listing page
+            # says it was up by then (kept with the listing, so asked about once)
+            if not rec.extra.get("listed_on"):
+                day = archive.first_capture(f"classiccars.com/listings/view/{rec.source_id}/")
+                if day:
+                    rec.extra.update(listed_on=day, listed_how="web archive")
+            yield rec
+
+    def _cards(self, cards, budget) -> Iterator[RawRecord]:
         read = reused = 0
         for card in cards:
             old = self._stored(card["id"])
@@ -138,7 +150,7 @@ class ClassicCars(_Marketplace):
                 for f in ("model_text", "mileage", "vin", "exterior_color", "interior_color", "transmission",
                           "location", "country", "seller_type", "dealer_name"):
                     setattr(rec, f, getattr(old, f))
-                rec.extra = old.extra
+                rec.extra = dict(old.extra)
                 rec.image_url = old.image_url or rec.image_url
                 reused += 1
                 yield rec

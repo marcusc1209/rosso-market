@@ -18,12 +18,14 @@ import time
 from typing import Iterator
 
 from .base import Source
+from .. import wayback
 from ..fetch import Blocked
 from ..records import RawRecord, LISTING
 from ..images import first_image, all_images, sized
 
 BASE = "https://preowned.ferrari.com/en-US/r/north-america/used-ferrari/{country}/rfc"
 AD_URL = "https://preowned.ferrari.com/en-US/a/north-america/used-ferrari/{country}/{dealer}/{model}/{id}"
+_AD_PARTS = re.compile(r"/used-ferrari/([a-z]+)/([a-z0-9-]+)/")
 _ND = re.compile(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', re.S)
 
 
@@ -72,6 +74,20 @@ class FerrariApproved(Source):
     use_browser = False
 
     def fetch(self) -> Iterator[RawRecord]:
+        """Ferrari Approved publishes no real listing date (its feed re-stamps every car daily),
+        so each car is dated from the Wayback Machine's archived ads where it can be."""
+        archive = wayback.Lookups(self.ctx.con, self.ctx.fetcher, int(self.cfg.get("wayback_lookups", 60)))
+        dated = 0
+        for rec in self._ads():
+            m = _AD_PARTS.search(rec.url)
+            day = archive.ferrari_approved(m.group(1), m.group(2), rec.vin, self.ctx.run_date) if m else None
+            if day:
+                rec.extra.update(listed_on=day, listed_how="web archive")
+                dated += 1
+            yield rec
+        self.log.info("%d cars dated from the Wayback Machine", dated)
+
+    def _ads(self) -> Iterator[RawRecord]:
         self.use_browser = bool(self.cfg.get("browser"))
         seen = set()
         for country in self.cfg.get("countries", ["usa", "canada"]):
