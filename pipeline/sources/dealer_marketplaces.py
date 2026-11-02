@@ -37,7 +37,7 @@ from __future__ import annotations
 import json
 import re
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Iterator, Optional
 
 from bs4 import BeautifulSoup
@@ -66,6 +66,45 @@ class _Marketplace(Source):
     """Plain request first. If the site refuses it, a real browser for the rest of the run."""
     kind = LISTING
     use_browser = False
+
+    def _stored_extra(self, sid: str) -> dict:
+        """What an earlier run stored for this listing (its listing date, once read)."""
+        con = self.ctx.con
+        if con is None:
+            return {}
+        row = con.execute("SELECT raw FROM sightings WHERE uid=?", (f"{self.name}:{sid}",)).fetchone()
+        try:
+            return (json.loads(row[0]).get("extra") or {}) if row and row[0] else {}
+        except (ValueError, TypeError):
+            return {}
+
+    def _with_listing_dates(self, recs, read_date) -> Iterator[RawRecord]:
+        """The search pages carry no listing date, each car's own page does. Every car's page is
+        read once; the date is kept with the listing so later runs never read it again.
+        `date_pages` caps how many pages one run reads (the rest wait for the next run)."""
+        budget, read, known, stop = int(self.cfg.get("date_pages", 400)), 0, 0, False
+        for rec in recs:
+            old = self._stored_extra(rec.source_id)
+            if old.get("listed_on") or old.get("listed_unknown"):
+                rec.extra.update({k: old[k] for k in ("listed_on", "listed_unknown") if k in old})
+                known += 1
+            elif not stop and read < budget and rec.url:
+                read += 1
+                try:
+                    day = read_date(self._html(rec.url))
+                except Blocked as e:
+                    self.log.info("car pages refused (%s): listing dates wait for the next run", e)
+                    stop = True
+                    day = None
+                except Exception as e:                    # one bad page never stops the source
+                    self.log.debug("no listing date from %s: %s", rec.url, e)
+                    day = None
+                if day:
+                    rec.extra["listed_on"] = day
+                elif not stop:
+                    rec.extra["listed_unknown"] = True    # read, and the page has no date
+            yield rec
+        self.log.info("listing dates: %d pages read, %d already known", read, known)
 
     def _html(self, url: str) -> str:
         if not self.use_browser:
@@ -251,8 +290,24 @@ def map_dupont_registry(it: dict, source: str) -> Optional[RawRecord]:
     )
 
 
+_DR_LISTED = re.compile(r'Date Listed\\?"\s*,\s*\\?"value\\?"\s*:\s*\\?"?(\d{10,13})')
+
+
+def dupont_listed_on(html: str) -> Optional[str]:
+    """A duPont Registry car page names its listing date as an additionalProperty
+    {"name": "Date Listed", "value": "<epoch milliseconds>"} (sometimes inside escaped JSON)."""
+    m = _DR_LISTED.search(html or "")
+    if not m:
+        return None
+    ts = int(m.group(1))
+    return datetime.fromtimestamp(ts / 1000 if ts > 1e11 else ts, tz=timezone.utc).date().isoformat()
+
+
 class DupontRegistry(_Marketplace):
     def fetch(self) -> Iterator[RawRecord]:
+        yield from self._with_listing_dates(self._search(), dupont_listed_on)
+
+    def _search(self) -> Iterator[RawRecord]:
         seen = set()
         for page in range(1, int(self.cfg.get("max_pages", 150)) + 1):
             url = f"{DR_SITE}/used-ferrari-for-sale" + (f"?page={page}" if page > 1 else "")
@@ -314,8 +369,20 @@ def map_autotrader_ca(x: dict, source: str) -> Optional[RawRecord]:
     )
 
 
+_ATCA_CREATED = re.compile(r'"createdTimestampWithOffset"\s*:\s*"(\d{4}-\d{2}-\d{2})')
+
+
+def autotrader_ca_listed_on(html: str) -> Optional[str]:
+    """An AutoTrader.ca car page (/offers/...) carries the listing's creation time."""
+    m = _ATCA_CREATED.search(html or "")
+    return m.group(1) if m else None
+
+
 class AutoTraderCA(_Marketplace):
     def fetch(self) -> Iterator[RawRecord]:
+        yield from self._with_listing_dates(self._search(), autotrader_ca_listed_on)
+
+    def _search(self) -> Iterator[RawRecord]:
         seen, pages, page = set(), 1, 1
         while page <= min(pages, int(self.cfg.get("max_pages", 40))):
             rows, n = parse_autotrader_ca(self._html(f"{ATCA_SITE}/cars/ferrari" + (f"?page={page}" if page > 1 else "")))

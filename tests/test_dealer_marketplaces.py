@@ -111,3 +111,27 @@ def test_autotrader_switches_to_browser_when_page_has_no_listings():
     out = list(src.fetch())
     assert [r.vin for r in out] == ["ZFF79ALA2K0245448"]
     assert [k for k, _ in asked] == ["plain", "browser"]
+
+
+def test_listing_dates_are_read_once_and_remembered(tmp_path):
+    from pipeline import db
+    from pipeline.records import RawRecord, LISTING
+    from pipeline.sources.dealer_marketplaces import DupontRegistry, dupont_listed_on, autotrader_ca_listed_on
+    from pipeline.sources.base import Context
+
+    assert dupont_listed_on('{"@type":"PropertyValue","name":"Date Listed","value":"1785998213000"}') == "2026-08-06"
+    assert dupont_listed_on(r'\"name\":\"Date Listed\",\"value\":\"1785998213000\"') == "2026-08-06"
+    assert autotrader_ca_listed_on('"createdTimestampWithOffset":"2026-04-22T18:22:04.590Z"') == "2026-04-22"
+
+    con = db.connect(tmp_path / "t.db")
+    con.execute("""INSERT INTO sightings (uid, source, title, first_seen, last_seen, raw)
+                   VALUES ('dupont_registry:old', 'dupont_registry', 'x', '2026-11-01', '2026-11-01', ?)""",
+                (json.dumps({"extra": {"listed_on": "2026-05-01"}}),))
+    ctx = Context(fetcher=None, run_date=date(2026, 11, 2), con=con)
+    src = DupontRegistry("dupont_registry", {"date_pages": 5}, ctx)
+    pages = []
+    src._html = lambda url: pages.append(url) or '{"name":"Date Listed","value":"1785998213000"}'
+    recs = [RawRecord(source="dupont_registry", kind=LISTING, source_id=s, url="https://x/" + s, title="t") for s in ("old", "new")]
+    out = list(src._with_listing_dates(recs, dupont_listed_on))
+    assert [r.extra["listed_on"] for r in out] == ["2026-05-01", "2026-08-06"]
+    assert pages == ["https://x/new"]                      # the stored date was not read again

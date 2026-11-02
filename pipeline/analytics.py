@@ -56,9 +56,20 @@ def available_days(con) -> list[str]:
     return [r[0] for r in con.execute("SELECT DISTINCT day FROM daily_asks ORDER BY day")]
 
 
+def listed_since(con) -> dict[str, str]:
+    """The day each car was put up for sale: the earliest listing date any site publishes for it
+    (duPont Registry and AutoTrader.ca do), else the first day we saw it."""
+    out = {r[0]: r[1] for r in con.execute("SELECT vehicle_key, MIN(day) FROM daily_asks GROUP BY vehicle_key")}
+    for k, d in con.execute("""SELECT vehicle_key, MIN(CASE WHEN json_valid(raw) THEN json_extract(raw, '$.extra.listed_on') END)
+                               FROM sightings WHERE vehicle_key IS NOT NULL GROUP BY vehicle_key"""):
+        if d and (k not in out or d < out[k]):
+            out[k] = d
+    return out
+
+
 def model_stats(con, day: date) -> dict[str, dict]:
     now, wk, mo = snapshot(con, day), snapshot(con, day - timedelta(days=7)), snapshot(con, day - timedelta(days=30))
-    first_seen = {r[0]: r[1] for r in con.execute("SELECT vehicle_key, MIN(day) FROM daily_asks GROUP BY vehicle_key")}
+    first_seen = listed_since(con)
     week_base, week_change = weekly_change(con, day)
     stats = {}
     for mid, cars in now.items():
@@ -157,26 +168,29 @@ def new_listings(con, day: date, since: str) -> dict[str, set]:
     """model_id -> vehicle keys first listed on or after `since`.
 
     A car counts as new when its listing date is known to be recent: the marketplace's
-    own date (AutoTrader's days on site), or the day we first saw it, unless that was the
+    own date (duPont Registry, AutoTrader.ca), or the day we first saw it, unless that was the
     first day we read its source at all. Adding a site would otherwise make all of its
     cars look newly listed."""
     start = {r[0]: r[1] for r in con.execute(
         "SELECT source, MIN(day) FROM runs WHERE status IN ('ok','degraded') GROUP BY source")}
-    first = defaultdict(lambda: None)
-    old = set()
+    published, seen, old = {}, {}, set()
     for r in con.execute("""SELECT s.vehicle_key, s.model_id, s.source, s.first_seen,
                                    CASE WHEN json_valid(s.raw) THEN json_extract(s.raw, '$.extra.listed_on') END AS listed_on
                             FROM sightings s JOIN daily_asks a ON a.vehicle_key = s.vehicle_key AND a.day = ?""", (day.isoformat(),)):
-        when = r["listed_on"] or (r["first_seen"] if r["first_seen"] and r["first_seen"] > (start.get(r["source"]) or "") else None)
         key = (r["model_id"], r["vehicle_key"])
-        if when is None:
+        if r["listed_on"]:
+            published[key] = min(published.get(key, r["listed_on"]), r["listed_on"])
+        elif r["first_seen"] and r["first_seen"] > (start.get(r["source"]) or ""):
+            seen[key] = min(seen.get(key, r["first_seen"]), r["first_seen"])
+        else:
             old.add(key)
-        elif first[key] is None or when < first[key]:
-            first[key] = when
     out = defaultdict(set)
-    for (mid, vk), when in first.items():
-        if (mid, vk) not in old and when and when >= since:
-            out[mid].add(vk)
+    # a date a site publishes wins; otherwise the day we first saw the car, unless some site
+    # already had it when we started reading that site
+    for key in published.keys() | seen.keys():
+        when = published.get(key) or (seen[key] if key not in old else None)
+        if when and when >= since:
+            out[key[0]].add(key[1])
     return out
 
 

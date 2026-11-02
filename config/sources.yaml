@@ -58,6 +58,8 @@ sources:
     adapter: dupont_registry
     enabled: true
     max_pages: 150
+    date_pages: 1700               # each car's own page is read once for its "Date Listed", then remembered
+    fetch: {min_interval_seconds: 1.5}
 
   dealer_sites:                    # unverified. Add independent dealers' inventory pages; most publish JSON-LD
     adapter: static_page
@@ -77,6 +79,7 @@ sources:
   autotrader_ca:                   # verified 2026-11-01. ~330 Ferraris in Canada (AutoScout24 platform), no VIN
     adapter: autotrader_ca
     enabled: true
+    date_pages: 400                # each car's page (/offers/...) is read once for the day it was listed
     runner: home
   autostoday:                      # off 2026-11-01: ~2,400 used Ferraris, but it answers automated readers with 403,
     adapter: autostoday            # from GitHub's servers and from the Mac alike (plain requests and the browser).

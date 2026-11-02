@@ -788,7 +788,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     const mList = document.getElementById("m-list");
     if (detail.listings.length) {
       switchable(mList, detail.listings, listingCard, listTable, { id: "listings", sorts: LISTING_SORTS,
-        note: "The listed date is the dealer's own where the site publishes it, otherwise the day we first saw the car. Our tracking began on Oct 31, 2026." });
+        note: "Listed dates come from duPont Registry and AutoTrader.ca, which publish the day each car went up for sale. A car listed on several sites shows the earliest date. Cars on no dated site show the day we first saw them; our tracking began on Oct 31, 2026." });
     } else mList.innerHTML = '<div class="empty">No cars listed right now.</div>';
     const resTable = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Lot</th><th>Sale</th><th>Country</th><th>Closed</th><th class="r">Mileage</th><th>Result</th><th class="r">Price</th></tr></thead><tbody>
       ${items.map(r => `<tr><td class="thumb">${photo(r.image, "")}</td><td class="name"><a ${carLink(r)}>${esc(r.title)}</a></td><td>${saleLink(r) || esc(r.auction_house)}<div class="flat" style="font-size:12px">${esc(r.auction_house)}</div></td><td>${esc(countryOf(r))}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td><td class="r num">${miles(r.mileage_mi)}</td>

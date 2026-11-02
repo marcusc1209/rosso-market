@@ -228,8 +228,14 @@ clicking it opens the car page.
 | AutosToday | off | | `autostoday.py` is kept but off: it answers automated readers with 403 from any address |
 | ClassicCars.com | ~180 | cloud | `classiccars.py`: 12 search pages, then each listing page once for odometer, colours, VIN or chassis and photos. Cars consigned to auctions are skipped |
 
-Each one's robots.txt allows general crawlers on the search pages read here, and
-nothing else is read. Cars.com is off: every page, robots.txt included, sits behind a
+Each one's robots.txt allows general crawlers on the pages read here.
+
+Listing dates: duPont Registry and AutoTrader.ca publish the day each car was listed on the
+car's own page ("Date Listed", createdTimestampWithOffset). Each page is read once per car
+(`date_pages` caps a run) and the date is kept with the listing. A car listed on several
+sites takes the earliest published date, so a Ferrari Approved car (whose feed date is
+refreshed daily and means nothing) shows the date the same VIN went up on duPont Registry.
+Cars on no dated site keep the first day we saw them. Cars.com is off: every page, robots.txt included, sits behind a
 Cloudflare bot check, which this pipeline never works around. Cars that appear on
 several sites are one car (matched by VIN, or by fingerprint for AutoTrader.ca), so
 adding sources widens coverage without double counting. These sites' terms of use
