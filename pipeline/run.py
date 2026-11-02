@@ -153,6 +153,12 @@ def main(argv=None):
                 scfg["lot_pages"] = max(int(scfg["lot_pages"]), 600)
     day = date.fromisoformat(a.date) if a.date else date.today()
     con = db.connect(Path(cfg["settings"].get("db", "data/ferrari.db")))
+    if a.export_only and not a.date:
+        # republishing: build the site for the last day the market was collected, not the calendar
+        # day (a republish just after midnight UTC would otherwise show no cars for sale)
+        last = con.execute("SELECT MAX(day) FROM daily_asks").fetchone()[0]
+        if last:
+            day = date.fromisoformat(last)
     clean.purge(con)        # stored rows that today's filters would reject
 
     reports: list[dict] = []
