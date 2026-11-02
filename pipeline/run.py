@@ -87,7 +87,8 @@ def run_source(con, name, source, ctx, day: date, fx: dict, cfg: dict) -> dict:
             if raw.kind == "auction" and raw.ends_at is None and raw.status in ("sold", "unsold") \
                     and not (raw.extra or {}).get("keep_undated"):
                 known = con.execute("SELECT ends_at FROM lots WHERE uid=?", (f"{raw.source}:{raw.source_id}",)).fetchone()
-                if known is None and has_history:
+                old_sale = clean.rm_code_year(raw.url) is not None and clean.rm_code_year(raw.url) < day.year - 1
+                if known is None and has_history and not old_sale:
                     raw.ends_at = f"{day.isoformat()}T12:00:00+00:00"
                     raw.extra["date_inferred"] = True
             try:

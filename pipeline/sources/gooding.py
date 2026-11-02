@@ -21,10 +21,13 @@ its estimate. Sale prices include the buyer's premium.
 """
 from __future__ import annotations
 
+import json
+import re
 from datetime import datetime, timezone
 from typing import Iterator, Optional
 
 from .base import Source
+from .. import db
 from ..normalize import parse_price
 from ..records import RawRecord, AUCTION
 from ..images import gooding as gooding_image
@@ -102,6 +105,11 @@ def map_vehicle(v: dict, source: str, now: datetime) -> Optional[RawRecord]:
     )
 
 
+def sale_pages(xml: str) -> list[str]:
+    """Slugs of /auction/<slug> pages in the sitemap (not the /auction/realized/ copies)."""
+    return sorted({m for m in re.findall(r"/auction/([a-z0-9-]+)/?\s*<", xml or "") if m != "realized"})
+
+
 class Gooding(Source):
     kind = AUCTION
 
@@ -124,3 +132,20 @@ class Gooding(Source):
                 if rec:
                     yield rec
             page += 1
+        self._save_sale_pages()
+
+    def _save_sale_pages(self):
+        """Gooding's sale pages, from the sitemap robots.txt names. Their names vary
+        (amelia-island-auction-2025, amelia-island-auctions-2026), so the site matches each
+        lot's sale to this list rather than guessing the address."""
+        con = self.ctx.con
+        if con is None:
+            return
+        try:
+            pages = sale_pages(self.ctx.fetcher.get(SITE + "/sitemap.xml").text)
+        except Exception as e:                           # sale links are a nice to have
+            self.log.warning("could not read the sitemap for sale pages: %s", e)
+            return
+        if pages:
+            db.kv_set(con, "sales:gooding", json.dumps(pages))
+            self.log.info("%d sale pages in the sitemap", len(pages))

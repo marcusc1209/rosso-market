@@ -13,6 +13,7 @@ filed under F40), which export leaves out of the medians and charts.
 from __future__ import annotations
 
 import json
+import re
 import logging
 import statistics as st
 from datetime import date
@@ -55,10 +56,33 @@ def purge(con) -> dict:
     counts["estimate_as_price"] = _drop_estimate_prices(con)
     counts.update(_apply_auction_policy(con))
     counts["reclassified"] = _reclassify(con)
+    counts["archive_undated"] = _undate_old_rm(con)
     con.commit()
     if any(counts.values()):
         log.info("purged rows that fail the current filters: %s", counts)
     return counts
+
+
+_RM_CODE = re.compile(r"rmsothebys\.com/auctions/[a-z]+(\d{2})/", re.I)
+
+
+def rm_code_year(url: str):
+    """RM Sotheby's sale codes end in the sale's year: mo06 is Monterey 2006, lf26 London 2026."""
+    m = _RM_CODE.search(url or "")
+    return 2000 + int(m.group(1)) if m else None
+
+
+def _undate_old_rm(con) -> int:
+    """RM keeps adding archive results (Monterey 2006, Monaco 2010). Ones whose sale page carries
+    no date were dated by the day we first saw them, which put old sales among recent results.
+    Their sale code names the year: when that disagrees with the date, the date is cleared."""
+    n = 0
+    for r in con.execute("SELECT uid, url, ends_at FROM lots WHERE source='rmsothebys' AND ends_at IS NOT NULL"):
+        y = rm_code_year(r["url"])
+        if y and abs(int(r["ends_at"][:4]) - y) > 1:
+            con.execute("UPDATE lots SET ends_at=NULL WHERE uid=?", (r["uid"],))
+            n += 1
+    return n
 
 
 def _drop_estimate_prices(con) -> int:

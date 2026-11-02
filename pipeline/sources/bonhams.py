@@ -25,11 +25,13 @@ https://www.bonhams.com/auction/<auctionId>/lot/<lotId>/<slug>/
 """
 from __future__ import annotations
 
+import json
 import re
 from datetime import datetime, timezone
 from typing import Iterator, Optional
 
 from .base import Source
+from .. import db
 from ..records import RawRecord, AUCTION
 from ..images import first_image, sized
 
@@ -86,8 +88,21 @@ def map_lot(d: dict, source: str) -> Optional[RawRecord]:
         lot_number=str(lot) if lot not in (None, "0") else None,
         country=(d.get("country") or {}).get("code"), location=(d.get("country") or {}).get("name"),
         auction_house="Bonhams", seller_type="auction", image_url=sized(first_image(d.get("image")), width=640),
-        extra={"auction": aid, "department": (d.get("department") or {}).get("name"), "price_basis": "with premium"},
+        extra={"auction": aid, "auction_slug": d.get("auctionSlug"),
+               "department": (d.get("department") or {}).get("name"), "price_basis": "with premium"},
     )
+
+
+def parse_sales(res: dict) -> dict:
+    """Documents of Bonhams' "auctions" collection -> {auction id: title, slug, venue, country code}."""
+    out = {}
+    for hit in res.get("hits") or []:
+        a = hit.get("document") or {}
+        if a.get("id"):
+            out[str(a["id"])] = {"title": (a.get("auctionTitle") or a.get("auctionHeading") or "").strip() or None,
+                                 "slug": a.get("slug"), "venue": (a.get("venue") or {}).get("name"),
+                                 "country": (a.get("country") or {}).get("code")}
+    return out
 
 
 class Bonhams(Source):
@@ -112,7 +127,7 @@ class Bonhams(Source):
 
     def fetch(self) -> Iterator[RawRecord]:
         key, size = self._key(), int(self.cfg.get("page_size", 250))
-        page, pages = 1, 1
+        page, pages, ids = 1, 1, set()
         while page <= min(pages, int(self.cfg.get("max_pages", 20))):
             body = {"searches": [{"collection": "lots", "q": "ferrari", "query_by": "title",
                                   "filter_by": DEPARTMENTS, "sort_by": "hammerTime.timestamp:desc",
@@ -128,5 +143,33 @@ class Bonhams(Source):
             for hit in res.get("hits") or []:
                 rec = map_lot(hit.get("document") or {}, self.name)
                 if rec:
+                    ids.add(str(rec.extra["auction"]))
                     yield rec
             page += 1
+        self._save_sales(key, ids)
+
+    def _save_sales(self, key: str, ids: set):
+        """Each sale's title, venue and country, from the same search service's "auctions" collection.
+        Kept in kv so that the site can name the sale of every stored result."""
+        con = self.ctx.con
+        if con is None:
+            return
+        try:
+            known = json.loads(db.kv_get(con, "sales:bonhams") or "{}")
+        except ValueError:
+            known = {}
+        todo = sorted(i for i in ids if i and i not in known)
+        for n in range(0, len(todo), 100):
+            chunk = todo[n:n + 100]
+            body = {"searches": [{"collection": "auctions", "q": "*", "filter_by": "id: [" + ",".join(chunk) + "]",
+                                  "exclude_fields": "description,images,embedding", "per_page": len(chunk)}]}
+            try:
+                res = (self.ctx.fetcher.post_json(SEARCH, body, headers={"X-TYPESENSE-API-KEY": key, "Origin": SITE,
+                                                                          "Referer": SITE + "/search/"})
+                       .get("results") or [{}])[0]
+                known.update(parse_sales(res))
+            except Exception as e:                       # sale names are a nice to have
+                self.log.warning("could not read Bonhams sale names: %s", e)
+                break
+        db.kv_set(con, "sales:bonhams", json.dumps(known))
+        self.log.info("%d Bonhams sales named (%d new)", len(known), len(todo))

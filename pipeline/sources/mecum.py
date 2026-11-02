@@ -52,17 +52,21 @@ def map_hit(h: dict, source: str, now: float) -> RawRecord | None:
         return None
     if status == "unsold":
         bgo_number, price = price, None
-    auction = ((tax.get("auction_tax") or [{}])[0].get("name") or "").split("|")[0] or None
+    term = (tax.get("auction_tax") or [{}])[0] or {}
+    auction = (term.get("name") or "").split("|")[0] or None
+    link = h.get("permalink") or ""
+    if link.startswith("/"):
+        link = "https://www.mecum.com" + link          # the index stores lot links without the domain
     labels = [s.get("name", "") for s in tax.get("lot_status") or [] if isinstance(s, dict)]
     year = (tax.get("lot_year") or [{}])[0].get("name")
     return RawRecord(
         source=source, kind=AUCTION, source_id=str(h.get("objectID") or h.get("post_id")),
-        url=h.get("permalink") or "", title=title, price=float(price) if price else None, currency="USD",
+        url=link, title=title, price=float(price) if price else None, currency="USD",
         year=int(year) if str(year or "").isdigit() else None, make="Ferrari",
         status=status, ends_at=datetime.fromtimestamp(end, tz=timezone.utc).isoformat() if end else None,
         no_reserve="No reserve" in labels, lot_number=h.get("lot_number_meta"),
         location=auction, auction_house="Mecum", seller_type="auction", image_url=find_image(h),
-        extra={"auction": auction, "price_basis": "with premium",
+        extra={"auction": auction, "auction_slug": term.get("slug"), "price_basis": "with premium",
                **({"bid_goes_on_figure": bgo_number} if status == "unsold" else {})},
     )
 

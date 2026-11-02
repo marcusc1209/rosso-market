@@ -108,6 +108,20 @@ def parse_events(html: str) -> dict[str, tuple[str, str]]:
     return out
 
 
+def parse_event_pages(html: str) -> dict[str, dict]:
+    """Each auction on /past-auctions and /events: its page and where it was held
+    ("Knokke-Heist, Belgium"; online sales have no place). Keyed like parse_events."""
+    soup = BeautifulSoup(html, "html.parser")
+    out = {}
+    for a in soup.select("a.content-col"):
+        mid, bot = a.select_one("h2.mid"), a.select_one("h2.bot")
+        href = a.get("href") or ""
+        if mid and href.startswith("/events/event/"):
+            name = mid.get_text(" ", strip=True)
+            out[key(name)] = {"name": name, "url": SITE + href, "place": bot.get_text(" ", strip=True) if bot else None}
+    return out
+
+
 def lot_urls(body: bytes) -> list[str]:
     if body[:2] == b"\x1f\x8b":
         body = gzip.decompress(body)
@@ -215,12 +229,23 @@ class BroadArrow(Source):
     kind = AUCTION
 
     def _events(self) -> dict:
-        events = {}
+        events, pages = {}, {}
         for path in ("/past-auctions", "/events"):
             try:
-                events.update(parse_events(self.ctx.fetcher.get(SITE + path).text))
+                html = self.ctx.fetcher.get(SITE + path).text
+                events.update(parse_events(html))
+                pages.update(parse_event_pages(html))
             except Exception as e:                       # dates are a nice to have, never a reason to stop
                 self.log.warning("could not read %s: %s", path, e)
+        con = self.ctx.con
+        if con is not None and pages:
+            # each auction's page and place, so the site can link every stored lot to its sale
+            try:
+                known = json.loads(db.kv_get(con, "sales:broadarrow") or "{}")
+            except ValueError:
+                known = {}
+            known.update(pages)
+            db.kv_set(con, "sales:broadarrow", json.dumps(known))
         return events
 
     def _get(self, url: str) -> str:
