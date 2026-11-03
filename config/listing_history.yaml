@@ -15,3 +15,13 @@ ZFF90HLA3L0251840:                 # 2020 488 Pista, Wide World Ferrari (duPont 
   listed_on: 2026-08-29
   source: cars.com
   url: https://www.cars.com/vehicledetail/ecec9220-20e5-4b3f-a2b1-37d519200453/
+  prices:                          # cars.com price history, all in price (asking plus the $175 doc fee)
+    - [2026-08-29, 1149970]
+    - [2026-09-15, 1147063]
+    - [2026-09-26, 1139063]
+    - [2026-10-01, 1129496]
+    - [2026-10-06, 1121286]
+    - [2026-10-11, 1115286]
+    - [2026-10-14, 1100175]
+    - [2026-10-17, 1095625]
+    - [2026-10-28, 1089063]
