@@ -18,8 +18,8 @@ import logging
 import statistics as st
 from datetime import date
 
-from . import taxonomy
-from .normalize import extract_year, is_price_range
+from . import db, taxonomy
+from .normalize import extract_year, is_price_range, outside_market
 
 log = logging.getLogger("clean")
 
@@ -53,6 +53,7 @@ def purge(con) -> dict:
             con.execute(f"DELETE FROM {child} WHERE uid=?", (uid,))
             con.execute(f"DELETE FROM {table} WHERE uid=?", (uid,))
         counts[table] = len(bad)
+    counts["outside_us"] = _drop_outside_market(con)
     counts["estimate_as_price"] = _drop_estimate_prices(con)
     counts.update(_apply_auction_policy(con))
     counts["reclassified"] = _reclassify(con)
@@ -61,6 +62,23 @@ def purge(con) -> dict:
     if any(counts.values()):
         log.info("purged rows that fail the current filters: %s", counts)
     return counts
+
+
+def _drop_outside_market(con) -> int:
+    """Cars for sale outside the US (Canada, the Netherlands, the UK) leave the database, and every
+    daily snapshot is rebuilt without them, so medians, movers and charts are US prices throughout.
+    Auction lots are not touched: results stay international."""
+    bad = [(r["uid"], r["source"], r["title"], where) for r in con.execute("SELECT uid, source, title, country, location FROM sightings")
+           if (where := outside_market(r["country"], r["location"]))]
+    for uid, source, title, where in bad:
+        con.execute("INSERT INTO rejects (run_id, source, source_id, title, reason) VALUES (NULL, ?, ?, ?, ?)",
+                    (source, uid.split(":", 1)[-1], title, f"purged: listed outside the US ({where})"))
+        con.execute("DELETE FROM sighting_prices WHERE uid=?", (uid,))
+        con.execute("DELETE FROM sightings WHERE uid=?", (uid,))
+    if bad:
+        for (day,) in con.execute("SELECT DISTINCT day FROM daily_asks").fetchall():
+            db.build_daily_asks(con, date.fromisoformat(day))
+    return len(bad)
 
 
 _RM_CODE = re.compile(r"rmsothebys\.com/auctions/[a-z]+(\d{2})/", re.I)

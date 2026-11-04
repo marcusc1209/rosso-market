@@ -1,6 +1,6 @@
 <title>Rosso Market</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Daily asking prices, auction results and market trends for every Ferrari for sale in the US and Canada.">
+<meta name="description" content="Daily asking prices for every Ferrari for sale in the US, with auction results from around the world.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -818,7 +818,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       <div class="wrap">
         <div class="eyebrow"><span class="dot"></span>As of ${dateLong(D.as_of)}, ${esc(D.region)}</div>
         <h1>Rosso<br><span>Market</span></h1>
-        <p class="lede">Daily asking prices, auction results and market intelligence for every Ferrari for sale in the US and Canada, from the 308 to the SF90.</p>
+        <p class="lede">Daily asking prices, auction results and market intelligence for every Ferrari for sale in the US, from the 308 to the SF90, with auction results from around the world.</p>
         <div class="hero-index">
           <div><b>${ixLast ? ixLast.toFixed(1) : "n/a"}</b><small>Ask index, 90 days ago = 100</small></div>
           <div><b>${ix30 == null ? "n/a" : (ix30 < 0 ? "▼ " : "▲ ") + Math.abs(ix30).toFixed(1) + "%"}</b><small>Last 30 days</small></div>
@@ -911,7 +911,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       [a.change_yoy != null ? chg(a.change_yoy) : "n/a", "Median sold vs a year earlier"], [a.sell_through_12m != null ? a.sell_through_12m + "%" : "n/a", "Sell through, 12 months"]);
     if (a.last_sold) kpis.push([money(a.last_sold.price), "Last sale, " + dateLong(a.last_sold.day)]);
     app.innerHTML = pageHead(`<a href="#family-${slug(m.family)}">${esc(m.family)}</a>`, esc(m.name),
-      `Auction results for the Ferrari ${esc(m.name)} from every house we track, with asking prices from dealers in the US and Canada as they come in.`, kpis)
+      `Auction results for the Ferrari ${esc(m.name)} from every house we track, with asking prices from dealers in the US as they come in.`, kpis)
       + `<section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Sales and asking prices</div><h2>Market</h2></div></div>
          <div id="m-auc"><p class="flat">Loading results</p></div></div></section>
          <section class="block" id="m-up-sec" hidden><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Coming up</div><h2>Live and upcoming lots</h2></div></div><div class="lots" id="m-up"></div></div></section>
@@ -935,7 +935,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     const mList = document.getElementById("m-list");
     if (detail.listings.length) {
       switchable(mList, detail.listings, listingCard, listTable, { id: "listings", sorts: LISTING_SORTS,
-        note: "Listed dates come from duPont Registry and AutoTrader.ca, which publish the day each car went up for sale. A car listed on several sites shows the earliest date. Cars on no dated site show the day we first saw them; our tracking began on Oct 31, 2026." });
+        note: "Listed dates come from duPont Registry, which publishes the day each car went up for sale. A car listed on several sites shows the earliest date. Cars on no dated site show the day we first saw them; our tracking began on Oct 31, 2026." });
     } else mList.innerHTML = '<div class="empty">No cars listed right now.</div>';
     const resTable = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Lot</th><th>Sale</th><th>Country</th><th>Closed</th><th class="r">Mileage</th><th>Result</th><th class="r">Price</th></tr></thead><tbody>
       ${items.map(r => `<tr><td class="thumb">${photo(r.image, "")}</td><td class="name"><a ${carLink(r)}>${esc(r.title)}</a></td><td>${saleLink(r) || esc(r.auction_house)}<div class="flat" style="font-size:12px">${esc(r.auction_house)}</div></td><td>${esc(countryOf(r))}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td><td class="r num">${miles(r.mileage_mi)}</td>
@@ -1364,7 +1364,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     app.innerHTML = pageHead("Methodology", "How we count", "Where the numbers come from and what each one means.")
       + `<section class="block"><div class="wrap"><div class="prose">
         <h3>Sources</h3>
-        <p>Asking prices come from the Ferrari dealer network's own used inventory, including cars certified under Ferrari Approved, and from dealer marketplaces: AutosToday, duPont Registry, AutoTrader in Canada and ClassicCars.com. Auction results come from Bring a Trailer, Cars &amp; Bids, Sotheby's Motorsport, duPont Registry Live, RM Sotheby's and Mecum. We collect once a day.</p>
+        <p>Asking prices come from the Ferrari dealer network's own used inventory, including cars certified under Ferrari Approved, and from dealer marketplaces: duPont Registry and ClassicCars.com. Only cars for sale in the US count: a car listed by a dealer in Canada or Europe is left out, wherever the site that lists it is based. Auction results come from around the world, from Bring a Trailer, Cars &amp; Bids, Sotheby's Motorsport, duPont Registry Live, RM Sotheby's, Gooding Christie's, Bonhams, Broad Arrow, PCARMARKET and Mecum, because a sale in London or Monaco is still a real price for the car. We collect once a day.</p>
         <h3>One car, one count</h3>
         <p>The same car is often listed on several sites at once. We match cars by VIN, then by chassis number for older cars, then by model, year, mileage, colour and seller. Each physical car moves the numbers once. When one car shows two prices, the selling dealer's own price wins.</p>
         <h3>Median ask</h3>

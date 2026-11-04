@@ -1,6 +1,11 @@
 # Rosso Market
 
-Daily Ferrari asking prices, auction results and market signals for the US and Canada.
+Daily Ferrari asking prices and market signals for the US, with auction results from around the world.
+
+Cars for sale are the US market only: a listing whose location is outside the US (a Montreal
+dealer on duPont Registry, a Dutch car on ClassicCars.com) is rejected when read and purged if
+already stored (`normalize.outside_market`, `clean._drop_outside_market`). Auction results stay
+international. Ferrari Approved reads US dealers only and AutoTrader.ca is switched off.
 
 Two parts:
 
@@ -75,14 +80,14 @@ Each verified source was inspected in a real browser on 2026-10-31, and its adap
 
 | Source | How it is read | What it gives | Status |
 |---|---|---|---|
-| Ferrari Approved | page data on `preowned.ferrari.com/.../rfc?pl=N` | Every car at a Ferrari dealer: US ~1,200, Canada ~100, with VIN, price, mileage, dealer and a certified flag | Verified, on |
+| Ferrari Approved | page data on `preowned.ferrari.com/.../rfc?pl=N` | Every car at a US Ferrari dealer, ~1,200, with VIN, price, mileage, dealer and a certified flag | Verified, on |
 | Bring a Trailer | `auctionsCurrentInitialData` on /auctions/, results from `/wp-json/bringatrailer/1.0/data/listings-filter` | ~40 live Ferrari lots, ~7,000 results | Verified, on |
 | Cars & Bids | headless browser captures `/v2/autos/auctions` (requests are signed) | Live lots and recent results | Verified, on |
 | Sotheby's Motorsport | `/api/auctions/listings?type=live,upcoming,sold` | Live, preview and sold lots with hammer and fee | Verified, on |
 | duPont Registry Live | `/api/auctions/listings` | Live and sold lots | Verified, on |
 | RM Sotheby's | `POST /api/search/SearchLots` | ~3,200 Ferrari results worldwide, upcoming lots with estimates | Verified, on |
 | Mecum | Algolia index `wp_posts_lot` (public key read from the page) | ~1,850 Ferrari lots | Verified, on |
-| MarketCheck | licensed API | AutoTrader, Cars.com, CarGurus and dealer sites, US and Canada | Built, needs a paid key |
+| MarketCheck | licensed API | AutoTrader, Cars.com, CarGurus and dealer sites, US | Built, needs a paid key |
 | Broad Arrow | sitemap, then one page per lot, 10 s apart (robots.txt bars the results search) | ~370 Ferrari lots: results with price, unsold lots, upcoming lots with estimates | Verified, on (Mac runner: GitHub's servers get an AWS WAF challenge) |
 | Barrett-Jackson | | Results show "Register to View Price" | Off: prices are only shown to signed in users |
 | Gooding Christie's | GraphQL `getVehicles` at `cdn.goodingco.com/graphql` | ~940 Ferrari lots: results, unsold, upcoming with estimates | Verified, on |
@@ -224,7 +229,7 @@ clicking it opens the car page.
 | --- | --- | --- | --- |
 | AutoTrader.com | off | | blocks automated access ("page unavailable") from plain requests and headless browsers; the reader is kept for a licensed route |
 | duPont Registry | ~1,800 used | cloud | schema.org list on each search page, VIN, dealer |
-| AutoTrader.ca | ~330 | Mac | AutoScout24 platform, prices in CAD, no VIN |
+| AutoTrader.ca | ~330 | off | Canada only, switched off on 2026-11-04 (US market only) |
 | AutosToday | off | | `autostoday.py` is kept but off: it answers automated readers with 403 from any address |
 | ClassicCars.com | ~180 | cloud | `classiccars.py`: 12 search pages, then each listing page once for odometer, colours, VIN or chassis and photos. Cars consigned to auctions are skipped |
 
