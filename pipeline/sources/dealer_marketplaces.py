@@ -1,6 +1,6 @@
-"""Dealer marketplaces: AutoTrader (US), AutoTrader.ca and duPont Registry.
+"""Dealer marketplaces: AutoTrader (US) and duPont Registry.
 
-All three verified 2026-11-01 in a real browser. Each one's robots.txt allows
+Both verified 2026-11-01 in a real browser. Each one's robots.txt allows
 general crawlers on the search pages read here, and the adapters read only those
 pages (no APIs, no listing detail pages). A bot challenge is never worked around:
 it raises Blocked and the source reports itself down.
@@ -23,14 +23,6 @@ duPont Registry  (dealer marketplace for exotic cars; not duPont Registry Live a
   mileageFromOdometer, model, vehicleModelDate, image, offers.price and
   offers.seller (AutoDealer with address), additionalProperty Certified.
   robots.txt disallows only /api/ and /admin.
-
-AutoTrader.ca  (now on the AutoScout24 platform)
-  /cars/ferrari?page=N, __NEXT_DATA__ props.pageProps.listings (20 a page, ~330 cars),
-  numberOfPages. Listing: id, title, url, price.priceRaw (CAD), vehicle.modelYear /
-  model / modelVersionInput / mileageInKm / transmission / offerType (U used, N new),
-  location.city/provinceCode, seller.companyName/type, images (/250x188.webp: any
-  size works). No VIN, so these cars are matched to others by the deduplicator's
-  fingerprint. robots.txt bars /lst and /api/, not /cars/.
 """
 from __future__ import annotations
 
@@ -333,77 +325,3 @@ class DupontRegistry(_Marketplace):
             if not new:
                 break                              # past the last page: it repeats or comes back empty
         self.log.info("%d listings read", len(seen))
-
-
-# ------------------------------------------------------------------ AutoTrader.ca
-
-ATCA_SITE = "https://www.autotrader.ca"
-_NEXT = re.compile(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', re.S)
-
-
-def parse_autotrader_ca(html: str) -> tuple[list[dict], int]:
-    m = _NEXT.search(html or "")
-    if not m:
-        return [], 0
-    pp = (json.loads(m.group(1)).get("props") or {}).get("pageProps") or {}
-    return pp.get("listings") or [], int(pp.get("numberOfPages") or 0)
-
-
-def _as24_photo(u: str, size: str) -> str:
-    return re.sub(r"/\d+x\d+\.(webp|jpg)$", f"/{size}.webp", u)
-
-
-def map_autotrader_ca(x: dict, source: str) -> Optional[RawRecord]:
-    v = x.get("vehicle") or {}
-    if "ferrari" not in str(v.get("make") or x.get("title") or "").lower():
-        return None
-    if str(v.get("offerType") or "U").upper() == "N":
-        return None                                # new cars
-    loc = x.get("location") or {}
-    seller = x.get("seller") or {}
-    imgs = [u for u in x.get("images") or [] if isinstance(u, str)]
-    model = " ".join(s for s in [v.get("model"), v.get("modelVersionInput")] if s)
-    title = str(x.get("title") or "").strip()
-    if model and v.get("modelYear") and model.lower() not in title.lower():
-        title = f"{v.get('modelYear')} Ferrari {model}"
-    price = (x.get("price") or {}).get("priceRaw")
-    return RawRecord(
-        source=source, kind=LISTING, source_id=str(x.get("id")), url=x.get("url") or "",
-        title=title, price=float(price) if price else None, currency="CAD",
-        year=_int(v.get("modelYear")), make="Ferrari", model_text=model or None,
-        mileage=_int(v.get("mileageInKm")), mileage_unit="km", transmission=v.get("transmission"),
-        location=", ".join(s for s in [loc.get("city"), loc.get("provinceCode")] if s) or None, country="CA",
-        seller_type="dealer" if str(seller.get("type") or "").lower() == "dealer" else "private",
-        dealer_name=seller.get("companyName"), certified=False, marketplace="autotrader.ca",
-        image_url=_as24_photo(imgs[0], "640x480") if imgs else None,
-        extra={"photos": [_as24_photo(u, "1280x960") for u in imgs[:40]]},
-    )
-
-
-_ATCA_CREATED = re.compile(r'"createdTimestampWithOffset"\s*:\s*"(\d{4}-\d{2}-\d{2})')
-
-
-def autotrader_ca_listed_on(html: str) -> Optional[str]:
-    """An AutoTrader.ca car page (/offers/...) carries the listing's creation time."""
-    m = _ATCA_CREATED.search(html or "")
-    return m.group(1) if m else None
-
-
-class AutoTraderCA(_Marketplace):
-    def fetch(self) -> Iterator[RawRecord]:
-        yield from self._with_listing_dates(self._search(), autotrader_ca_listed_on)
-
-    def _search(self) -> Iterator[RawRecord]:
-        seen, pages, page = set(), 1, 1
-        while page <= min(pages, int(self.cfg.get("max_pages", 40))):
-            rows, n = parse_autotrader_ca(self._html(f"{ATCA_SITE}/cars/ferrari" + (f"?page={page}" if page > 1 else "")))
-            pages = max(pages, n)
-            if not rows:
-                break
-            for x in rows:
-                rec = map_autotrader_ca(x, self.name)
-                if rec and rec.source_id not in seen:
-                    seen.add(rec.source_id)
-                    yield rec
-            page += 1
-        self.log.info("%d listings read from %d pages", len(seen), page - 1)

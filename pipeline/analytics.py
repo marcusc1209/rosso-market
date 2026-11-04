@@ -58,7 +58,7 @@ def available_days(con) -> list[str]:
 
 def listed_since(con) -> dict[str, str]:
     """The day each car was put up for sale: the earliest listing date any site publishes for it
-    (duPont Registry and AutoTrader.ca do), else the first day we saw it."""
+    (duPont Registry does), else the first day we saw it."""
     out = {r[0]: r[1] for r in con.execute("SELECT vehicle_key, MIN(day) FROM daily_asks GROUP BY vehicle_key")}
     for k, d in con.execute("""SELECT vehicle_key, MIN(CASE WHEN json_valid(raw) THEN json_extract(raw, '$.extra.listed_on') END)
                                FROM sightings WHERE vehicle_key IS NOT NULL GROUP BY vehicle_key"""):
@@ -168,7 +168,7 @@ def new_listings(con, day: date, since: str) -> dict[str, set]:
     """model_id -> vehicle keys first listed on or after `since`.
 
     A car counts as new when its listing date is known to be recent: the marketplace's
-    own date (duPont Registry, AutoTrader.ca), or the day we first saw it, unless that was the
+    own date (duPont Registry), or the day we first saw it, unless that was the
     first day we read its source at all. Adding a site would otherwise make all of its
     cars look newly listed."""
     start = {r[0]: r[1] for r in con.execute(

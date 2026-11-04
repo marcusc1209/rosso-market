@@ -49,10 +49,10 @@ def dealer_words(name) -> set[str]:
 def link_listings(con) -> int:
     """Give a listing without a VIN the VIN of the one car that matches it at the same dealer.
 
-    AutoTrader.ca shows no VINs, so 'Ferrari of Alberta, 2021 F8 Spider, 3,410 mi' there and the
-    same car in Ferrari Approved were two cars. A match needs the same model and year, a dealer
-    name sharing a word, and mileage within 2% (or 60 miles), and must be the only such car.
-    Linked, the car is counted once and takes the listing date AutoTrader.ca publishes."""
+    Some marketplace listings show no VIN, so 'Ferrari of Naples, 2021 F8 Spider, 3,410 mi' there
+    and the same car in Ferrari Approved were two cars. A match needs the same model and year, a
+    dealer name sharing a word, and mileage within 2% (or 60 miles), and must be the only such car.
+    Linked, the car is counted once and takes the earliest listing date either site publishes."""
     rows = con.execute("""SELECT uid, vehicle_key, model_id, year, mileage_mi, dealer_name FROM sightings
                           WHERE removed_on IS NULL AND vehicle_key IS NOT NULL AND model_id IS NOT NULL""").fetchall()
     by_car = defaultdict(list)

@@ -1,6 +1,15 @@
 # Rosso Market
 
-Daily Ferrari asking prices, auction results and market signals for the US and Canada.
+Daily Ferrari asking prices and market signals for the US, with auction results from around the world.
+
+Cars for sale are the US market only, except hypercars: a listing whose location is outside the
+US (a Montreal dealer on duPont Registry, a Dutch car on ClassicCars.com) is rejected when read and
+purged if already stored (`normalize.outside_market`, `clean._drop_outside_market`), unless its
+model is in the "Hypercars and limited series" family (F40, LaFerrari, 812 Competizione, SF90 XX
+and the rest), which is tracked for sale anywhere. Every other model outside the US shows only
+through auction results, which stay international. Ferrari Approved still reads its Canadian
+dealers, for their hypercars. AutoTrader.ca, which listed only Canadian cars, was removed on
+2026-11-04.
 
 Two parts:
 
@@ -13,7 +22,7 @@ Two parts:
 pip install -r requirements.txt
 playwright install chromium          # only needed for the browser based sources
 
-python -m pytest -q tests            # 80 tests, 23 of them against real responses captured from each site
+python -m pytest -q tests            # 151 tests, 23 of them against real responses captured from each site
 
 # real data (needs normal internet access)
 python -m pipeline.run               # every verified source, today
@@ -75,14 +84,14 @@ Each verified source was inspected in a real browser on 2026-10-31, and its adap
 
 | Source | How it is read | What it gives | Status |
 |---|---|---|---|
-| Ferrari Approved | page data on `preowned.ferrari.com/.../rfc?pl=N` | Every car at a Ferrari dealer: US ~1,200, Canada ~100, with VIN, price, mileage, dealer and a certified flag | Verified, on |
+| Ferrari Approved | page data on `preowned.ferrari.com/.../rfc?pl=N` | Every car at a US Ferrari dealer, ~1,200, with VIN, price, mileage, dealer and a certified flag | Verified, on |
 | Bring a Trailer | `auctionsCurrentInitialData` on /auctions/, results from `/wp-json/bringatrailer/1.0/data/listings-filter` | ~40 live Ferrari lots, ~7,000 results | Verified, on |
 | Cars & Bids | headless browser captures `/v2/autos/auctions` (requests are signed) | Live lots and recent results | Verified, on |
 | Sotheby's Motorsport | `/api/auctions/listings?type=live,upcoming,sold` | Live, preview and sold lots with hammer and fee | Verified, on |
 | duPont Registry Live | `/api/auctions/listings` | Live and sold lots | Verified, on |
 | RM Sotheby's | `POST /api/search/SearchLots` | ~3,200 Ferrari results worldwide, upcoming lots with estimates | Verified, on |
 | Mecum | Algolia index `wp_posts_lot` (public key read from the page) | ~1,850 Ferrari lots | Verified, on |
-| MarketCheck | licensed API | AutoTrader, Cars.com, CarGurus and dealer sites, US and Canada | Built, needs a paid key |
+| MarketCheck | licensed API | AutoTrader, Cars.com, CarGurus and dealer sites, US | Built, needs a paid key |
 | Broad Arrow | sitemap, then one page per lot, 10 s apart (robots.txt bars the results search) | ~370 Ferrari lots: results with price, unsold lots, upcoming lots with estimates | Verified, on (Mac runner: GitHub's servers get an AWS WAF challenge) |
 | Barrett-Jackson | | Results show "Register to View Price" | Off: prices are only shown to signed in users |
 | Gooding Christie's | GraphQL `getVehicles` at `cdn.goodingco.com/graphql` | ~940 Ferrari lots: results, unsold, upcoming with estimates | Verified, on |
@@ -224,20 +233,19 @@ clicking it opens the car page.
 | --- | --- | --- | --- |
 | AutoTrader.com | off | | blocks automated access ("page unavailable") from plain requests and headless browsers; the reader is kept for a licensed route |
 | duPont Registry | ~1,800 used | cloud | schema.org list on each search page, VIN, dealer |
-| AutoTrader.ca | ~330 | Mac | AutoScout24 platform, prices in CAD, no VIN |
 | AutosToday | off | | `autostoday.py` is kept but off: it answers automated readers with 403 from any address |
 | ClassicCars.com | ~180 | cloud | `classiccars.py`: 12 search pages, then each listing page once for odometer, colours, VIN or chassis and photos. Cars consigned to auctions are skipped |
 
 Each one's robots.txt allows general crawlers on the pages read here.
 
-Listing dates: duPont Registry and AutoTrader.ca publish the day each car was listed on the
-car's own page ("Date Listed", createdTimestampWithOffset). Each page is read once per car
+Listing dates: duPont Registry publishes the day each car was listed on the
+car's own page ("Date Listed"). Each page is read once per car
 (`date_pages` caps a run) and the date is kept with the listing. A car listed on several
 sites takes the earliest published date, so a Ferrari Approved car (whose feed date is
 refreshed daily and means nothing) shows the date the same VIN went up on duPont Registry.
-AutoTrader.ca shows no VINs, so `dedupe.link_listings` gives each of its listings the VIN of
-the one car at the same dealer with the same model, year and mileage (within 2%): the car is
-counted once and takes AutoTrader.ca's date. ClassicCars.com numbers its listings in order
+A marketplace listing with no VIN gets, from `dedupe.link_listings`, the VIN of the one car at
+the same dealer with the same model, year and mileage (within 2%): the car is counted once and
+takes the earliest date either listing gives. ClassicCars.com numbers its listings in order
 (`pipeline/idclock.py`): archived captures of its home page pin the highest number to a day
 (1,676,304 on Jan 1 2023), each run pins today's, and a car's number read against those pins
 dates it to within 10 days. The few captures needed are read once and kept in kv. Ferrari
@@ -259,7 +267,7 @@ but sit behind bot checks, so what the owner reads there can be entered per VIN 
 any a site publishes, and the price history shows in the seller's box on the car page. Cars with no evidence anywhere keep
 the first day we saw them. Cars.com is off: every page, robots.txt included, sits behind a
 Cloudflare bot check, which this pipeline never works around. Cars that appear on
-several sites are one car (matched by VIN, or by fingerprint for AutoTrader.ca), so
+several sites are one car (matched by VIN, or by fingerprint when a site shows none), so
 adding sources widens coverage without double counting. These sites' terms of use
 govern automated access; MarketCheck (`marketcheck`, needs a paid key) is the licensed
 route to the same inventory.
@@ -269,3 +277,18 @@ Also checked on 2026-11-01 and left out: CarGurus and Carfax (DataDome), TrueCar
 token its own script makes), Autolist (its results are CarGurus inventory) and
 Exotic Car Trader (about 20 live Ferraris), carsforsale.com (Cloudflare challenge). eBay Motors has an official free API that
 needs the owner's developer keys.
+
+## Colour premiums
+
+`pipeline/colors.py` measures what each exterior colour is worth against red. Paint names
+are put in families first (Rosso Corsa, Rosso Scuderia and Red are all red, Grigio
+Silverstone is grey). Ferrari Approved's "Extra Sample" (special order paint) names no colour,
+so such a car takes its colour from any other listing of the same VIN and carries a special
+order flag, fitted as its own term. For each
+model it fits log price to year, mileage, sold or asking, special order, and colour family, with red left
+out as the baseline, so a colour whose cars happen to be newer is not credited with the
+year. Each family gets a premium in percent and a 90% range, and is called a premium or a
+discount only when that range stays on one side of red. A family needs 3 cars and red needs
+3 cars. The figure for every model gives each model and three year band its own level, so
+cars are only ever compared within their model. The result sits in each model file under
+`colors` and in `site.json` under `colors`, and the model page draws it.

@@ -8,7 +8,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from . import analytics as A
-from . import cars, clean, mileage, sales, taxonomy
+from . import cars, clean, colors, mileage, sales, taxonomy
 
 
 def _takes(content_dir: Path) -> list[dict]:
@@ -106,7 +106,7 @@ def build(con, day: date, cfg: dict, health: list[dict]) -> dict:
     return {
         "brand": "Rosso Market",
         "as_of": day.isoformat(),
-        "region": "US and Canada",
+        "region": "US market, hypercars worldwide",
         "sample": sample,
         "brief": br,
         "movers": mv,
@@ -161,7 +161,7 @@ def auction_stats(con, day: date) -> dict:
     return out
 
 
-def model_detail(con, model_id: str, day: date, idx=None) -> dict:
+def model_detail(con, model_id: str, day: date, idx=None, paint=None) -> dict:
     hist = A.history(con, model_id, day, 365)
     car = (lambda uid: idx.lot(uid)) if idx else (lambda uid: None)
     rows = con.execute("""
@@ -213,7 +213,10 @@ def model_detail(con, model_id: str, day: date, idx=None) -> dict:
             "points": pts,
             "auction_points": [[p[0], p[1], 1 if p[2] == "s" else 0] for p in pts if p[2] in "su"],
             "upcoming": [lot_out(r) for r in upcoming],
-            "mileage": mileage.curve(con, model_id, day, idx, skip)}
+            "mileage": mileage.curve(con, model_id, day, idx, skip),
+            # colour premiums against red, adjusted for year and mileage (pipeline/colors.py)
+            "colors": {"model": (paint["models"].get(model_id) if paint else colors.model(con, model_id, day)),
+                       "market": paint["market"] if paint else None}}
 
 
 def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
@@ -231,9 +234,11 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
     for i in payload["insights"]:
         if i.get("uid"):
             i["car"] = idx.lot(i["uid"])
+    paint = colors.all_models(con, day)
+    payload["colors"] = paint["market"]
     out = data_dir / "site.json"
     out.write_text(json.dumps(payload, separators=(",", ":"), default=str), encoding="utf-8")
     for m in payload["models"]:
         (data_dir / "models" / f"{m['id']}.json").write_text(
-            json.dumps(model_detail(con, m["id"], day, idx), separators=(",", ":"), default=str), encoding="utf-8")
+            json.dumps(model_detail(con, m["id"], day, idx, paint), separators=(",", ":"), default=str), encoding="utf-8")
     return out

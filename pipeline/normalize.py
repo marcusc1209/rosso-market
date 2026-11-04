@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from typing import Optional, Tuple
 
-from . import taxonomy
+from . import sales, taxonomy
 from .records import RawRecord, Normalized, AUCTION
 
 # ---------------------------------------------------------------- prices
@@ -223,6 +223,27 @@ def is_private_or_sealed(raw) -> bool:
     return bool(extra.get("private_sale") or extra.get("sealed") or _PRIVATE.search(text))
 
 
+# Cars for sale: the US market only, except hypercars. Auction results stay international (a London
+# or Monaco sale is still a price a car fetched). A hypercar or limited series car (taxonomy family
+# below: F40, LaFerrari, 812 Competizione, SF90 XX and the rest) is tracked for sale anywhere, since
+# so few exist that the world is one market. Every other model is tracked for sale in the US only,
+# and outside the US through its auction results.
+LISTING_MARKET = "United States"
+INTERNATIONAL_FAMILY = "Hypercars and limited series"
+
+
+def outside_market(code: Optional[str], location: Optional[str], model_id: Optional[str] = None) -> Optional[str]:
+    """The country a car for sale is in, when that keeps it off the site: outside the US, and not a
+    hypercar. Location wins over the site's country code, since US listing sites stamp every car US
+    (duPont Registry lists Montreal and Bradford dealers' cars). A car whose country cannot be told
+    is kept: every source is a US site."""
+    m = taxonomy.BY_ID.get(model_id or "")
+    if m and m.family == INTERNATIONAL_FAMILY:
+        return None
+    where = sales.listing_country(code, location)
+    return where if where and where != LISTING_MARKET else None
+
+
 class Reject(Exception):
     pass
 
@@ -266,6 +287,10 @@ def normalize(raw: RawRecord, fx: dict, min_confidence: float = 0.5) -> Normaliz
             raise Reject("sold without a published price")
     if raw.kind != AUCTION and price_usd is None:
         raise Reject("listing without a price")
+    if raw.kind != AUCTION:
+        where = outside_market(raw.country, raw.location, match.model.id)
+        if where:
+            raise Reject(f"listed outside the US ({where})")
     if price_usd is not None and (price_usd < 10_000 or price_usd > 60_000_000):
         raise Reject(f"price out of range: {price_usd}")
     if price is not None and price_usd is None:

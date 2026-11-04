@@ -57,7 +57,7 @@ COLORS = ["Rosso Corsa", "Nero Daytona", "Grigio Silverstone", "Bianco Avus", "G
 CITIES = ["Miami, FL", "Los Angeles, CA", "Newport Beach, CA", "Scottsdale, AZ", "Dallas, TX", "Houston, TX",
           "Greenwich, CT", "Chicago, IL", "Atlanta, GA", "Denver, CO", "Seattle, WA", "Las Vegas, NV",
           "Toronto, ON", "Vancouver, BC", "Montreal, QC", "Calgary, AB", "Naples, FL", "Boston, MA", "Austin, TX"]
-MARKETS = ["autotrader.com", "cars.com", "cargurus.com", "dupontregistry.com", "autotrader.ca", "dealer site"]
+MARKETS = ["autotrader.com", "cars.com", "cargurus.com", "dupontregistry.com", "dealer site"]
 HOUSES = [("Bring a Trailer", 0.55, "online"), ("Cars & Bids", 0.12, "online"), ("Sotheby's Motorsport", 0.08, "online"),
           ("duPont Registry Live", 0.07, "online"), ("RM Sotheby's", 0.07, "event"), ("Mecum", 0.05, "event"),
           ("Broad Arrow", 0.04, "event"), ("Gooding Christie's", 0.02, "event")]
