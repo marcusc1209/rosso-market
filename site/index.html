@@ -1415,7 +1415,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       <p style="margin-top:18px;max-width:60ch">Rosso Market is independent and is not affiliated with or endorsed by Ferrari S.p.A. Prices are asking prices and auction results gathered from public sources and licensed data feeds. They can contain errors and are not an offer or a valuation.</p>
       <p>Data as of ${dateLong(D.as_of)}.</p></div>
       <div><div class="eyebrow" style="margin-bottom:10px">Data sources, last run</div><div class="health">
-      ${h.map(s => `<div><span>${esc(s.source)}${s.accepted != null ? ` <span class="num">(${s.accepted})</span>` : ""}</span><span class="state ${s.state}">${s.state}</span></div>`).join("") || "<div>No runs yet</div>"}</div></div>`;
+      ${h.map(s => `<div><span>${esc(s.source)}${s.accepted != null ? ` <span class="num">(${s.accepted})</span>` : ""}${s.day && s.day !== D.as_of ? ` <span class="flat" style="font-size:12px">${dateLong(s.day)}</span>` : ""}</span><span class="state ${s.state}">${s.state}</span></div>`).join("") || "<div>No runs yet</div>"}</div></div>`;
   }
 
   // ------------------------------------------------------------ search

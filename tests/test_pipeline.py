@@ -367,3 +367,17 @@ def test_stored_cars_outside_the_us_are_purged_and_snapshots_rebuilt(tmp_path):
     assert {r[0] for r in con.execute("SELECT vehicle_key FROM daily_asks")} == {"vin:US1", "vin:UK1"}
     assert con.execute("SELECT COUNT(*) FROM lots").fetchone()[0] == 1          # the Canadian auction result stays
     assert con.execute("SELECT COUNT(*) FROM rejects WHERE reason LIKE 'purged: listed outside the US%'").fetchone()[0] == 3
+
+
+def test_data_sources_list_every_enabled_source_whichever_runner_ran(tmp_path):
+    from pipeline import run
+    con = db.connect(tmp_path / "t.db")
+    for src, d, st in (("broadarrow", "2026-11-03", "degraded"), ("ferrari_approved", "2026-11-03", "ok"),
+                       ("bonhams", "2026-11-03", "ok"), ("autotrader_ca", "2026-11-03", "ok")):
+        con.execute("INSERT INTO runs (day, source, status, accepted) VALUES (?, ?, ?, 5)", (d, src, st))
+    cfg = {"sources": {"broadarrow": {"enabled": True}, "ferrari_approved": {"enabled": True}, "bonhams": {"enabled": True},
+                       "autostoday": {"enabled": False}, "pcarmarket": {"enabled": True}}}
+    # a cloud run read only Bonhams today: the Mac's sources still show, with their own day
+    h = run.source_health(con, cfg, [dict(source="bonhams", state="ok", detail="", accepted=1402)], date(2026, 11, 4))
+    assert [(r["source"], r["state"], r["day"]) for r in h] == [
+        ("broadarrow", "degraded", "2026-11-03"), ("ferrari_approved", "ok", "2026-11-03"), ("bonhams", "ok", "2026-11-04")]

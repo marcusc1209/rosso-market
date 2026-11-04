@@ -137,6 +137,20 @@ def run_day(con, cfg, day: date, sources, fx, where: str = "all") -> list[dict]:
     return reports
 
 
+def source_health(con, cfg: dict, reports: list[dict], day: date) -> list[dict]:
+    """Every enabled source's latest run, for the site's "Data sources" list.
+
+    The cloud run and the Mac run each read only their own sources, so a list made from this
+    run alone would drop the others (Broad Arrow, Ferrari Approved and the rest of the Mac's
+    sources vanished after a cloud run). This run's reports come first, the rest from the
+    runs table. Sources switched off or removed are left out."""
+    enabled = [n for n, s in (cfg.get("sources") or {}).items() if (s or {}).get("enabled")]
+    mine = {r["source"]: dict(r, day=day.isoformat()) for r in reports}
+    last = {r["source"]: dict(source=r["source"], state=r["status"], detail=r["error"] or "", accepted=r["accepted"], day=r["day"])
+            for r in con.execute("SELECT * FROM runs WHERE id IN (SELECT MAX(id) FROM runs GROUP BY source)")}
+    return [mine.get(n) or last[n] for n in enabled if n in mine or n in last]
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default=os.environ.get("FM_CONFIG", "config/sources.yaml"))
@@ -195,18 +209,16 @@ def main(argv=None):
             ctx.close()
         from .fetch import Browser
         Browser.shutdown()
-    else:
-        reports = [dict(source=r["source"], state=r["status"], detail=r["error"] or "", accepted=r["accepted"])
-                   for r in con.execute("SELECT * FROM runs WHERE id IN (SELECT MAX(id) FROM runs GROUP BY source)")]
 
+    health = source_health(con, cfg, reports, day)
     if cfg["_listing_history"]:
         log.info("%d stored listings updated from listing_history.yaml", overrides.apply_db(con, cfg["_listing_history"]))
     if a.report:
         Path(a.report).parent.mkdir(parents=True, exist_ok=True)
         Path(a.report).write_text(__import__("json").dumps(reports, default=str, indent=1))
-    out = export.write(con, day, cfg, reports)
+    out = export.write(con, day, cfg, health)
     log.info("wrote %s", out)
-    bad = [r for r in reports if r["state"] != "ok"]
+    bad = [r for r in (reports if not a.export_only else health) if r["state"] != "ok"]
     if bad:
         log.warning("attention needed: %s", ", ".join(f"{r['source']} ({r['state']}: {r['detail']})" for r in bad))
     return 0
