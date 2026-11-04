@@ -274,8 +274,10 @@ needs the owner's developer keys.
 
 `pipeline/colors.py` measures what each exterior colour is worth against red. Paint names
 are put in families first (Rosso Corsa, Rosso Scuderia and Red are all red, Grigio
-Silverstone is grey, Ferrari Approved's "Extra Sample" is special order paint). For each
-model it fits log price to year, mileage, sold or asking, and colour family, with red left
+Silverstone is grey). Ferrari Approved's "Extra Sample" (special order paint) names no colour,
+so such a car takes its colour from any other listing of the same VIN and carries a special
+order flag, fitted as its own term. For each
+model it fits log price to year, mileage, sold or asking, special order, and colour family, with red left
 out as the baseline, so a colour whose cars happen to be newer is not credited with the
 year. Each family gets a premium in percent and a 90% range, and is called a premium or a
 discount only when that range stays on one side of red. A family needs 3 cars and red needs

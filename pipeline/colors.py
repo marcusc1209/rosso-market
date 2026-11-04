@@ -2,9 +2,15 @@
 
 Colours. Every site names paint its own way ("Rosso Corsa", "Red", "RED", "Russo Corsa",
 "Corsa Red"), so each name is put in one family first: red, black, white, grey, silver,
-blue, yellow, green, purple, brown or beige, orange, or special order. Ferrari Approved
-calls a paint outside the standard range "Extra Sample" (Ferrari's extra campionario), and
-that is the special order family. Names that say nothing ("Other", "N/A") are skipped.
+blue, yellow, green, purple, brown or beige, or orange. Names that say nothing ("Other",
+"N/A") are skipped.
+
+Special order paint. Ferrari Approved calls a paint outside the standard range "Extra
+Sample" (Ferrari's extra campionario) and names no colour. The paint is still red, blue or
+green, so it is not a family of its own: the car takes its colour from any other listing of
+the same VIN (duPont Registry names it for about half of them) and carries a special order
+flag. The flag is its own term in the fit, so what a buyer pays for a one off paint is not
+credited to its colour. A special order car no site names a colour for is left out.
 
 Cars. Every car for sale today with a known colour (its asking price), and every auction
 sale in the last 18 months whose house published the colour (the hammer price). Each car
@@ -40,13 +46,11 @@ Z90 = 1.645
 
 BASELINE = "red"
 LABELS = {"red": "Red", "black": "Black", "white": "White", "grey": "Grey", "silver": "Silver", "blue": "Blue",
-          "yellow": "Yellow", "green": "Green", "purple": "Purple", "brown": "Brown or beige", "orange": "Orange",
-          "special": "Special order"}
+          "yellow": "Yellow", "green": "Green", "purple": "Purple", "brown": "Brown or beige", "orange": "Orange"}
 
 # Checked in this order: grey before silver ("Grigio Silverstone"), every other family before
 # red, so "Blu Corsa" is blue and "Rosso Corsa red" red.
 _FAMILIES = [
-    ("special", r"extra sample|extra campionario|tailor made|special order|paint to sample"),
     ("grey", r"grigio|gr[ae]y|\bgris\b|canna di fucile|gunmetal|titanio|\bferro\b"),
     ("silver", r"argento|silver|alluminio|aluminum|aluminium|\bsil\b|nurburg"),
     ("black", r"\bnero\b|black|\bblk\b"),
@@ -60,6 +64,12 @@ _FAMILIES = [
     ("red", r"rosso|russo|\bred\b|rubino"),
 ]
 _RX = [(f, re.compile(p, re.I)) for f, p in _FAMILIES]
+_SPECIAL = re.compile(r"extra sample|extra campionario|tailor made|special order|paint to sample|\bpts\b", re.I)
+
+
+def special(name: Optional[str]) -> bool:
+    """A special order paint: outside the standard range, whatever colour it is."""
+    return bool(name and _SPECIAL.search(name))
 
 
 def family(name: Optional[str]) -> Optional[str]:
@@ -69,6 +79,8 @@ def family(name: Optional[str]) -> Optional[str]:
     s = name.strip()
     if not s or s.lower() in ("other", "n/a", "na", "unknown", "none", "-", "tbd"):
         return None
+    if special(s) and s.lower() in ("extra sample", "extra campionario", "tailor made", "special order", "paint to sample", "pts"):
+        return None                       # names the programme, not the colour
     for f, rx in _RX:
         if rx.search(s):
             return f
@@ -76,17 +88,26 @@ def family(name: Optional[str]) -> Optional[str]:
 
 
 def points(con, day: date, model_id: Optional[str] = None) -> list[dict]:
-    """One row per car: model, year, miles, price, sold flag, family, paint name."""
+    """One row per car: model, year, miles, price, sold flag, special order flag, family, paint name.
+
+    A car whose only colour is a special order label (no site names the colour) is returned
+    with family None, so callers can count it, and is left out of every fit."""
     today, since = day.isoformat(), (day - timedelta(days=SOLD_DAYS)).isoformat()
     where, args = ("AND a.model_id=?", (today, model_id)) if model_id else ("", (today,))
+    # every colour any site ever gave the car, removed listings included
+    names_of = defaultdict(list)
+    for r in con.execute("""SELECT s.vehicle_key, s.exterior_color FROM sightings s
+                            WHERE s.exterior_color IS NOT NULL AND s.vehicle_key IN (SELECT vehicle_key FROM daily_asks WHERE day=?)""", (today,)):
+        names_of[r["vehicle_key"]].append(r["exterior_color"])
     out, seen = [], set()
     for r in con.execute(f"""
-        SELECT a.vehicle_key, a.model_id, a.price_usd, MAX(s.year) yr, MAX(s.mileage_mi) mi,
-               GROUP_CONCAT(s.exterior_color, '|') cols
+        SELECT a.vehicle_key, a.model_id, a.price_usd, MAX(s.year) yr, MAX(s.mileage_mi) mi
         FROM daily_asks a JOIN sightings s ON s.vehicle_key = a.vehicle_key AND s.removed_on IS NULL
         WHERE a.day=? {where} GROUP BY a.vehicle_key""", args):
-        names = [c for c in (r["cols"] or "").split("|") if family(c)]
-        if not names:
+        all_names = names_of.get(r["vehicle_key"], [])
+        sp = int(any(special(c) for c in all_names))
+        names = [c for c in all_names if family(c)]
+        if not names and not sp:
             continue
         if r["mi"] is not None and r["price_usd"]:
             same = (r["model_id"], round(r["mi"]), round(r["price_usd"]))
@@ -94,19 +115,19 @@ def points(con, day: date, model_id: Optional[str] = None) -> list[dict]:
                 continue          # one car listed twice without a shared VIN, as in pipeline/mileage.py
             seen.add(same)
         # the car's colour as most of its listings give it
-        name = Counter(names).most_common(1)[0][0]
+        name = Counter(names).most_common(1)[0][0] if names else None
         out.append({"model": r["model_id"], "year": r["yr"], "miles": r["mi"], "price": r["price_usd"], "sold": 0,
-                    "family": family(name), "paint": name.strip()})
+                    "special": sp, "family": family(name), "paint": name.strip() if name else "Extra Sample"})
     where = "AND model_id=?" if model_id else ""
     args = (since, today, model_id) if model_id else (since, today)
     for r in con.execute(f"""
         SELECT model_id, year, mileage_mi mi, price_usd, json_extract(raw, '$.exterior_color') col FROM lots
         WHERE status='sold' AND price_usd > 0 AND json_valid(raw) AND json_extract(raw, '$.exterior_color') IS NOT NULL
           AND ends_at IS NOT NULL AND substr(ends_at,1,10) BETWEEN ? AND ? {where}""", args):
-        f = family(r["col"])
-        if f:
+        f, sp = family(r["col"]), int(special(r["col"]))
+        if f or sp:
             out.append({"model": r["model_id"], "year": r["year"], "miles": r["mi"], "price": r["price_usd"], "sold": 1,
-                        "family": f, "paint": r["col"].strip()})
+                        "special": sp, "family": f, "paint": r["col"].strip()})
     return [p for p in out if p["model"] and p["year"] and p["price"] and p["price"] > 0
             and p["miles"] is not None and 0 <= p["miles"] < MAX_MILES]
 
@@ -140,6 +161,10 @@ def _solve(xs: list[list[float]], ys: list[float]):
 
 def _premiums(pts: list[dict], levels) -> Optional[dict]:
     """Fit one regression. levels(p) gives the intercept group of a car (one per model, or per model and year band)."""
+    unnamed = sum(1 for p in pts if not p["family"])
+    pts = [p for p in pts if p["family"]]
+    if not pts:
+        return None
     counts = Counter(p["family"] for p in pts)
     if counts[BASELINE] < MIN_RED:
         return None
@@ -151,7 +176,7 @@ def _premiums(pts: list[dict], levels) -> Optional[dict]:
     years = [p["year"] for p in pts]
     my = sum(years) / len(years)
     cols = groups + ["year", "miles"] + (["sold"] if any(p["sold"] for p in pts) and not all(p["sold"] for p in pts) else []) \
-        + fams + (["other"] if small else [])
+        + fams + (["other"] if small else []) + (["special"] if 0 < sum(p["special"] for p in pts) < len(pts) else [])
     xs, ys = [], []
     for p in pts:
         f = p["family"]
@@ -161,10 +186,12 @@ def _premiums(pts: list[dict], levels) -> Optional[dict]:
         row += [float(f == g) for g in fams]
         if small:
             row.append(float(f != BASELINE and f not in fams))
+        if "special" in cols:
+            row.append(float(p["special"]))
         xs.append(row)
         ys.append(math.log(p["price"]))
     # columns that never vary (every car the same year) would make the fit singular
-    keep = [j for j, c in enumerate(cols) if c in groups or c in fams or c == "other" or len({x[j] for x in xs}) > 1]
+    keep = [j for j, c in enumerate(cols) if c in groups or c in fams or c in ("other", "special") or len({x[j] for x in xs}) > 1]
     xs = [[x[j] for j in keep] for x in xs]
     cols = [cols[j] for j in keep]
     fit = _solve(xs, ys)
@@ -187,7 +214,15 @@ def _premiums(pts: list[dict], levels) -> Optional[dict]:
             row["verdict"] = "premium" if row["low_pct"] > 0 else "discount" if row["high_pct"] < 0 else "no clear difference"
         out.append(row)
     out.sort(key=lambda r: -r["premium_pct"])
-    return {"baseline": BASELINE, "n": len(pts), "for_sale": sum(not p["sold"] for p in pts),
+    n_sp = sum(p["special"] for p in pts)
+    sp = None
+    if "special" in cols and n_sp >= MIN_FAMILY:
+        j = cols.index("special")
+        sp = {"n": n_sp, "premium_pct": round((math.exp(beta[j]) - 1) * 100, 1),
+              "low_pct": round((math.exp(beta[j] - Z90 * se[j]) - 1) * 100, 1),
+              "high_pct": round((math.exp(beta[j] + Z90 * se[j]) - 1) * 100, 1)}
+        sp["verdict"] = "premium" if sp["low_pct"] > 0 else "discount" if sp["high_pct"] < 0 else "no clear difference"
+    return {"special_order": sp, "special_unnamed": unnamed,"baseline": BASELINE, "n": len(pts), "for_sale": sum(not p["sold"] for p in pts),
             "sold": sum(p["sold"] for p in pts), "families": out,
             "too_few": sorted([[LABELS[f], n] for f, n in counts.items() if f != BASELINE and f not in fams], key=lambda r: -r[1])}
 

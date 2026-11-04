@@ -13,11 +13,13 @@ def test_paint_names_fall_into_families():
              "Argento Nurburgring": "silver", "Alluminio Opaco": "silver",
              "Nero Daytona": "black", "BLK": "black", "Black/gold": "black", "Bianco Avus": "white", "Avorio": "white",
              "Giallo Modena Yellow": "yellow", "Verde British": "green", "Viola Hong Kong": "purple",
-             "Extra Sample": "special"}
+             "Blu Tailor Made": "blue"}
     for name, fam in cases.items():
         assert colors.family(name) == fam, name
-    for name in (None, "", "Other", "N/A"):
+    # a special order label names the programme, not the colour
+    for name in (None, "", "Other", "N/A", "Extra Sample"):
         assert colors.family(name) is None
+    assert colors.special("Extra Sample") and colors.special("Blu Tailor Made") and not colors.special("Rosso Corsa")
 
 
 def _cars(model, n, seed, premiums, base=300000):
@@ -30,7 +32,7 @@ def _cars(model, n, seed, premiums, base=300000):
         yr = rnd.randint(2019, 2024)
         mi = rnd.uniform(500, 25000)
         p = base * 1.06 ** (yr - 2019) * math.exp(-0.06 * math.log1p(mi / 1000)) * (1 + premiums[f]) * math.exp(rnd.gauss(0, 0.02))
-        out.append({"model": model, "year": yr, "miles": mi, "price": p, "sold": 0, "family": f, "paint": f.title()})
+        out.append({"model": model, "year": yr, "miles": mi, "price": p, "sold": 0, "special": 0, "family": f, "paint": f.title()})
     return out
 
 
@@ -80,3 +82,35 @@ def test_points_read_listings_today_and_coloured_sales(tmp_path):
                    VALUES ('p:1', 'pcarmarket', 'f8-tributo', 2020, 'F8', 'sold', 260000, '2026-09-01T20:00:00Z', 8000, '{"exterior_color": "Giallo Modena"}')""")
     pts = colors.points(con, date(2026, 11, 1), "f8-tributo")
     assert sorted((p["family"], p["sold"]) for p in pts) == [("black", 0), ("red", 0), ("yellow", 1)]
+
+
+def test_special_order_paint_is_its_own_term_not_a_colour():
+    # green cars, a third of them special order paint worth 20% more: green itself is worth nothing extra
+    pts = _cars("812-gts", 120, 8, {"red": 0, "green": 0, "white": 0})
+    for i, p in enumerate(pts):
+        if p["family"] == "green" and i % 2:
+            p["special"] = 1
+            p["price"] *= 1.2
+    pts.append({"model": "812-gts", "year": 2022, "miles": 3000, "price": 400000, "sold": 0, "special": 1, "family": None, "paint": "Extra Sample"})
+    r = colors._premiums(pts, lambda p: p["model"])
+    green = next(f for f in r["families"] if f["family"] == "green")
+    assert green["verdict"] == "no clear difference"
+    assert abs(r["special_order"]["premium_pct"] - 20) < 3 and r["special_order"]["verdict"] == "premium"
+    assert r["special_unnamed"] == 1
+
+
+def test_extra_sample_cars_take_their_colour_from_another_listing(tmp_path):
+    con = db.connect(tmp_path / "t.db")
+    rows = [("fa:1", "vin:A", "Extra Sample", None), ("du:1", "vin:A", "Green", None),     # named on duPont Registry
+            ("fa:2", "vin:B", "Extra Sample", None),                                     # named nowhere
+            ("du:3", "vin:C", "Blue", "2026-10-20")]                                     # only on a removed listing
+    for uid, key, col, removed in rows:
+        con.execute("""INSERT INTO sightings (uid, source, vehicle_key, model_id, year, title, mileage_mi, exterior_color, first_seen, last_seen, removed_on)
+                       VALUES (?, 'a', ?, '812-gts', 2022, '812 GTS', 3000, ?, '2026-10-01', '2026-11-01', ?)""", (uid, key, col, removed))
+    for key, price in (("vin:A", 500000), ("vin:B", 480000), ("vin:C", 460000)):
+        con.execute("INSERT INTO daily_asks (day, vehicle_key, model_id, price_usd) VALUES ('2026-11-01', ?, '812-gts', ?)", (key, price))
+    # vin:C is still for sale through another sighting with no colour
+    con.execute("""INSERT INTO sightings (uid, source, vehicle_key, model_id, year, title, mileage_mi, first_seen, last_seen)
+                   VALUES ('fa:3', 'a', 'vin:C', '812-gts', 2022, '812 GTS', 3000, '2026-10-01', '2026-11-01')""")
+    pts = sorted(colors.points(con, date(2026, 11, 1), "812-gts"), key=lambda p: -p["price"])
+    assert [(p["family"], p["special"]) for p in pts] == [("green", 1), (None, 1), ("blue", 0)]
