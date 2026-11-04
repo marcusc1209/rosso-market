@@ -65,11 +65,12 @@ def purge(con) -> dict:
 
 
 def _drop_outside_market(con) -> int:
-    """Cars for sale outside the US (Canada, the Netherlands, the UK) leave the database, and every
-    daily snapshot is rebuilt without them, so medians, movers and charts are US prices throughout.
-    Auction lots are not touched: results stay international."""
-    bad = [(r["uid"], r["source"], r["title"], where) for r in con.execute("SELECT uid, source, title, country, location FROM sightings")
-           if (where := outside_market(r["country"], r["location"]))]
+    """Cars for sale outside the US (Canada, the Netherlands, the UK) leave the database, hypercars
+    excepted, and every daily snapshot is rebuilt without them, so medians, movers and charts are US
+    prices throughout (and world prices for hypercars). Auction lots are not touched: results stay
+    international."""
+    bad = [(r["uid"], r["source"], r["title"], where) for r in con.execute("SELECT uid, source, title, country, location, model_id FROM sightings")
+           if (where := outside_market(r["country"], r["location"], r["model_id"]))]
     for uid, source, title, where in bad:
         con.execute("INSERT INTO rejects (run_id, source, source_id, title, reason) VALUES (NULL, ?, ?, ?, ?)",
                     (source, uid.split(":", 1)[-1], title, f"purged: listed outside the US ({where})"))

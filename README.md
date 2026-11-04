@@ -2,11 +2,14 @@
 
 Daily Ferrari asking prices and market signals for the US, with auction results from around the world.
 
-Cars for sale are the US market only: a listing whose location is outside the US (a Montreal
-dealer on duPont Registry, a Dutch car on ClassicCars.com) is rejected when read and purged if
-already stored (`normalize.outside_market`, `clean._drop_outside_market`). Auction results stay
-international. Ferrari Approved reads US dealers only. AutoTrader.ca, which listed only Canadian
-cars, was removed on 2026-11-04.
+Cars for sale are the US market only, except hypercars: a listing whose location is outside the
+US (a Montreal dealer on duPont Registry, a Dutch car on ClassicCars.com) is rejected when read and
+purged if already stored (`normalize.outside_market`, `clean._drop_outside_market`), unless its
+model is in the "Hypercars and limited series" family (F40, LaFerrari, 812 Competizione, SF90 XX
+and the rest), which is tracked for sale anywhere. Every other model outside the US shows only
+through auction results, which stay international. Ferrari Approved still reads its Canadian
+dealers, for their hypercars. AutoTrader.ca, which listed only Canadian cars, was removed on
+2026-11-04.
 
 Two parts:
 

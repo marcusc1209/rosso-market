@@ -106,7 +106,7 @@ def build(con, day: date, cfg: dict, health: list[dict]) -> dict:
     return {
         "brand": "Rosso Market",
         "as_of": day.isoformat(),
-        "region": "US market",
+        "region": "US market, hypercars worldwide",
         "sample": sample,
         "brief": br,
         "movers": mv,

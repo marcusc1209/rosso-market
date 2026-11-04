@@ -45,12 +45,12 @@ sources:
 
   # ============================================================ asking prices (dealers and private sellers)
 
-  ferrari_approved:                # verified. Every car at a US Ferrari dealer, ~1,200; flags certified cars
+  ferrari_approved:                # verified. Every car at a Ferrari dealer, US ~1,200 and Canada ~100; flags certified cars
     adapter: ferrari_approved      # Refuses GitHub Actions addresses (403, even in a browser), so it runs on the Mac
     enabled: true                  # (workflow "Home sources"). A residential proxy is the alternative.
     runner: home
     fetch: {proxy_env: RESIDENTIAL_PROXY_URL}
-    countries: [usa]                # US market only since 2026-11-04 (canada also works: ~100 cars)
+    countries: [usa, canada]        # Canada for its hypercars: other Canadian cars are dropped by normalize.outside_market
     max_pages: 200                 # 11 cars per page, ~120 pages, about 8 minutes at 4 seconds per request
     wayback_lookups: 0             # off: ads stopped carrying the VIN in Jan 2026, so the archive dates almost no
                                    # current stock (Fort Lauderdale: 2 of 57 cars, both stale) and its index server

@@ -1,6 +1,6 @@
 <title>Rosso Market</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Daily asking prices for every Ferrari for sale in the US, with auction results from around the world.">
+<meta name="description" content="Daily asking prices for every Ferrari for sale in the US and every hypercar for sale worldwide, with auction results from around the world.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -818,7 +818,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       <div class="wrap">
         <div class="eyebrow"><span class="dot"></span>As of ${dateLong(D.as_of)}, ${esc(D.region)}</div>
         <h1>Rosso<br><span>Market</span></h1>
-        <p class="lede">Daily asking prices, auction results and market intelligence for every Ferrari for sale in the US, from the 308 to the SF90, with auction results from around the world.</p>
+        <p class="lede">Daily asking prices, auction results and market intelligence for every Ferrari for sale in the US and every hypercar for sale worldwide, from the 308 to the SF90 XX, with auction results from around the world.</p>
         <div class="hero-index">
           <div><b>${ixLast ? ixLast.toFixed(1) : "n/a"}</b><small>Ask index, 90 days ago = 100</small></div>
           <div><b>${ix30 == null ? "n/a" : (ix30 < 0 ? "▼ " : "▲ ") + Math.abs(ix30).toFixed(1) + "%"}</b><small>Last 30 days</small></div>
@@ -911,7 +911,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       [a.change_yoy != null ? chg(a.change_yoy) : "n/a", "Median sold vs a year earlier"], [a.sell_through_12m != null ? a.sell_through_12m + "%" : "n/a", "Sell through, 12 months"]);
     if (a.last_sold) kpis.push([money(a.last_sold.price), "Last sale, " + dateLong(a.last_sold.day)]);
     app.innerHTML = pageHead(`<a href="#family-${slug(m.family)}">${esc(m.family)}</a>`, esc(m.name),
-      `Auction results for the Ferrari ${esc(m.name)} from every house we track, with asking prices from dealers in the US as they come in.`, kpis)
+      `Auction results for the Ferrari ${esc(m.name)} from every house we track, with asking prices from dealers ${m.family === "Hypercars and limited series" ? "anywhere in the world, since so few exist that the world is one market for them" : "in the US"} as they come in.`, kpis)
       + `<section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Sales and asking prices</div><h2>Market</h2></div></div>
          <div id="m-auc"><p class="flat">Loading results</p></div></div></section>
          <section class="block" id="m-up-sec" hidden><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Coming up</div><h2>Live and upcoming lots</h2></div></div><div class="lots" id="m-up"></div></div></section>
@@ -1364,7 +1364,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     app.innerHTML = pageHead("Methodology", "How we count", "Where the numbers come from and what each one means.")
       + `<section class="block"><div class="wrap"><div class="prose">
         <h3>Sources</h3>
-        <p>Asking prices come from the Ferrari dealer network's own used inventory, including cars certified under Ferrari Approved, and from dealer marketplaces: duPont Registry and ClassicCars.com. Only cars for sale in the US count: a car listed by a dealer in Canada or Europe is left out, wherever the site that lists it is based. Auction results come from around the world, from Bring a Trailer, Cars &amp; Bids, Sotheby's Motorsport, duPont Registry Live, RM Sotheby's, Gooding Christie's, Bonhams, Broad Arrow, PCARMARKET and Mecum, because a sale in London or Monaco is still a real price for the car. We collect once a day.</p>
+        <p>Asking prices come from the Ferrari dealer network's own used inventory, including cars certified under Ferrari Approved, and from dealer marketplaces: duPont Registry and ClassicCars.com. Cars for sale count when they are in the US: a car listed by a dealer in Canada or Europe is left out, wherever the site that lists it is based. Hypercars and limited series cars (the F40, F50, Enzo, LaFerrari, Monza, Daytona SP3, 812 Competizione, SF90 XX and the rest of that family) are the exception: so few exist that the world is one market for them, so they count for sale anywhere. Auction results come from around the world, from Bring a Trailer, Cars &amp; Bids, Sotheby's Motorsport, duPont Registry Live, RM Sotheby's, Gooding Christie's, Bonhams, Broad Arrow, PCARMARKET and Mecum, because a sale in London or Monaco is still a real price for the car. We collect once a day.</p>
         <h3>One car, one count</h3>
         <p>The same car is often listed on several sites at once. We match cars by VIN, then by chassis number for older cars, then by model, year, mileage, colour and seller. Each physical car moves the numbers once. When one car shows two prices, the selling dealer's own price wins.</p>
         <h3>Median ask</h3>
