@@ -350,19 +350,20 @@ def test_stored_cars_outside_the_us_are_purged_and_snapshots_rebuilt(tmp_path):
     con = db.connect(tmp_path / "t.db")
     for uid, key, loc, code, price, mid in (("a:1", "vin:US1", "Charlotte", "US", 300000, "roma"), ("a:2", "vin:CA1", "Calgary", "CA", 100000, "roma"),
                                             ("d:3", "vin:CA2", "Montreal, QC", "US", 120000, "roma"),
-                                            ("d:4", "vin:UK1", "Bradford, England", "US", 3500000, "laferrari")):   # a hypercar stays
+                                            ("d:4", "vin:UK1", "Bradford, England", "US", 3500000, "laferrari"),    # a hypercar stays
+                                            ("autotrader_ca:5", "vin:CA3", "Toronto, ON", "CA", 3000000, "laferrari")):   # but not from a removed source
         con.execute("""INSERT INTO sightings (uid, source, vehicle_key, model_id, title, country, location, first_seen, last_seen)
-                       VALUES (?, 'a', ?, ?, 'x', ?, ?, '2026-11-01', '2026-11-02')""", (uid, key, mid, code, loc))
+                       VALUES (?, ?, ?, ?, 'x', ?, ?, '2026-11-01', '2026-11-02')""", (uid, uid.split(":")[0], key, mid, code, loc))
         for d in ("2026-11-01", "2026-11-02"):
             con.execute("INSERT INTO sighting_prices (uid, day, price_usd) VALUES (?, ?, ?)", (uid, d, price))
     con.execute("""INSERT INTO lots (uid, source, model_id, title, status, price_usd, ends_at, country)
                    VALUES ('b:1', 'rm', 'roma', 'Roma', 'sold', 200000, '2026-10-01T12:00:00Z', 'CA')""")
     for d in ("2026-11-01", "2026-11-02"):
         db.build_daily_asks(con, date.fromisoformat(d))
-    assert con.execute("SELECT COUNT(*) FROM daily_asks").fetchone()[0] == 8
-    assert clean.purge(con)["outside_us"] == 2
+    assert con.execute("SELECT COUNT(*) FROM daily_asks").fetchone()[0] == 10
+    assert clean.purge(con)["outside_us"] == 3
     assert sorted(r[0] for r in con.execute("SELECT uid FROM sightings")) == ["a:1", "d:4"]
     assert con.execute("SELECT COUNT(*) FROM sighting_prices").fetchone()[0] == 4
     assert {r[0] for r in con.execute("SELECT vehicle_key FROM daily_asks")} == {"vin:US1", "vin:UK1"}
     assert con.execute("SELECT COUNT(*) FROM lots").fetchone()[0] == 1          # the Canadian auction result stays
-    assert con.execute("SELECT COUNT(*) FROM rejects WHERE reason LIKE 'purged: listed outside the US%'").fetchone()[0] == 2
+    assert con.execute("SELECT COUNT(*) FROM rejects WHERE reason LIKE 'purged: listed outside the US%'").fetchone()[0] == 3

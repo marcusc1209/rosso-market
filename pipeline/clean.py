@@ -64,6 +64,9 @@ def purge(con) -> dict:
     return counts
 
 
+RETIRED_SOURCES = ("autotrader_ca",)      # removed 2026-11-04: it listed only Canadian cars
+
+
 def _drop_outside_market(con) -> int:
     """Cars for sale outside the US (Canada, the Netherlands, the UK) leave the database, hypercars
     excepted, and every daily snapshot is rebuilt without them, so medians, movers and charts are US
@@ -71,6 +74,10 @@ def _drop_outside_market(con) -> int:
     international."""
     bad = [(r["uid"], r["source"], r["title"], where) for r in con.execute("SELECT uid, source, title, country, location, model_id FROM sightings")
            if (where := outside_market(r["country"], r["location"], r["model_id"]))]
+    # a source that was removed never runs again, so its cars would never be marked gone
+    bad += [(r["uid"], r["source"], r["title"], "source removed") for r in con.execute(
+        f"SELECT uid, source, title FROM sightings WHERE source IN ({','.join('?' * len(RETIRED_SOURCES))})", tuple(RETIRED_SOURCES))
+        if r["uid"] not in {b[0] for b in bad}]
     for uid, source, title, where in bad:
         con.execute("INSERT INTO rejects (run_id, source, source_id, title, reason) VALUES (NULL, ?, ?, ?, ?)",
                     (source, uid.split(":", 1)[-1], title, f"purged: listed outside the US ({where})"))
