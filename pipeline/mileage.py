@@ -40,7 +40,7 @@ def points(con, model_id: str, day: date, idx=None, skip=frozenset()) -> list[li
         if r["mi"] is not None and r["price_usd"] and 0 <= r["mi"] < MAX_MILES:
             same = (round(r["mi"]), round(r["price_usd"]))
             if same in seen:
-                continue          # one car listed twice without a shared VIN (AutoTrader.ca and the dealer, say)
+                continue          # one car listed twice without a shared VIN (a marketplace and the dealer, say)
             seen.add(same)
             out.append([round(r["mi"]), round(r["price_usd"]), "l", idx.listing(r["vehicle_key"]) if idx else None,
                         r["title"], r["img"], r["who"], r["d"]])

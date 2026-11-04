@@ -55,7 +55,7 @@ sources:
     wayback_lookups: 0             # off: ads stopped carrying the VIN in Jan 2026, so the archive dates almost no
                                    # current stock (Fort Lauderdale: 2 of 57 cars, both stale) and its index server
                                    # times out on these queries. Cars take their date from the same car on duPont
-                                   # Registry or AutoTrader.ca instead. Dealers already looked up stay in kv.
+                                   # Registry instead. Dealers already looked up stay in kv.
 
   marketcheck:                     # built, needs a paid key. AutoTrader, Cars.com, CarGurus and dealer sites, US
     adapter: marketcheck
@@ -89,11 +89,6 @@ sources:
     runner: home
     page_size: 100
     max_pages: 40
-  autotrader_ca:                   # verified 2026-11-01. ~330 Ferraris in Canada (AutoScout24 platform), no VIN
-    adapter: autotrader_ca         # off 2026-11-04: cars for sale are the US market only. The reader is kept.
-    enabled: false
-    date_pages: 400                # each car's page (/offers/...) is read once for the day it was listed
-    runner: home
   autostoday:                      # off 2026-11-01: ~2,400 used Ferraris, but it answers automated readers with 403,
     adapter: autostoday            # from GitHub's servers and from the Mac alike (plain requests and the browser).
     enabled: false                 # That is a bot block, so it is not worked around. The reader is kept.

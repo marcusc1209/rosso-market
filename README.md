@@ -5,7 +5,8 @@ Daily Ferrari asking prices and market signals for the US, with auction results 
 Cars for sale are the US market only: a listing whose location is outside the US (a Montreal
 dealer on duPont Registry, a Dutch car on ClassicCars.com) is rejected when read and purged if
 already stored (`normalize.outside_market`, `clean._drop_outside_market`). Auction results stay
-international. Ferrari Approved reads US dealers only and AutoTrader.ca is switched off.
+international. Ferrari Approved reads US dealers only. AutoTrader.ca, which listed only Canadian
+cars, was removed on 2026-11-04.
 
 Two parts:
 
@@ -229,20 +230,19 @@ clicking it opens the car page.
 | --- | --- | --- | --- |
 | AutoTrader.com | off | | blocks automated access ("page unavailable") from plain requests and headless browsers; the reader is kept for a licensed route |
 | duPont Registry | ~1,800 used | cloud | schema.org list on each search page, VIN, dealer |
-| AutoTrader.ca | ~330 | off | Canada only, switched off on 2026-11-04 (US market only) |
 | AutosToday | off | | `autostoday.py` is kept but off: it answers automated readers with 403 from any address |
 | ClassicCars.com | ~180 | cloud | `classiccars.py`: 12 search pages, then each listing page once for odometer, colours, VIN or chassis and photos. Cars consigned to auctions are skipped |
 
 Each one's robots.txt allows general crawlers on the pages read here.
 
-Listing dates: duPont Registry and AutoTrader.ca publish the day each car was listed on the
-car's own page ("Date Listed", createdTimestampWithOffset). Each page is read once per car
+Listing dates: duPont Registry publishes the day each car was listed on the
+car's own page ("Date Listed"). Each page is read once per car
 (`date_pages` caps a run) and the date is kept with the listing. A car listed on several
 sites takes the earliest published date, so a Ferrari Approved car (whose feed date is
 refreshed daily and means nothing) shows the date the same VIN went up on duPont Registry.
-AutoTrader.ca shows no VINs, so `dedupe.link_listings` gives each of its listings the VIN of
-the one car at the same dealer with the same model, year and mileage (within 2%): the car is
-counted once and takes AutoTrader.ca's date. ClassicCars.com numbers its listings in order
+A marketplace listing with no VIN gets, from `dedupe.link_listings`, the VIN of the one car at
+the same dealer with the same model, year and mileage (within 2%): the car is counted once and
+takes the earliest date either listing gives. ClassicCars.com numbers its listings in order
 (`pipeline/idclock.py`): archived captures of its home page pin the highest number to a day
 (1,676,304 on Jan 1 2023), each run pins today's, and a car's number read against those pins
 dates it to within 10 days. The few captures needed are read once and kept in kv. Ferrari
@@ -264,7 +264,7 @@ but sit behind bot checks, so what the owner reads there can be entered per VIN 
 any a site publishes, and the price history shows in the seller's box on the car page. Cars with no evidence anywhere keep
 the first day we saw them. Cars.com is off: every page, robots.txt included, sits behind a
 Cloudflare bot check, which this pipeline never works around. Cars that appear on
-several sites are one car (matched by VIN, or by fingerprint for AutoTrader.ca), so
+several sites are one car (matched by VIN, or by fingerprint when a site shows none), so
 adding sources widens coverage without double counting. These sites' terms of use
 govern automated access; MarketCheck (`marketcheck`, needs a paid key) is the licensed
 route to the same inventory.

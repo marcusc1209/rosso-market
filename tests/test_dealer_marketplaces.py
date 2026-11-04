@@ -1,10 +1,9 @@
-"""AutoTrader, AutoTrader.ca and duPont Registry, from the shapes seen on 2026-11-01."""
+"""AutoTrader and duPont Registry, from the shapes seen on 2026-11-01."""
 import json
 from datetime import date
 
 from pipeline.sources.dealer_marketplaces import (
-    flight_data, parse_autotrader, map_autotrader, parse_dupont, map_dupont_registry,
-    parse_autotrader_ca, map_autotrader_ca)
+    flight_data, parse_autotrader, map_autotrader, parse_dupont, map_dupont_registry)
 
 AT_LISTING = {
     "id": 773331441, "vin": "ZFF79ALA2K0245448", "year": 2019, "title": "Used 2019 Ferrari 488 GTB",
@@ -69,25 +68,6 @@ def test_dupont_registry_item():
     assert map_dupont_registry(new, "x") is None
 
 
-def test_autotrader_ca_listing():
-    x = {"id": "dc7d9b81", "title": "2007 Ferrari 430", "url": "https://www.autotrader.ca/offers/ferrari-430-spider-dc7d9b81",
-         "images": ["https://prod.pictures.autoscout24.net/listing-images/dc7d9b81_25bc.jpg/250x188.webp"],
-         "price": {"priceRaw": 189900},
-         "vehicle": {"make": "Ferrari", "model": "F430", "modelVersionInput": "Spider", "offerType": "U", "modelYear": 2007,
-                     "transmission": "Automatic", "mileageInKm": "25,343 km"},
-         "location": {"countryCode": "CA", "provinceCode": "ON", "city": "North York"},
-         "seller": {"type": "Dealer", "companyName": "Vehicle-Direct"}}
-    html = '<script id="__NEXT_DATA__" type="application/json">' + json.dumps(
-        {"props": {"pageProps": {"listings": [x], "numberOfPages": 17}}}) + "</script>"
-    rows, pages = parse_autotrader_ca(html)
-    assert pages == 17
-    r = map_autotrader_ca(rows[0], "autotrader_ca")
-    assert r.title == "2007 Ferrari F430 Spider" and r.price == 189900 and r.currency == "CAD"
-    assert r.mileage == 25343 and r.mileage_unit == "km" and r.location == "North York, ON" and r.vin is None
-    assert r.image_url.endswith("/640x480.webp") and r.extra["photos"][0].endswith("/1280x960.webp")
-    assert map_autotrader_ca({**x, "vehicle": {**x["vehicle"], "offerType": "N"}}, "x") is None
-
-
 def test_autotrader_switches_to_browser_when_page_has_no_listings():
     import logging
     from types import SimpleNamespace
@@ -116,12 +96,11 @@ def test_autotrader_switches_to_browser_when_page_has_no_listings():
 def test_listing_dates_are_read_once_and_remembered(tmp_path):
     from pipeline import db
     from pipeline.records import RawRecord, LISTING
-    from pipeline.sources.dealer_marketplaces import DupontRegistry, dupont_listed_on, autotrader_ca_listed_on
+    from pipeline.sources.dealer_marketplaces import DupontRegistry, dupont_listed_on
     from pipeline.sources.base import Context
 
     assert dupont_listed_on('{"@type":"PropertyValue","name":"Date Listed","value":"1785998213000"}') == "2026-08-06"
     assert dupont_listed_on(r'\"name\":\"Date Listed\",\"value\":\"1785998213000\"') == "2026-08-06"
-    assert autotrader_ca_listed_on('"createdTimestampWithOffset":"2026-04-22T18:22:04.590Z"') == "2026-04-22"
 
     con = db.connect(tmp_path / "t.db")
     con.execute("""INSERT INTO sightings (uid, source, title, first_seen, last_seen, raw)

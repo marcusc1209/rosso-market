@@ -27,7 +27,7 @@ from typing import Optional
 from . import clean, sales, taxonomy
 
 STRONG = ("vin:", "chassis:")
-AGGREGATORS = {"cars.com", "autotrader.com", "autotrader.ca", "cargurus.com", "cargurus", "carfax", "edmunds", "dupont registry"}
+AGGREGATORS = {"cars.com", "autotrader.com", "cargurus.com", "cargurus", "carfax", "edmunds", "dupont registry"}
 
 
 def car_id(key: str) -> str:
