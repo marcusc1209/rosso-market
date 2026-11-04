@@ -166,6 +166,32 @@ table.sheet { width: 100%; border-collapse: collapse; font-size: 14px; min-width
 .sheet .name a:hover { color: var(--rosso); }
 .sheet .p { font: 700 14px/1 var(--f-display); color: var(--muted); width: 32px; }
 
+/* colour premiums against red (pipeline/colors.py) */
+.paint { border-top: 2px solid var(--ink); }
+.paint-row { display: grid; grid-template-columns: minmax(150px, 230px) 1fr 200px; gap: 14px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.paint-row.head { font: 600 11px/1.2 var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 10px 0; }
+.paint-name { display: flex; gap: 10px; align-items: center; font-weight: 600; min-width: 0; }
+.paint-name small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.paint-name > div { min-width: 0; }
+.swatch { flex: none; width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 0 1px var(--line); }
+.paint-track { position: relative; height: 22px; }
+.paint-track .zero { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--muted); }
+.paint-track .rng { position: absolute; top: 9px; height: 4px; border-radius: 4px; background: var(--muted); opacity: .35; }
+.paint-track .dot { position: absolute; top: 5px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--muted); box-shadow: 0 0 0 2px var(--surface); }
+.paint-track .dot.base { background: var(--ink); }
+.paint-track .dot.premium { background: var(--up); } .paint-track .dot.discount { background: var(--down); }
+.paint-val { text-align: right; font-size: 14px; }
+.paint-val small { display: block; font-size: 12px; color: var(--muted); }
+.paint-axis { display: grid; grid-template-columns: minmax(150px, 230px) 1fr 200px; gap: 14px; }
+.paint-axis div { position: relative; height: 18px; font: 12px/1 var(--f-mono); color: var(--muted); }
+.paint-axis span { position: absolute; transform: translateX(-50%); top: 4px; white-space: nowrap; }
+@media (max-width: 640px) {
+  .paint-row, .paint-axis { grid-template-columns: 1fr 150px; }
+  .paint-row .paint-track, .paint-axis div { grid-column: 1 / -1; grid-row: 2; }
+  .paint-axis > :first-child, .paint-axis > :last-child { display: none; }
+  .paint-row.head { display: none; }
+}
+
 /* families */
 .families { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
 .family { background: var(--surface); border: 1px solid var(--line); padding: 18px; display: grid; gap: 8px; align-content: start; text-decoration: none; }
@@ -776,6 +802,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
          <div id="m-auc"><p class="flat">Loading results</p></div></div></section>
          <section class="block" id="m-up-sec" hidden><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Coming up</div><h2>Live and upcoming lots</h2></div></div><div class="lots" id="m-up"></div></div></section>
          <section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">For sale now</div><h2>Tracked listings</h2></div></div><div id="m-list"><p class="flat">Loading listings</p></div></div></section>
+         <section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Paint against red</div><h2>Colour premiums</h2></div></div><div id="m-col"><p class="flat">Loading colours</p></div></div></section>
          <section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Auction results</div><h2>Recent hammer prices</h2></div></div><div id="m-res"></div></div></section>`;
     window.scrollTo(0, 0);
     let detail = modelCache[id];
@@ -790,6 +817,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       ${items.map(l => `<tr><td class="thumb">${photo(l.image, "")}</td><td class="name"><a ${carLink(l)}>${esc(l.title)}</a>${l.certified ? ' <span class="chip sold">Approved</span>' : ""}</td>
       <td class="r num">${miles(l.mileage_mi)}</td><td>${esc(l.exterior_color || "")}</td><td>${esc(l.dealer_name || "")}${l.location ? `<div class="flat" style="font-size:12px">${esc(l.location)}</div>` : ""}</td><td class="r num">${daysListed(l) ?? ""}</td><td class="r num">${money(l.price_usd)}</td></tr>`).join("")}
       </tbody></table></div>`;
+    colorChart(document.getElementById("m-col"), detail.colors, m.name);
     const mList = document.getElementById("m-list");
     if (detail.listings.length) {
       switchable(mList, detail.listings, listingCard, listTable, { id: "listings", sorts: LISTING_SORTS,
@@ -944,6 +972,37 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
 
   // ------------------------------------------------------------ car page
   const STATUS = { for_sale: "For sale", live: "Live auction", upcoming: "Upcoming auction", sold: "Sold", unsold: "Not sold", off_market: "Off market" };
+  // Colour premiums: each colour family's price against an otherwise identical red car of the same model,
+  // with its 90% range. c comes from the model file (pipeline/colors.py).
+  const SWATCH = { red: "#c4161c", black: "#111316", white: "#f4f4f2", grey: "#6e7378", silver: "#c3c7cb", blue: "#1f4fa3",
+    yellow: "#f2c200", green: "#1f5c3a", purple: "#5b2a86", brown: "#8a6a48", orange: "#e8701a", special: "conic-gradient(#c4161c, #f2c200, #1f4fa3, #1f5c3a, #c4161c)" };
+  function colorChart(el, c, name) {
+    const mine = c && c.model, mkt = c && c.market;
+    const pct = v => (v > 0 ? "+" : v < 0 ? "\u2212" : "") + Math.abs(v).toFixed(1) + "%";
+    const verdict = f => f.baseline ? "Baseline" : f.verdict === "premium" ? "Premium" : f.verdict === "discount" ? "Discount" : "No clear difference";
+    const block = (r, who) => {
+      const fams = r.families;
+      const ext = Math.max(5, ...fams.map(f => Math.max(Math.abs(f.low_pct), Math.abs(f.high_pct))));
+      const step = ext > 30 ? 20 : ext > 14 ? 10 : 5, lim = Math.ceil(ext / step) * step;
+      const x = v => ((Math.max(-lim, Math.min(lim, v)) + lim) / (2 * lim) * 100).toFixed(2) + "%";
+      const ticks = []; for (let t = -lim; t <= lim; t += step) ticks.push(t);
+      const rows = fams.map(f => {
+        const tip = f.baseline ? `${f.label}: the baseline, ${plural(f.n, "car")}` : `${f.label}: ${pct(f.premium_pct)} against red (90% range ${pct(f.low_pct)} to ${pct(f.high_pct)}), ${plural(f.n, "car")}`;
+        return `<div class="paint-row" title="${esc(tip)}">
+          <div class="paint-name"><i class="swatch" style="background:${SWATCH[f.family] || "var(--chip)"}"></i><div>${esc(f.label)}<small>${esc(f.paints.map(p => p[0]).join(", "))}</small></div></div>
+          <div class="paint-track" role="img" aria-label="${esc(tip)}"><i class="zero" style="left:${x(0)}"></i>${f.baseline ? "" : `<i class="rng" style="left:${x(f.low_pct)};width:calc(${x(f.high_pct)} - ${x(f.low_pct)})"></i>`}<i class="dot ${f.baseline ? "base" : f.verdict}" style="left:${x(f.premium_pct)}"></i></div>
+          <div class="paint-val num">${f.baseline ? "Red = 0%" : pct(f.premium_pct)}<small>${verdict(f)}</small><small>${plural(f.n, "car")}</small></div></div>`;
+      }).join("");
+      const few = (r.too_few || []).length ? `<p class="flat" style="font-size:13px;margin-top:10px">Too few cars to measure: ${esc(r.too_few.map(([l, n]) => `${l} (${n})`).join(", "))}.</p>` : "";
+      return `<h3 style="margin:22px 0 10px">${esc(who)}</h3><div class="paint"><div class="paint-row head"><div>Colour</div><div>Against red, with 90% range</div><div style="text-align:right">Premium</div></div>${rows}
+        <div class="paint-axis"><div></div><div>${ticks.map(t => `<span style="left:${x(t)}">${t ? pct(t).replace(".0", "") : "Red"}</span>`).join("")}</div><div></div></div></div>${few}
+        <p class="flat" style="font-size:13px;margin-top:6px">${plural(r.n, "car")}: ${r.for_sale.toLocaleString("en-US")} for sale now${r.sold ? `, ${r.sold.toLocaleString("en-US")} sold at auction in the last 18 months` : ""}.</p>`;
+    };
+    if (!mine && !mkt) { el.innerHTML = '<div class="empty">Not enough cars with a known colour yet.</div>'; return; }
+    el.innerHTML = `<p class="flat" style="margin:-6px 0 4px;font-size:14px;max-width:80ch">What each colour adds or takes off the price of a car that is otherwise the same: same model, same year, same mileage, painted red instead. A dot right of the line means buyers are asked to pay more than for red. Where the range crosses the line, the cars do not show a clear difference yet.</p>`
+      + (mine ? block(mine, name) : `<p class="flat" style="margin-top:16px">Not enough ${esc(name)} cars with a known colour to compare against red yet, so only the market wide figures are shown.</p>`)
+      + (mkt ? block(mkt, "Every model") : "");
+  }
   // Mileage curve: price against mileage for one model, cars for sale now and sales in the last 18 months,
   // with the fitted curve and its typical spread. mg comes from the model file (pipeline/mileage.py).
   function mileageChart(el, mg, opts = {}) {
@@ -1178,6 +1237,8 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
         <p>Each model's asking prices this week against the same model a week earlier, compared model year by model year so a change in the mix of years does not look like a move. A batch of cheaper cars arriving or a round of price cuts both pull a model down, and the reverse pushes it up. A model needs at least five cars for sale in both weeks. The most active model is the one with the most cars added, sold or taken off the market over the week.</p>
         <h3>Mileage curve</h3>
         <p>Each car page plots its model's prices against mileage: every car for sale now and every auction sale in the last 18 months that gave a mileage. Older sales are left out because the market has moved since. The curve is fitted to the logarithm of price, in whichever of two shapes fits the cars better: a steady percentage per mile, or a steeper drop over the first miles that then flattens. Cars far off the curve, such as race cars or wrecks, are set aside before the final fit. The shaded band is the typical spread around the curve. Model year and specification also move prices, so the curve is a guide rather than a valuation.</p>
+        <h3>Colour premiums</h3>
+        <p>Each model page shows what every exterior colour is worth against red. Sites name paint their own way, so every name is first put in a family: Rosso Corsa, Rosso Scuderia and plain Red are all red, Grigio Silverstone is grey, and paint Ferrari makes outside its standard range is special order. Year and mileage move price far more than paint, and one colour's cars may simply be newer, so we fit each model's prices to year, mileage and colour together and read off what the colour alone adds. The range shown is 90% sure. A colour needs at least three cars in the model, and red at least three, before it is shown. The figure for every model compares cars only within the same model and years, never a 296 against a Roma.</p>
         <h3>Auction results</h3>
         <p>Houses report prices differently. Bring a Trailer, Cars &amp; Bids, Sotheby's Motorsport and duPont Registry Live show the winning bid. RM Sotheby's and Mecum include the buyer's premium. Prices in pounds, euros or francs are converted to US dollars at the day's rate. A result far outside the model's asking range is kept on its model page but left out of the headline insights, because it is more often a data error than a real sale.</p>
         <h3>What these numbers are not</h3>

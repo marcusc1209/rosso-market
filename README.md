@@ -13,7 +13,7 @@ Two parts:
 pip install -r requirements.txt
 playwright install chromium          # only needed for the browser based sources
 
-python -m pytest -q tests            # 80 tests, 23 of them against real responses captured from each site
+python -m pytest -q tests            # 151 tests, 23 of them against real responses captured from each site
 
 # real data (needs normal internet access)
 python -m pipeline.run               # every verified source, today
@@ -269,3 +269,16 @@ Also checked on 2026-11-01 and left out: CarGurus and Carfax (DataDome), TrueCar
 token its own script makes), Autolist (its results are CarGurus inventory) and
 Exotic Car Trader (about 20 live Ferraris), carsforsale.com (Cloudflare challenge). eBay Motors has an official free API that
 needs the owner's developer keys.
+
+## Colour premiums
+
+`pipeline/colors.py` measures what each exterior colour is worth against red. Paint names
+are put in families first (Rosso Corsa, Rosso Scuderia and Red are all red, Grigio
+Silverstone is grey, Ferrari Approved's "Extra Sample" is special order paint). For each
+model it fits log price to year, mileage, sold or asking, and colour family, with red left
+out as the baseline, so a colour whose cars happen to be newer is not credited with the
+year. Each family gets a premium in percent and a 90% range, and is called a premium or a
+discount only when that range stays on one side of red. A family needs 3 cars and red needs
+3 cars. The figure for every model gives each model and three year band its own level, so
+cars are only ever compared within their model. The result sits in each model file under
+`colors` and in `site.json` under `colors`, and the model page draws it.
