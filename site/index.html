@@ -405,6 +405,10 @@ table.sheet.mv { min-width: 0; }
 .axis { fill: var(--muted); font: 11px var(--f-mono); }
 .grid-line { stroke: var(--line); stroke-width: 1; }
 .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+.auc-search { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+.auc-search input { flex: 0 1 420px; min-width: 0; width: 100%; border: 1px solid var(--line); background: var(--surface); padding: 11px 14px; font: inherit; font-size: 15px; color: var(--ink); }
+.auc-search input:focus { outline: 2px solid var(--ink); outline-offset: 0; }
+.auc-count { font-size: 14px; color: var(--muted); }
 /* market panel on a model page */
 .mp-top { display: flex; justify-content: space-between; align-items: center; gap: 10px 20px; flex-wrap: wrap; margin-bottom: 14px; }
 .mp-tabs { margin: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
@@ -1696,23 +1700,46 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     app.innerHTML = pageHead("Auctions", "Auctions", "Live and recent Ferrari lots from Bring a Trailer, Cars &amp; Bids, PCARMARKET, Sotheby's Motorsport, duPont Registry Live, RM Sotheby's, Gooding Christie's, Bonhams, Broad Arrow and Mecum. Photos link to the original lot. Times are US Eastern.",
       [[a.live.length, "Live now"], [a.upcoming.length, "Upcoming"], [sold.length, "Sold, 90 days"], [rate, "Sell through, 30 days"]])
       + `<section class="block"><div class="wrap">
+        <div class="auc-search"><input type="search" id="auc-q" list="auc-models" placeholder="Search by model, e.g. 812 GTS" aria-label="Search auctions by model" autocomplete="off" spellcheck="false">
+          <datalist id="auc-models">${[...new Set([...a.live, ...a.upcoming, ...a.results].map(r => (byId[r.model_id] || {}).name).filter(Boolean))].sort().map(n => `<option value="${esc(n)}">`).join("")}</datalist>
+          <span class="auc-count" id="auc-count"></span></div>
         <div class="tabs" role="tablist">${tabs.map(([k, l, arr], i) => `<button type="button" role="tab" id="tab-${k}" aria-selected="${i === 0}" data-tab="${k}">${l} (${arr.length})</button>`).join("")}</div>
         <div id="tab-body"></div></div></section>
         <section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">By house</div><h2>Where Ferraris are selling</h2></div></div>
         <div class="tbl-wrap"><table class="sheet"><thead><tr><th>Auction house</th><th class="r">Live now</th><th class="r">Results, 30 days</th></tr></thead><tbody>
         ${houses.map(([h, v]) => `<tr><td class="name">${esc(h)}</td><td class="r num">${v.live}</td><td class="r num">${v.results_30d}</td></tr>`).join("")}</tbody></table></div></div></section>`;
+    // search: a model's exact name shows only that model, anything else matches words in the lot title
+    const norm = x => (x || "").toLowerCase().replace(/ferrari/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
+    const models = Object.values(byId);
+    let q = "", cur = "live";
+    const matcher = () => {
+      const n = norm(q);
+      if (!n) return () => true;
+      const exact = models.find(m => norm(m.name) === n || norm(m.name).replace(/ /g, "") === n.replace(/ /g, ""));
+      if (exact) return r => r.model_id === exact.id;
+      const words = n.split(" ");
+      return r => { const hay = norm(r.title + " " + ((byId[r.model_id] || {}).name || "")), flat = hay.replace(/ /g, "");
+        return words.every(w => hay.split(" ").includes(w) || flat.includes(w)); };
+    };
+    const filtered = k => tabs.find(t => t[0] === k)[2].filter(matcher());
     const show = k => {
-      app.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === k));
-      const arr = tabs.find(t => t[0] === k)[2];
+      cur = k;
+      app.querySelectorAll("[data-tab]").forEach(b => { b.setAttribute("aria-selected", b.dataset.tab === k);
+        const t = tabs.find(x => x[0] === b.dataset.tab); b.textContent = `${t[1]} (${filtered(t[0]).length})`; });
+      const arr = filtered(k);
+      const total = tabs.reduce((n, t) => n + filtered(t[0]).length, 0);
+      document.getElementById("auc-count").textContent = q.trim() ? `${plural(total, "lot")} match` : "";
       const body = document.getElementById("tab-body");
       const table = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Lot</th><th>Sale</th><th>Country</th><th>${k === "results" ? "Closed" : "Ends"}</th><th>Result</th><th class="r">Price</th><th class="r">vs median ask</th></tr></thead><tbody>
           ${items.map(r => `<tr><td class="thumb">${photo(r.image, "")}</td><td class="name"><a ${carLink(r)}>${esc(r.title)}</a></td><td>${saleLink(r) || esc(r.auction_house)}<div class="flat" style="font-size:12px">${esc(r.auction_house)}</div></td><td>${esc(countryOf(r))}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td>
           <td>${r.status === "sold" || r.status === "unsold" ? `<span class="chip ${r.status}">${r.status === "sold" ? "Sold" : "Not sold"}</span>` : `<span class="chip">${r.status === "live" ? "Live" : "Upcoming"}</span>`}</td>
           <td class="r num">${r.status === "upcoming" ? (r.estimate_low_usd ? short(r.estimate_low_usd) + " to " + short(r.estimate_high_usd) : "") : money(r.price_usd)}</td><td class="r">${r.status === "sold" ? chg(r.vs_ask_pct) : ""}</td></tr>`).join("")}</tbody></table></div>`;
-      if (!arr.length) body.innerHTML = '<div class="empty">Nothing here right now.</div>';
+      if (!arr.length) body.innerHTML = `<div class="empty">${q.trim() ? `No ${k === "results" ? "results" : k} lots for ${esc(q.trim())}.` : "Nothing here right now."}</div>`;
       else switchable(body, arr, lotCard, table);
     };
     app.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => show(b.dataset.tab)));
+    let tq;
+    document.getElementById("auc-q").addEventListener("input", e => { clearTimeout(tq); tq = setTimeout(() => { q = e.target.value; show(cur); }, 120); });
     show("live"); window.scrollTo(0, 0);
   }
   const daysAgo = n => { const d = new Date(D.as_of + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() - n); return d.toISOString().slice(0, 10); };
