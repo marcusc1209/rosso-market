@@ -18,7 +18,7 @@ from pathlib import Path
 
 import yaml
 
-from . import classic_com, clean, db, dedupe, export, overrides, health as H
+from . import classic_com, clean, db, dedupe, export, overrides, tracker, health as H
 from .dedupe import vehicle_key
 from .fetch import Fetcher
 from .normalize import normalize, Reject
@@ -153,6 +153,15 @@ def main(argv=None):
 
     cfg = load_config(a.config)
     cfg["_listing_history"] = overrides.load(a.config)      # dates and price histories entered by hand
+    tcfg = (cfg.get("settings") or {}).get("tracker") or {}
+    if tcfg.get("sheet_id") and tcfg.get("gids"):           # the owner's CarGurus tracker, when the sheet is shared publicly
+        try:
+            n = tracker.fetch_sheet(tcfg["sheet_id"], tcfg["gids"], Path(a.config).with_name("tracker"))
+            if n:
+                log.info("tracker: %d tabs read from the sheet", n)
+        except Exception as e:                               # the stored tabs are used instead
+            log.info("tracker sheet not read: %s", e)
+    cfg["_tracker"] = tracker.load(a.config)
     if os.environ.get("FM_HISTORY"):
         # one off import of older auction results: deeper paging on every results feed
         for scfg in (cfg.get("sources") or {}).values():

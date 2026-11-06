@@ -278,6 +278,32 @@ token its own script makes), Autolist (its results are CarGurus inventory) and
 Exotic Car Trader (about 20 live Ferraris), carsforsale.com (Cloudflare challenge). eBay Motors has an official free API that
 needs the owner's developer keys.
 
+## Market panel on model pages
+
+Each model page has one market panel, like classic.com's price tracker: a time range (1, 3 or 5 years, or all),
+the sale figures for it (average sale, number of sales, dollar volume, lowest, top and most recent sale, the
+median ask and the cars for sale now) and a tab per view:
+
+- Sales: every sale, high bid and car for sale on a timeline, with the running median sale and the median ask.
+- Mileage: price against mileage with the fitted curve.
+- Years: sales and asks by model year, with each year's median.
+- Variants: the model's sibling versions (export.VARIANT_GROUPS, or its family) as running medians of their sales.
+- Volume: auction results month by month, sold and not sold.
+- Locations: cars for sale by US state, and sales by country and by auction house.
+- Listings: cars for sale week by week, with new, gone and the median ask (pipeline/weekly.py).
+- Colours: the colour premiums against red.
+
+### The CarGurus price tracker
+
+The owner's tracker (a Google Sheet, one tab per model, a weekly asking price per VIN since Mar 2, 2026) is
+stored in config/tracker/<model id>.csv and joined by VIN with our own listing dates for the weekly counts.
+Weeks before our daily snapshots began are a floor and show lighter. Models the tracker does not cover start
+at our first snapshot. To refresh the tabs from a workbook export:
+
+    python -m pipeline.tracker path/to/export.txt
+
+When the sheet is shared as "anyone with the link can view", each run reads the tabs itself (settings.tracker).
+
 ## Colour premiums
 
 `pipeline/colors.py` measures what each exterior colour is worth against red. Paint names

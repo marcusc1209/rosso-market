@@ -8,7 +8,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from . import analytics as A
-from . import cars, clean, colors, mileage, sales, taxonomy
+from . import cars, clean, colors, mileage, sales, taxonomy, weekly
 
 
 def _takes(content_dir: Path) -> list[dict]:
@@ -164,7 +164,76 @@ def auction_stats(con, day: date) -> dict:
     return out
 
 
-def model_detail(con, model_id: str, day: date, idx=None, paint=None) -> dict:
+# Variants shown side by side on a model page. A model in no group is compared with its family.
+VARIANT_GROUPS = [
+    ["296-gtb", "296-gts", "296-speciale"], ["sf90-stradale", "sf90-spider", "sf90-xx-stradale"], ["f8-tributo", "f8-spider"],
+    ["488-gtb", "488-spider", "488-pista", "488-pista-spider"], ["458-italia", "458-spider", "458-speciale", "458-speciale-a"],
+    ["f430", "f430-spider", "430-scuderia", "16m"], ["360-modena", "360-spider", "360-challenge-stradale"],
+    ["12cilindri", "12cilindri-spider"], ["812-superfast", "812-gts", "812-competizione", "812-competizione-a"],
+    ["f12berlinetta", "f12tdf"], ["599-gtb", "599-gto", "sa-aperta"], ["550-maranello", "550-barchetta", "575m"],
+    ["roma", "roma-spider"], ["portofino", "portofino-m"], ["california", "california-t"], ["ff", "gtc4lusso", "gtc4lusso-t"],
+    ["f355", "f355-spider"], ["testarossa", "512-tr", "f512m"], ["laferrari", "laferrari-aperta"], ["monza-sp1", "monza-sp2"],
+]
+US_STATES = {"Alabama": "AL", "Alaska": "AK", "Arizona": "AZ", "Arkansas": "AR", "California": "CA", "Colorado": "CO", "Connecticut": "CT",
+    "Delaware": "DE", "Florida": "FL", "Georgia": "GA", "Hawaii": "HI", "Idaho": "ID", "Illinois": "IL", "Indiana": "IN", "Iowa": "IA",
+    "Kansas": "KS", "Kentucky": "KY", "Louisiana": "LA", "Maine": "ME", "Maryland": "MD", "Massachusetts": "MA", "Michigan": "MI",
+    "Minnesota": "MN", "Mississippi": "MS", "Missouri": "MO", "Montana": "MT", "Nebraska": "NE", "Nevada": "NV", "New Hampshire": "NH",
+    "New Jersey": "NJ", "New Mexico": "NM", "New York": "NY", "North Carolina": "NC", "North Dakota": "ND", "Ohio": "OH", "Oklahoma": "OK",
+    "Oregon": "OR", "Pennsylvania": "PA", "Rhode Island": "RI", "South Carolina": "SC", "South Dakota": "SD", "Tennessee": "TN",
+    "Texas": "TX", "Utah": "UT", "Vermont": "VT", "Virginia": "VA", "Washington": "WA", "West Virginia": "WV", "Wisconsin": "WI",
+    "Wyoming": "WY", "District of Columbia": "DC"}
+_ABBR = set(US_STATES.values())
+
+
+def city_states(con) -> dict:
+    """city -> state, learned from listings that give both ("Fort Lauderdale, FL"), for sites that give only the city."""
+    seen = {}
+    for (loc,) in con.execute("SELECT DISTINCT location FROM sightings WHERE location LIKE '%,%'"):
+        city, _, st_ = loc.rpartition(",")
+        st_ = st_.strip()
+        st_ = US_STATES.get(st_, st_)
+        if st_ in _ABBR:
+            seen.setdefault(city.strip().lower(), {}).setdefault(st_, 0)
+            seen[city.strip().lower()][st_] += 1
+    return {c: max(v, key=v.get) for c, v in seen.items()}
+
+
+def us_state(location, cities: dict):
+    loc = (location or "").strip()
+    if not loc:
+        return None
+    if "," in loc:
+        tail = loc.rpartition(",")[2].strip()
+        if tail in _ABBR:
+            return tail
+        if tail in US_STATES:
+            return US_STATES[tail]
+    for name, ab in US_STATES.items():
+        if loc.endswith(" " + name) or loc == name:
+            return ab
+    return cities.get(loc.lower()) or cities.get(loc.rpartition(",")[0].strip().lower())
+
+
+def variant_ids(model_id: str, models: list) -> list:
+    for g in VARIANT_GROUPS:
+        if model_id in g:
+            return [m for m in g if any(x["id"] == m for x in models)]
+    fam = next((x["family"] for x in models if x["id"] == model_id), None)
+    return [x["id"] for x in models if x["family"] == fam][:8]
+
+
+def sold_points(con, skip) -> dict:
+    """model id -> [[day, price], ...] of every dated auction sale, for the variants chart."""
+    out = {}
+    for r in con.execute("""SELECT uid, model_id, substr(ends_at,1,10) d, price_usd FROM lots
+                            WHERE status='sold' AND price_usd > 0 AND ends_at IS NOT NULL ORDER BY ends_at"""):
+        if r["uid"] not in skip:
+            out.setdefault(r["model_id"], []).append([r["d"], round(r["price_usd"])])
+    return out
+
+
+def model_detail(con, model_id: str, day: date, idx=None, paint=None, extra=None) -> dict:
+    extra = extra or {}
     hist = A.history(con, model_id, day, 365)
     car = (lambda uid: idx.lot(uid)) if idx else (lambda uid: None)
     rows = con.execute("""
@@ -173,8 +242,10 @@ def model_detail(con, model_id: str, day: date, idx=None, paint=None) -> dict:
              MIN(MIN(s.first_seen, COALESCE(CASE WHEN json_valid(s.raw) THEN json_extract(s.raw, '$.extra.listed_on') END, s.first_seen))) AS first_seen
       FROM daily_asks a JOIN sightings s ON s.vehicle_key = a.vehicle_key AND s.removed_on IS NULL
       WHERE a.day=? AND a.model_id=? GROUP BY a.vehicle_key ORDER BY a.price_usd""", (day.isoformat(), model_id)).fetchall()
+    cities = extra.get("cities") or {}
     listings = [dict(r, car=idx.listing(r["vehicle_key"]) if idx else None,
-                     country=sales.listing_country(r["country"], r["location"])) for r in rows]
+                     country=sales.listing_country(r["country"], r["location"]),
+                     state=us_state(r["location"], cities)) for r in rows]
     skip = clean.implausible_lots(con)
     lots = [r for r in con.execute("""SELECT uid, title, url, auction_house, status, price_usd, ends_at, mileage_mi, image_url AS image,
                                  source, country, location, raw FROM lots
@@ -217,6 +288,10 @@ def model_detail(con, model_id: str, day: date, idx=None, paint=None) -> dict:
             "auction_points": [[p[0], p[1], 1 if p[2] == "s" else 0] for p in pts if p[2] in "su"],
             "upcoming": [lot_out(r) for r in upcoming],
             "mileage": mileage.curve(con, model_id, day, idx, skip),
+            # cars for sale week by week, with the owner's CarGurus tracker where it covers the model
+            "weekly": weekly.series(con, model_id, day, (extra.get("tracker") or {}).get(model_id), extra.get("since")),
+            # sibling variants side by side: their figures and dated sales
+            "variants": [dict(v, sold=(extra.get("sold") or {}).get(v["id"], [])) for v in extra.get("variants", [])],
             # colour premiums against red, adjusted for year and mileage (pipeline/colors.py)
             "colors": {"model": (paint["models"].get(model_id) if paint else colors.model(con, model_id, day)),
                        "market": paint["market"] if paint else None}}
@@ -241,7 +316,14 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
     payload["colors"] = paint["market"]
     out = data_dir / "site.json"
     out.write_text(json.dumps(payload, separators=(",", ":"), default=str), encoding="utf-8")
+    since = (con.execute("SELECT MIN(day) FROM daily_asks").fetchone() or [None])[0]
+    shared = {"cities": city_states(con), "sold": sold_points(con, clean.implausible_lots(con)),
+              "tracker": cfg.get("_tracker") or {}, "since": since}
+    brief = {m["id"]: {"id": m["id"], "name": m["name"], "listings": m.get("listings") or 0, "median": m.get("median"),
+                       "sold_12m": (m.get("auction") or {}).get("sold_12m") or 0,
+                       "median_sold_12m": (m.get("auction") or {}).get("median_sold_12m")} for m in payload["models"]}
     for m in payload["models"]:
+        ext = dict(shared, variants=[brief[v] for v in variant_ids(m["id"], payload["models"]) if v in brief])
         (data_dir / "models" / f"{m['id']}.json").write_text(
-            json.dumps(model_detail(con, m["id"], day, idx, paint), separators=(",", ":"), default=str), encoding="utf-8")
+            json.dumps(model_detail(con, m["id"], day, idx, paint, ext), separators=(",", ":"), default=str), encoding="utf-8")
     return out

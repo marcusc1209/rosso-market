@@ -21,6 +21,14 @@ settings:
   timeout_seconds: 30
   removal_after_missed_runs: 2     # a listing counts as gone after its source misses it on 2 successful runs
   min_model_confidence: 0.5
+  # The owner's CarGurus price tracker (pipeline/tracker.py). Its tabs are stored in config/tracker. When the
+  # sheet is shared as "anyone with the link can view", each run reads the latest tabs from it.
+  tracker:
+    sheet_id: 1MwGU28_yBw4Q8-BijGAgyYDaxrBzGREa2YzSM8jGBDk
+    gids: {"599 GTB": 181788763, "F12 Berlinetta": 122642564, "812 Superfast": 535255918, "812 GTS": 636413200,
+           "12 Cilindri Coupe": 1845440067, "F430 Coupe": 465802422, "458 Spider": 500835901, "F8 Spider": 963100502,
+           "488 Pista": 1820306768, "488 Pista Spider": 544069556, "458 Speciale": 1226250253, "458 Speciale Aperta": 2044092037,
+           "599 GTO": 704125155, "F12 TDF": 1573076750, "812 Competizione": 592513894}
   fx_live: true                    # refresh exchange rates each run, falling back to the table below
   fx_url: https://api.frankfurter.app/latest?from=USD
   fx: {USD: 1.0, CAD: 0.73, EUR: 1.08, GBP: 1.27, CHF: 1.12, AUD: 0.66, JPY: 0.0066, AED: 0.2723}

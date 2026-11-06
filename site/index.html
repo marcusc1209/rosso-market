@@ -400,6 +400,30 @@ table.sheet.mv { min-width: 0; }
 .axis { fill: var(--muted); font: 11px var(--f-mono); }
 .grid-line { stroke: var(--line); stroke-width: 1; }
 .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+/* market panel on a model page */
+.mp-top { display: flex; justify-content: space-between; align-items: center; gap: 10px 20px; flex-wrap: wrap; margin-bottom: 14px; }
+.mp-tabs { margin: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.mp-tabs::-webkit-scrollbar { display: none; }
+.mp-tabs button { white-space: nowrap; }
+.mp-stats[hidden] { display: none; }
+.mp-stats { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.mp-body { min-height: 200px; }
+.mp-body .mkt-controls { margin-bottom: 10px; }
+.tick-s, .tick-a { width: 16px; height: 3px; border-radius: 2px; display: inline-block; background: var(--rosso); }
+.tick-a { background: var(--ask); }
+.vk { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; vertical-align: 0; }
+.sheet tr.me td { background: var(--chip); }
+.bar-s, .bar-u, .bar-f { width: 12px; height: 12px; display: inline-block; background: var(--rosso); }
+.bar-u { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--rosso); } .bar-f { background: var(--ink); opacity: .85; }
+.locs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 18px 28px; }
+.loc { background: var(--surface); border: 1px solid var(--line); padding: 16px 18px; }
+.loc-h { font: 700 18px/1.1 var(--f-display); text-transform: uppercase; margin: 0 0 12px; }
+.loc-row { display: grid; grid-template-columns: minmax(90px, 150px) 1fr 40px; gap: 10px; align-items: center; padding: 4px 0; font-size: 14px; }
+.loc-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.loc-row i { height: 12px; background: var(--rosso); opacity: .8; min-width: 2px; }
+.loc-row b { text-align: right; font: 500 14px var(--f-mono); }
+.loc-note { font-size: 13px; margin: 10px 0 0; }
+@media (max-width: 640px) { .mp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mp-stats b { font-size: 16px; } .mp-top { align-items: stretch; } .mp-top .seg { align-self: flex-start; } .mp-tabs { margin-inline: calc(-1 * var(--gutter, 16px)); padding-inline: var(--gutter, 16px); } }
 .tabs button { border: 1px solid var(--line); background: var(--surface); padding: 7px 12px; cursor: pointer; font-size: 13px; font-weight: 500; }
 .tabs button[aria-selected="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
 .prose { max-width: 66ch; font-size: 17px; }
@@ -930,7 +954,6 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
          <div id="m-auc"><p class="flat">Loading results</p></div></div></section>
          <section class="block" id="m-up-sec" hidden><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Coming up</div><h2>Live and upcoming lots</h2></div></div><div class="lots" id="m-up"></div></div></section>
          <section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">For sale now</div><h2>Tracked listings</h2></div></div><div id="m-list"><p class="flat">Loading listings</p></div></div></section>
-         <section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Paint against red</div><h2>Colour premiums</h2></div></div><div id="m-col"><p class="flat">Loading colours</p></div></div></section>
          <section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Auction results</div><h2>Recent hammer prices</h2></div></div><div id="m-res"></div></div></section>`;
     window.scrollTo(0, 0);
     let detail = modelCache[id];
@@ -939,13 +962,12 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       catch (e) { document.getElementById("m-auc").innerHTML = '<p class="flat">Could not load this model\'s market. Refresh to try again.</p>'; return; }
     }
     if (location.hash !== "#model-" + id) return;
-    marketChart(document.getElementById("m-auc"), detail.points || (detail.auction_points || []).map(p => [p[0], p[1], p[2] ? "s" : "u"]), { label: `${m.name} market`, ask: detail.history });
+    marketPanel(document.getElementById("m-auc"), detail, m);
     if ((detail.upcoming || []).length) { document.getElementById("m-up-sec").hidden = false; document.getElementById("m-up").innerHTML = detail.upcoming.map(lotCard).join(""); }
     const listTable = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Car</th><th class="r">Mileage</th><th>Colour</th><th>Seller</th><th class="r">Days listed</th><th class="r">Asking</th></tr></thead><tbody>
       ${items.map(l => `<tr><td class="thumb">${photo(l.image, "")}</td><td class="name"><a ${carLink(l)}>${esc(l.title)}</a>${l.certified ? ' <span class="chip sold">Approved</span>' : ""}</td>
       <td class="r num">${miles(l.mileage_mi)}</td><td>${esc(l.exterior_color || "")}</td><td>${esc(l.dealer_name || "")}${l.location ? `<div class="flat" style="font-size:12px">${esc(l.location)}</div>` : ""}</td><td class="r num">${daysListed(l) ?? ""}</td><td class="r num">${money(l.price_usd)}</td></tr>`).join("")}
       </tbody></table></div>`;
-    colorChart(document.getElementById("m-col"), detail.colors, m.name);
     const mList = document.getElementById("m-list");
     if (detail.listings.length) {
       switchable(mList, detail.listings, listingCard, listTable, { id: "listings", sorts: LISTING_SORTS,
@@ -974,12 +996,12 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     const ends = [...points.map(p => p[0]), ...ask.map(p => p[0])].sort();
     const first = ends[0], last = ends[ends.length - 1];
     const span = (Date.parse(last) - Date.parse(first)) / 864e5;
-    let range = span > 3 * 365 ? "3y" : "all";
+    let range = opts.range || (span > 3 * 365 ? "3y" : "all");
     const shown = { s: true, u: true, f: true, m: true };
     const have = new Set(points.map(p => p[2]));
-    el.innerHTML = `<div class="mkt-stats" id="ms"></div>
+    el.innerHTML = `${opts.bare ? "" : '<div class="mkt-stats" id="ms"></div>'}
       <div class="mkt-controls">
-        <div class="seg" role="group" aria-label="Time range">${[["1y", "1 year"], ["3y", "3 years"], ["5y", "5 years"], ["all", "All"]].map(([k, l]) => `<button type="button" data-r="${k}">${l}</button>`).join("")}</div>
+        ${opts.bare ? "" : `<div class="seg" role="group" aria-label="Time range">${[["1y", "1 year"], ["3y", "3 years"], ["5y", "5 years"], ["all", "All"]].map(([k, l]) => `<button type="button" data-r="${k}">${l}</button>`).join("")}</div>`}
         <div class="keys" role="group" aria-label="Show">${Object.entries(KINDS).filter(([k]) => have.has(k)).map(([k, [l, c]]) => `<button type="button" data-k="${k}" aria-pressed="true"><i class="k ${c}"></i>${l}</button>`).join("")}${ask.length ? '<button type="button" data-k="m" aria-pressed="true"><i class="line-ask"></i>Median ask</button>' : ""}<span class="legend" style="align-self:center"><span><i class="line-med"></i>Median sold</span></span></div>
       </div>
       <div class="chart-box mkt"><div class="cv"></div><div class="tip" hidden></div></div>`;
@@ -997,7 +1019,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       const sold = vis.filter(p => p[2] === "s").map(p => p[1]).sort((a, b) => a - b);
       const med = sold.length ? sold[Math.floor(sold.length / 2)] : null;
       const lastSold = [...vis].reverse().find(p => p[2] === "s");
-      el.querySelector("#ms").innerHTML = [["Median sold", med ? money(med) : "n/a"], ["Sales", sold.length], ["Lowest sale", sold.length ? money(sold[0]) : "n/a"],
+      if (!opts.bare) el.querySelector("#ms").innerHTML = [["Median sold", med ? money(med) : "n/a"], ["Sales", sold.length], ["Lowest sale", sold.length ? money(sold[0]) : "n/a"],
         ["Top sale", sold.length ? money(sold[sold.length - 1]) : "n/a"], ["Most recent", lastSold ? money(lastSold[1]) : "n/a"],
         ["Median ask", ask.length ? money(ask[ask.length - 1][1]) : "n/a"], ["For sale now", points.filter(p => p[2] === "f").length]].map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join("");
       if (!vis.length && !av.length) { cv.innerHTML = '<p class="flat" style="padding:20px">Nothing to show for this range.</p>'; pos = []; return; }
@@ -1081,6 +1103,235 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       shown[b.dataset.k] = !shown[b.dataset.k]; b.setAttribute("aria-pressed", shown[b.dataset.k]); draw();
     }));
     draw();
+  }
+
+  // ------------------------------------------------------------ market panel on a model page
+  // Like classic.com's market tracker: one time range, the sale figures for it, and a tab per view.
+  const RANGES = [["1y", "1 year"], ["3y", "3 years"], ["5y", "5 years"], ["all", "All"]];
+  const MP_TABS = [["sales", "Sales"], ["mileage", "Mileage"], ["years", "Years"], ["variants", "Variants"], ["volume", "Volume"],
+    ["locations", "Locations"], ["listings", "Listings"], ["colours", "Colours"]];
+  const cutFor = (range, last) => { if (range === "all") return ""; const d = new Date(last + "T12:00:00Z"); d.setUTCFullYear(d.getUTCFullYear() - +range[0]); return d.toISOString().slice(0, 10); };
+  const yearOf = t => { const m = /^(\d{4})\b/.exec(t || ""); return m ? +m[1] : null; };
+  const medianOf = a => { if (!a.length) return null; const q = [...a].sort((x, y) => x - y), h = q.length >> 1; return q.length % 2 ? q[h] : (q[h - 1] + q[h]) / 2; };
+  const SERIES = ["var(--rosso)", "var(--ink)", "var(--ask)", "#c79a00", "#2f8a57", "#7a4bb0", "#8a8f96", "#d06d1f"];
+
+  function marketPanel(el, detail, m) {
+    const pts = detail.points || [];
+    const days = pts.map(p => p[0]).concat((detail.history || []).map(p => p[0])).sort();
+    const last = days.length ? days[days.length - 1] : new Date().toISOString().slice(0, 10);
+    const span = days.length ? (Date.parse(last) - Date.parse(days[0])) / 864e5 : 0;
+    let st = { range: span > 3 * 365 ? "3y" : "all", tab: "sales" };
+    try { const t = localStorage.getItem("rm-mtab"); if (MP_TABS.some(x => x[0] === t)) st.tab = t; } catch (e) {}
+    el.innerHTML = `<div class="mp-top"><div class="tabs mp-tabs" role="tablist" aria-label="Market views">${MP_TABS.map(([k, l]) => `<button type="button" role="tab" data-t="${k}">${l}</button>`).join("")}</div>
+      <div class="seg" role="group" aria-label="Time range">${RANGES.map(([k, l]) => `<button type="button" data-r="${k}">${l}</button>`).join("")}</div></div>
+      <div class="mkt-stats mp-stats"></div><div class="mp-body"></div>`;
+    const body = el.querySelector(".mp-body");
+    const draw = () => {
+      cleanupCharts(body);
+      el.querySelectorAll("[data-r]").forEach(b => b.setAttribute("aria-pressed", b.dataset.r === st.range));
+      el.querySelectorAll("[data-t]").forEach(b => b.setAttribute("aria-selected", b.dataset.t === st.tab));
+      const cut = cutFor(st.range, last);
+      const sold = pts.filter(p => p[2] === "s" && p[0] >= cut);
+      const prices = sold.map(p => p[1]).sort((a, b) => a - b);
+      const sum = prices.reduce((a, b) => a + b, 0);
+      const recent = sold[sold.length - 1];
+      const ask = (detail.history || []).filter(p => p[1]);
+      el.querySelector(".mp-stats").innerHTML = [["Average sale", prices.length ? money(sum / prices.length) : "n/a"], ["Sales", prices.length],
+        ["Dollar volume", prices.length ? money(sum) : "n/a"], ["Lowest sale", prices.length ? money(prices[0]) : "n/a"],
+        ["Top sale", prices.length ? money(prices[prices.length - 1]) : "n/a"], [recent ? "Most recent, " + dateShort(recent[0]) : "Most recent", recent ? money(recent[1]) : "n/a"],
+        ["Median ask now", ask.length ? money(ask[ask.length - 1][1]) : "n/a"], ["For sale now", (detail.listings || []).length]]
+        .map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join("");
+      const t = st.tab;
+      // the sale figures belong to the views of sales. Mileage, listings and colours carry their own.
+      el.querySelector(".mp-stats").hidden = ["mileage", "listings", "colours"].includes(t);
+      el.querySelector(".mp-top .seg").style.visibility = ["mileage", "listings", "colours"].includes(t) ? "hidden" : "";
+      if (t === "sales") marketChart(body, pts.length ? pts : (detail.auction_points || []).map(p => [p[0], p[1], p[2] ? "s" : "u"]), { label: `${m.name} market`, ask: detail.history, range: st.range, bare: true });
+      else if (t === "mileage") mileageChart(body, detail.mileage, { name: m.name });
+      else if (t === "years") yearsChart(body, pts, cut, m);
+      else if (t === "variants") variantsView(body, detail.variants || [], cut, m);
+      else if (t === "volume") volumeChart(body, pts, cut, last);
+      else if (t === "locations") locationsView(body, detail, pts, cut, m);
+      else if (t === "listings") listingsView(body, detail.weekly || {}, m);
+      else colorChart(body, detail.colors, m.name);
+    };
+    el.querySelectorAll("[data-r]").forEach(b => b.addEventListener("click", () => { st.range = b.dataset.r; draw(); }));
+    el.querySelectorAll("[data-t]").forEach(b => b.addEventListener("click", () => {
+      st.tab = b.dataset.t; try { localStorage.setItem("rm-mtab", st.tab); } catch (e) {} draw();
+    }));
+    draw();
+  }
+  const dateShort = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+  function cleanupCharts(el) { el.innerHTML = ""; }
+  const rangeWords = cut => cut ? "since " + dateShort(cut) : "on record";
+
+  // A scatter with a card for the car under the pointer, shared by the years chart.
+  // items: [x, y, kind s|u|f, car id, title, photo, sub line]
+  function dotChart(el, items, cfg) {
+    el.innerHTML = `<div class="chart-box mkt"><div class="cv"></div><div class="tip" hidden></div></div>`;
+    const cv = el.querySelector(".cv"), tip = el.querySelector(".tip"), box = el.querySelector(".mkt");
+    const T = 14, B = 34;
+    let W, H, pos = [], svg, sel = -1;
+    const render = () => {
+      const s = chartSize(cv); W = s.W; H = s.H; const L = s.L, R = s.R;
+      const ys = items.map(p => p[1]).concat((cfg.lines || []).flatMap(l => l.pts.map(q => q[1]))).sort((a, b) => a - b);
+      const lo = ys[Math.floor(ys.length * 0.02)], hi = ys[Math.min(ys.length - 1, Math.ceil(ys.length * 0.98) - 1)];
+      const ticks = niceTicks(lo * 0.9, hi * 1.08, 4);
+      const min = Math.min(ticks[0], lo * 0.9), max = Math.max(ticks[ticks.length - 1], hi * 1.08);
+      const [x0, x1] = cfg.xDomain;
+      const x = v => L + (v - x0) / (x1 - x0 || 1) * (W - L - R);
+      const y = v => T + (1 - (Math.min(Math.max(v, min), max) - min) / (max - min)) * (H - T - B);
+      const grid = ticks.map(t => `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text class="axis" x="${L - 8}" y="${y(t) + 4}" text-anchor="end">${short(t)}</text>`).join("");
+      const every = Math.max(1, Math.ceil(cfg.xTicks.length / Math.max(2, Math.floor((W - L - R) / 46))));
+      const xg = cfg.xTicks.filter((_, i) => i % every === 0).map(v => `<text class="axis" x="${x(v)}" y="${H - 10}" text-anchor="middle">${cfg.xLabel(v)}</text>`).join("");
+      pos = items.map(p => [x(p[0]), y(p[1])]);
+      const order = items.map((_, i) => i).sort((i, j) => (items[i][2] === "s") - (items[j][2] === "s"));
+      const dots = order.map(i => { const p = items[i], [cx, cy] = pos[i];
+        const style = p[2] === "s" ? 'fill="var(--rosso)" fill-opacity=".75"' : p[2] === "u" ? 'fill="var(--surface)" stroke="var(--rosso)" stroke-width="1.5"' : 'fill="var(--ink)" fill-opacity=".8"';
+        return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${s.r}" ${style}/>`; }).join("");
+      const lines = (cfg.lines || []).map(l => l.marks
+        ? l.pts.map(([v, p]) => `<line x1="${(x(v) - l.half).toFixed(1)}" x2="${(x(v) + l.half).toFixed(1)}" y1="${y(p)}" y2="${y(p)}" stroke="${l.color}" stroke-width="3" stroke-linecap="round"><title>${esc(l.name)} ${cfg.xLabel(v)}: ${money(p)}</title></line>`).join("")
+        : `<path d="${l.pts.map((q, i) => (i ? "L" : "M") + x(q[0]).toFixed(1) + " " + y(q[1]).toFixed(1)).join("")}" fill="none" stroke="${l.color}" stroke-width="2.4"/>`).join("");
+      cv.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(cfg.label)}">${grid}${xg}${dots}${lines}<circle class="ring" r="9" fill="none" stroke="var(--ink)" stroke-width="2" style="display:none"/></svg>`;
+      svg = cv.querySelector("svg"); sel = -1; tip.hidden = true;
+    };
+    render(); onWidth(cv, render);
+    const nearest = e => { const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const q = pt.matrixTransform(svg.getScreenCTM().inverse());
+      let best = -1, bd = 1e9; pos.forEach(([px, py], i) => { const d = (px - q.x) ** 2 + (py - q.y) ** 2; if (d < bd) { bd = d; best = i; } }); return bd < 22 * 22 ? best : -1; };
+    const show = i => {
+      sel = i; const ring = svg.querySelector(".ring");
+      if (i < 0) { tip.hidden = true; ring.style.display = "none"; return; }
+      const p = items[i], [cx, cy] = pos[i];
+      ring.setAttribute("cx", cx); ring.setAttribute("cy", cy); ring.style.display = "";
+      tip.innerHTML = `${p[5] ? photo(p[5], p[4]) : ""}<div class="tb"><b class="t">${esc(p[4] || "")}</b><span class="pr">${money(p[1])}</span><span class="sub">${esc(p[6] || "")}</span>${p[3] ? '<span class="go">Open this car →</span>' : ""}</div>`;
+      tip.hidden = false;
+      const sr = svg.getBoundingClientRect(), br = box.getBoundingClientRect();
+      const px = sr.left - br.left + cx / W * sr.width, py = sr.top - br.top + cy / H * sr.height, w = tip.offsetWidth, h = tip.offsetHeight;
+      let left = px + 16; if (left + w > br.width - 4) left = px - w - 16;
+      tip.style.left = Math.max(4, left) + "px"; tip.style.top = Math.max(4, Math.min(py - h / 2, br.height - h - 4)) + "px";
+    };
+    cv.addEventListener("pointermove", e => { if (e.pointerType === "mouse") { const i = nearest(e); if (i !== sel) show(i); } });
+    cv.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") show(-1); });
+    cv.addEventListener("click", e => { const i = nearest(e); if (i < 0) return show(-1); if (i === sel && items[i][3]) location.hash = "car-" + items[i][3]; else show(i); });
+  }
+
+  // Years: every sale and every car for sale now by model year, with each year's median sale and median ask.
+  function yearsChart(el, pts, cut, m) {
+    const rows = pts.filter(p => (p[2] === "f" || (p[2] === "s" && p[0] >= cut)) && yearOf(p[4]));
+    if (!rows.length) { el.innerHTML = '<div class="empty">No dated sales or listings with a model year in this range.</div>'; return; }
+    const yrs = [...new Set(rows.map(p => yearOf(p[4])))].sort((a, b) => a - b);
+    const jit = (s, i) => (((i * 9301 + 49297) % 233280) / 233280 - 0.5) * 0.5;
+    const items = rows.map((p, i) => [yearOf(p[4]) + jit(p[1], i), p[1], p[2], p[3], p[4], p[5],
+      (p[2] === "s" ? "Sold " + dateShort(p[0]) : "For sale, listed " + dateShort(p[0])) + (p[6] ? ", " + p[6] : "")]);
+    const by = (k) => yrs.map(yr => [yr, medianOf(rows.filter(p => p[2] === k && yearOf(p[4]) === yr).map(p => p[1]))]).filter(q => q[1]);
+    const table = yrs.map(yr => { const s = rows.filter(p => p[2] === "s" && yearOf(p[4]) === yr).map(p => p[1]), f = rows.filter(p => p[2] === "f" && yearOf(p[4]) === yr).map(p => p[1]);
+      return `<tr><td class="name">${yr}</td><td class="r num">${f.length || ""}</td><td class="r num">${f.length ? money(medianOf(f)) : ""}</td><td class="r num">${s.length || ""}</td><td class="r num">${s.length ? money(medianOf(s)) : ""}</td></tr>`; }).join("");
+    el.innerHTML = `<div class="legend" style="margin-bottom:10px"><span><i class="k k-s"></i>Sold ${rangeWords(cut)}</span><span><i class="k k-f"></i>For sale now</span><span><i class="tick-s"></i>Median sale</span><span><i class="tick-a"></i>Median ask</span></div><div class="mp-chart"></div>
+      <div class="tbl-wrap" style="margin-top:16px"><table class="sheet"><thead><tr><th>Model year</th><th class="r">For sale</th><th class="r">Median ask</th><th class="r">Sold</th><th class="r">Median sale</th></tr></thead><tbody>${table}</tbody></table></div>`;
+    dotChart(el.querySelector(".mp-chart"), items, { label: `${m.name} prices by model year`, xDomain: [yrs[0] - 0.7, yrs[yrs.length - 1] + 0.7], xTicks: yrs, xLabel: v => String(v),
+      lines: [{ name: "Median sale", color: "var(--rosso)", pts: by("s"), marks: true, half: 16 }, { name: "Median ask", color: "var(--ask)", pts: by("f"), marks: true, half: 16 }] });
+  }
+
+  // Variants: the model's sibling versions side by side, each line the running median of its auction sales.
+  function variantsView(el, vs, cut, m) {
+    if (vs.length < 2) { el.innerHTML = '<div class="empty">No other versions of this model are tracked separately.</div>'; return; }
+    const runMed = a => a.map((p, i) => [p[0], medianOf(a.slice(Math.max(0, i - 8), i + 1).map(q => q[1]))]).slice(Math.min(4, a.length - 1));
+    const series = vs.map((v, i) => ({ v, color: SERIES[i % SERIES.length], pts: runMed(v.sold.filter(p => p[0] >= cut)) })).filter(s => s.pts.length >= 2);
+    const tbl = `<div class="tbl-wrap" style="margin-top:16px"><table class="sheet"><thead><tr><th>Version</th><th class="r">For sale</th><th class="r">Median ask</th><th class="r">Sold, 12 months</th><th class="r">Median sale, 12 months</th><th class="r">Ask vs sale</th></tr></thead><tbody>
+      ${vs.map((v, i) => `<tr class="click${v.id === m.id ? " me" : ""}" data-href="${modelLink(v.id)}"><td class="name"><i class="vk" style="background:${SERIES[i % SERIES.length]}"></i><a href="${modelLink(v.id)}">${esc(v.name)}</a></td><td class="r num">${v.listings || ""}</td><td class="r num">${v.median ? money(v.median) : "n/a"}</td><td class="r num">${v.sold_12m || ""}</td><td class="r num">${v.median_sold_12m ? money(v.median_sold_12m) : "n/a"}</td><td class="r">${v.median && v.median_sold_12m ? chg((v.median / v.median_sold_12m - 1) * 100) : ""}</td></tr>`).join("")}</tbody></table></div>`;
+    if (!series.length) { el.innerHTML = '<p class="flat" style="margin:0 0 6px;font-size:14px">Too few dated sales in this range to draw the versions over time.</p>' + tbl; wireRows(); return; }
+    el.innerHTML = `<div class="legend" style="margin-bottom:10px">${series.map(s => `<span><i class="vk" style="background:${s.color}"></i>${esc(s.v.name)}</span>`).join("")}<span class="flat">Each line: running median of the last nine sales</span></div>
+      <div class="chart-box"><div class="cv"></div></div>${tbl}`;
+    const cv = el.querySelector(".cv"), T = 14, B = 34;
+    const render = () => {
+      const { W, H, L, R } = chartSize(cv);
+      const all = series.flatMap(s => s.pts), ys = all.map(p => p[1]).sort((a, b) => a - b);
+      const ticks = niceTicks(ys[0] * 0.9, ys[ys.length - 1] * 1.08, 4), min = Math.min(ticks[0], ys[0] * 0.9), max = Math.max(ticks[ticks.length - 1], ys[ys.length - 1] * 1.08);
+      const ds = all.map(p => p[0]).sort(), t0 = Date.parse(ds[0]), t1 = Math.max(Date.parse(ds[ds.length - 1]), t0 + 864e5 * 30);
+      const x = d => L + (Date.parse(d) - t0) / (t1 - t0) * (W - L - R), y = v => T + (1 - (v - min) / (max - min)) * (H - T - B);
+      const grid = ticks.map(t => `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text class="axis" x="${L - 8}" y="${y(t) + 4}" text-anchor="end">${short(t)}</text>`).join("");
+      const yrs = []; for (let yr = new Date(t0).getUTCFullYear() + 1; Date.UTC(yr, 0, 1) <= t1; yr++) yrs.push(yr);
+      const step = Math.max(1, Math.ceil(yrs.length / Math.max(2, Math.floor((W - L - R) / 56))));
+      const xg = (yrs.length ? yrs.filter((_, i) => i % step === 0).map(yr => [`${yr}-01-01`, yr]) : [[ds[0], dateShort(ds[0])], [ds[ds.length - 1], dateShort(ds[ds.length - 1])]])
+        .map(([d, l]) => `<line class="grid-line" x1="${x(d)}" x2="${x(d)}" y1="${T}" y2="${H - B}"/><text class="axis" x="${x(d)}" y="${H - 10}" text-anchor="middle">${l}</text>`).join("");
+      const lines = series.map(s => `<path d="${s.pts.map((p, i) => (i ? "L" : "M") + x(p[0]).toFixed(1) + " " + y(p[1]).toFixed(1)).join("")}" fill="none" stroke="${s.color}" stroke-width="${s.v.id === m.id ? 3.2 : 2}" stroke-linejoin="round"><title>${esc(s.v.name)}: ${money(s.pts[s.pts.length - 1][1])}</title></path>`).join("");
+      cv.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Versions of the ${esc(m.name)} over time">${grid}${xg}${lines}</svg>`;
+    };
+    render(); onWidth(cv, render); wireRows();
+  }
+
+  // Volume: auction sales and cars not sold, month by month.
+  function volumeChart(el, pts, cut, last) {
+    const lots = pts.filter(p => (p[2] === "s" || p[2] === "u") && p[0] >= cut);
+    if (!lots.length) { el.innerHTML = '<div class="empty">No auction results in this range.</div>'; return; }
+    const first = cut || lots[0][0];
+    const months = []; for (let d = new Date(first.slice(0, 7) + "-01T00:00:00Z"); d.toISOString().slice(0, 7) <= last.slice(0, 7); d.setUTCMonth(d.getUTCMonth() + 1)) months.push(d.toISOString().slice(0, 7));
+    const per = months.map(mo => { const a = lots.filter(p => p[0].startsWith(mo)); const s = a.filter(p => p[2] === "s"); return [mo, s.length, a.length - s.length, s.reduce((t, p) => t + p[1], 0)]; });
+    const tot = per.reduce((t, r) => t + r[1], 0), unsold = per.reduce((t, r) => t + r[2], 0);
+    el.innerHTML = `<div class="legend" style="margin-bottom:10px"><span><i class="bar-s"></i>Sold (${tot})</span><span><i class="bar-u"></i>Not sold (${unsold})</span>${tot + unsold ? `<span class="flat">Sell through ${Math.round(tot / (tot + unsold) * 100)}%</span>` : ""}</div><div class="chart-box"><div class="cv"></div></div>`;
+    const cv = el.querySelector(".cv"), T = 14, B = 34;
+    const render = () => {
+      const { W, H, L, R } = chartSize(cv);
+      const top = Math.max(1, ...per.map(r => r[1] + r[2])), ticks = niceTicks(0, top, 4).filter(t => Number.isInteger(t)), max = Math.max(top, ticks[ticks.length - 1]);
+      const bw = (W - L - R) / per.length, y = v => T + (1 - v / max) * (H - T - B);
+      const grid = ticks.map(t => `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text class="axis" x="${L - 8}" y="${y(t) + 4}" text-anchor="end">${t}</text>`).join("");
+      const every = Math.max(1, Math.ceil(per.length / Math.max(2, Math.floor((W - L - R) / 52))));
+      const bars = per.map(([mo, s, u, sum], i) => { const x = L + i * bw + bw * 0.14, w = Math.max(2, bw * 0.72);
+        const lab = new Date(mo + "-15T12:00:00Z").toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+        return `<g><title>${lab}: ${s} sold${sum ? ", " + money(sum) : ""}${u ? `, ${u} not sold` : ""}</title>${s ? `<rect x="${x.toFixed(1)}" y="${y(s).toFixed(1)}" width="${w.toFixed(1)}" height="${(y(0) - y(s)).toFixed(1)}" fill="var(--rosso)" fill-opacity=".85"/>` : ""}${u ? `<rect x="${(x + .75).toFixed(1)}" y="${(y(s + u) + .75).toFixed(1)}" width="${(w - 1.5).toFixed(1)}" height="${Math.max(0, y(s) - y(s + u) - 1.5).toFixed(1)}" fill="var(--surface)" stroke="var(--rosso)" stroke-width="1.5"/>` : ""}<rect x="${(L + i * bw).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${H - T - B}" fill="transparent"/></g>`
+          + (i % every === 0 ? `<text class="axis" x="${(x + w / 2).toFixed(1)}" y="${H - 10}" text-anchor="middle">${new Date(mo + "-15T12:00:00Z").toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}${mo.endsWith("-01") || i === 0 ? " " + mo.slice(2, 4) : ""}</text>` : ""); }).join("");
+      cv.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Auction results by month">${grid}${bars}</svg>`;
+    };
+    render(); onWidth(cv, render);
+  }
+
+  // Locations: where the cars for sale are, and where auction sales took place.
+  function locationsView(el, detail, pts, cut, m) {
+    const count = list => { const c = {}; list.forEach(k => { if (k) c[k] = (c[k] || 0) + 1; }); return Object.entries(c).sort((a, b) => b[1] - a[1]); };
+    const bars = (title, rows, note) => { const top = rows.length ? rows[0][1] : 1;
+      return `<div class="loc"><h3 class="loc-h">${title}</h3>${rows.length ? rows.slice(0, 12).map(([k, n]) => `<div class="loc-row"><span>${esc(k)}</span><i style="width:${(n / top * 100).toFixed(1)}%"></i><b class="num">${n}</b></div>`).join("") : '<p class="flat" style="font-size:14px">None in this range.</p>'}${note ? `<p class="flat loc-note">${note}</p>` : ""}</div>`; };
+    const L = detail.listings || [];
+    const us = L.filter(l => l.country === "United States" || !l.country);
+    const states = count(us.map(l => STATE_NAMES[l.state] || null));
+    const abroad = count(L.filter(l => l.country && l.country !== "United States").map(l => l.country));
+    const unknown = us.filter(l => !l.state).length;
+    const sold = pts.filter(p => p[2] === "s" && p[0] >= cut);
+    el.innerHTML = `<div class="locs">${bars("For sale now, by state", states, unknown ? `${plural(unknown, "car")} with no state given.` : "")}
+      ${abroad.length ? bars("For sale now, outside the US", abroad) : ""}
+      ${bars(`Sold at auction ${rangeWords(cut)}, by country`, count(sold.map(p => p[8])), sold.some(p => !p[8]) ? `${plural(sold.filter(p => !p[8]).length, "sale")} with no country given.` : "")}
+      ${bars(`Sold at auction ${rangeWords(cut)}, by house`, count(sold.map(p => p[6])))}</div>`;
+  }
+  const STATE_NAMES = { AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa", KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland", MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi", MO: "Missouri", MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey", NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio", OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont", VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming", DC: "Washington DC" };
+
+  // Listings: how many cars were for sale each week, with arrivals, departures and the median ask.
+  function listingsView(el, wk, m) {
+    const w = wk.weeks || [];
+    if (!w.length) { el.innerHTML = '<div class="empty">No weekly listing counts yet.</div>'; return; }
+    const lastW = w[w.length - 1], prevW = w.length > 1 ? w[w.length - 2] : null;
+    const wl = d => dateShort(d).replace(/, \d{4}$/, "");
+    el.innerHTML = `<div class="legend" style="margin-bottom:10px"><span><i class="bar-f"></i>Cars for sale</span><span><i class="line-ask"></i>Median ask</span>${w.some(r => r[5]) ? '<span><i class="bar-f" style="opacity:.4"></i>Weeks rebuilt before our daily snapshots</span>' : ""}
+        <span class="flat">This week ${lastW[1]}${prevW ? `, a week earlier ${prevW[1]} (${lastW[1] - prevW[1] >= 0 ? "+" : "−"}${Math.abs(lastW[1] - prevW[1])})` : ""}</span></div>
+      <div class="chart-box"><div class="cv"></div></div>
+      <div class="tbl-wrap" style="margin-top:16px"><table class="sheet"><thead><tr><th>Week of</th><th class="r">For sale</th><th class="r">New</th><th class="r">Gone</th><th class="r">Median ask</th><th class="r">Change</th></tr></thead><tbody>
+      ${w.slice().reverse().slice(0, 12).map((r, i, a) => { const p = a[i + 1]; return `<tr><td class="num">${wl(r[0])}</td><td class="r num">${r[1]}</td><td class="r num">${r[2] ?? ""}</td><td class="r num">${r[3] ?? ""}</td><td class="r num">${r[4] ? money(r[4]) : "n/a"}</td><td class="r">${p && p[4] && r[4] ? chg((r[4] / p[4] - 1) * 100) : ""}</td></tr>`; }).join("")}</tbody></table></div>
+      <p class="flat loc-note">${wk.tracker ? `Weeks before ${dateShort(wk.since || lastW[0])} come from the CarGurus price tracker joined with every listing date we hold, so they are a floor: a car that sold without showing up on CarGurus is missing.` : `Counted from our daily snapshots, which began ${dateShort(wk.since || lastW[0])}. A new week is added every Monday.`}</p>`;
+    const cv = el.querySelector(".cv"), T = 14, B = 34;
+    const render = () => {
+      const { W, H, L, R } = chartSize(cv);
+      const RR = R + (W < 520 ? 34 : 50);
+      const top = Math.max(1, ...w.map(r => r[1])), ticks = niceTicks(0, top, 4).filter(t => Number.isInteger(t)), max = Math.max(top, ticks[ticks.length - 1]);
+      const bw = (W - L - RR) / w.length, y = v => T + (1 - v / max) * (H - T - B);
+      const asks = w.filter(r => r[4]).map(r => r[4]), alo = Math.min(...asks) * 0.95, ahi = Math.max(...asks) * 1.05;
+      const ya = v => T + (1 - (v - alo) / (ahi - alo || 1)) * (H - T - B);
+      const grid = ticks.map(t => `<line class="grid-line" x1="${L}" x2="${W - RR}" y1="${y(t)}" y2="${y(t)}"/><text class="axis" x="${L - 8}" y="${y(t) + 4}" text-anchor="end">${t}</text>`).join("");
+      const aTicks = niceTicks(alo, ahi, 3).filter(t => t >= alo && t <= ahi).map(t => `<text class="axis" x="${W - RR + 6}" y="${ya(t) + 4}">${short(t)}</text>`).join("");
+      const every = Math.max(1, Math.ceil(w.length / Math.max(2, Math.floor((W - L - RR) / 52))));
+      const bars = w.map((r, i) => { const x = L + i * bw + bw * 0.15, bwid = Math.max(2, bw * 0.7);
+        return `<g><title>Week of ${wl(r[0])}: ${r[1]} for sale${r[2] != null ? `, ${r[2]} new, ${r[3]} gone` : ""}${r[4] ? ", median ask " + money(r[4]) : ""}</title><rect x="${x.toFixed(1)}" y="${y(r[1]).toFixed(1)}" width="${bwid.toFixed(1)}" height="${(y(0) - y(r[1])).toFixed(1)}" fill="var(--ink)" fill-opacity="${r[5] ? .45 : .85}"/><rect x="${(L + i * bw).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${H - T - B}" fill="transparent"/></g>`
+          + (i % every === 0 ? `<text class="axis" x="${(x + bwid / 2).toFixed(1)}" y="${H - 10}" text-anchor="middle">${wl(r[0])}</text>` : ""); }).join("");
+      const line = asks.length > 1 ? `<path d="${w.map((r, i) => r[4] ? [L + i * bw + bw / 2, ya(r[4])] : null).filter(Boolean).map((q, i) => (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1)).join("")}" fill="none" stroke="var(--ask)" stroke-width="2.4" stroke-linejoin="round"/>` : "";
+      cv.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(m.name)} cars for sale by week">${grid}${bars}${line}${aTicks}</svg>`;
+    };
+    render(); onWidth(cv, render);
   }
 
   // ------------------------------------------------------------ photos viewer
