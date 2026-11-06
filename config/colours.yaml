@@ -1,0 +1,586 @@
+# Ferrari paint names by colour family, from https://colori.info (saved 2026-11-06).
+# pipeline/colors.py checks a paint name against this list before its own keyword rules, so a name
+# like "Verde Silverstone" is green and "Rosso Vinaccia" purple. Families are the site's, with its
+# Grigio split into grey and silver, and Bronzo, Marrone and Oro in brown.
+black:
+- Deep Nero
+- Nero
+- Nero B/B
+- Nero Bahrain
+- Nero DS
+- Nero DS Opaco
+- Nero Daytona
+- Nero Galaxy
+- Nero Hiro Alba
+- Nero Nuovo
+- Nero Nuovo 75
+- Nero Opaco
+- Nero Passione
+- Nero Pastello
+- Nero Purosangue
+- Nero Setoso
+- Nero Stellato
+- Nero Stellato Opaco
+- Nerotto Lucido
+- Night Sky Sheen Opaco
+- Nuovo Nero 75
+- Nuovo Nero Daytona
+- Nuovo Nero F1-75
+- Nuovo Nero F175
+- Piano Black 4 Strati
+blue:
+- Azzurro Arturo
+- Azzurro Aurora Savadin
+- Azzurro California
+- Azzurro Chiesi
+- Azzurro Cielo
+- Azzurro Dino
+- Azzurro Dino Mica
+- Azzurro Dino Opaco
+- Azzurro Horizon
+- Azzurro Hyperion
+- Azzurro Iridescente
+- Azzurro Iridescente Opaco
+- Azzurro La Plata
+- Azzurro La Plata Metallizzato
+- Azzurro La Plata Opaco
+- Azzurro Le Castellet
+- Azzurro Lechler
+- Azzurro Metallizzato
+- Azzurro Mica
+- Azzurro Monaco
+- Azzurro Monaco Opaco
+- Azzurro Vela
+- Azzurro Vincennes
+- Blu 166MM Metallizzato
+- Blu AK
+- Blu Abisso
+- Blu Abu Dhabi
+- Blu Acquamarina
+- Blu Ahrabian
+- Blu America
+- Blu Antille
+- Blu Aqua
+- Blu Askolin
+- Blu Atlantico
+- Blu Avio
+- Blu Bonaccia
+- Blu Buck
+- Blu Bugatti
+- Blu Burt
+- Blu California
+- Blu Capri
+- Blu Capri Opaco
+- Blu Caracalla
+- Blu Caracalla Opaco
+- Blu Carolina
+- Blu Chiaro
+- Blu Chiaro Metallizzato
+- Blu China
+- Blu Cinquanta
+- Blu Cobalto
+- Blu Cornes
+- Blu Corsa
+- Blu Dino
+- Blu Elder
+- Blu Elettrico
+- Blu Elettrico 2020
+- Blu Elettrico Opaco
+- Blu Ferrari
+- Blu Fiat
+- Blu Flugplatz
+- Blu Flugplatz Opaco
+- Blu Francia Tsuzuki
+- Blu Francia Tsuzuki Opaco
+- Blu French Racing
+- Blu Genziana
+- Blu Genziana Storico
+- Blu Genziana Triplo Strato
+- Blu Ghibli Cup
+- Blu Ginzana
+- Blu Helen
+- Blu Hembery
+- Blu Inverno
+- Blu Julie
+- Blu Katara
+- Blu Kenchan
+- Blu Krawczyk
+- Blu LXL Lucido
+- Blu Laguna
+- Blu Le Mans
+- Blu Le Mans Opaco
+- Blu Lent
+- Blu Lucido Carbon
+- Blu Majorelle
+- Blu Medio
+- Blu Mediterraneo
+- Blu Mexico
+- Blu Micalizzato
+- Blu Minerale
+- Blu Mirabeau
+- Blu Monte Carlo
+- Blu Montreal
+- Blu NART
+- Blu Nettuno
+- Blu Noble
+- Blu Notte
+- Blu Oman
+- Blu Oro
+- Blu Ortis
+- Blu Passione
+- Blu Pazzesco
+- Blu Pozzi
+- Blu Profondo
+- Blu Real
+- Blu Ribot
+- Blu Roma
+- Blu Scozia
+- Blu Scozia Opaco
+- Blu Scuro
+- Blu Sera
+- Blu Simond
+- Blu Soltani
+- Blu Stephanie
+- Blu Swaters
+- Blu Swaters Opaco
+- Blu Tiffany
+- Blu Tigullio
+- Blu Torrice
+- Blu Toscan
+- Blu Tour de France
+- Blu Tour de France 70 Anni
+- Blu Tour de France Opaco
+- Blu Ultra Scuro Opaco
+- Blu Ultrascuro
+- Blu Vietri
+- Blu Vietri Opaco
+- Brezze Blu Metallic
+- Celeste
+- Celeste Gainsborough
+- Celeste Trevi
+- Electric Blue Metallic
+- French Racing Blue
+- Indigo Blau
+- Matt Blu Acquamarina
+- Nuovo Azzurro La Plata
+- Nuovo Blu Pozzi
+- Ottanio
+- Petronian Wolf
+- Turchese Dry Lucido
+- Turchese Dry Opaco
+- Turchese Molvedo
+- Veloqx Indigo
+brown:
+- Berlinetta Lusso
+- Bronzo Cauley
+- Bronzo Masaru
+- Bronzo Montecarlo
+- Bronzo Opaco
+- Bronzo Raso
+- Bronzo Seta
+- Dark Amber
+- Gold Mercury
+- Light Beige
+- Marrone Colorado
+- Marrone Dino
+- Marrone Dino Metallizzato
+- Marrone Ferro
+- Marrone Kuwait
+- Marrone Luci di Bosco
+- Marrone Marietta
+- Marrone Met
+- Marrone Metallico
+- Marrone Mica
+- Marrone Scuro
+- Marrone Wilfred
+- Metallic Tan Brown
+- Nocciola
+- Nocciola Metallizzato
+- Oro
+- Oro Baviera
+- Oro Chiaro
+- Oro Chiaro Met
+- Oro Chiaro Metallizzato
+- Oro Chiaro Opaco
+- Oro Continuo
+- Oro Kelso
+- Oro Longchamps
+- Oro Mida
+- Oro Mida Pelle Met
+- Oro Nashrullah
+- Oro Nasrullah
+- Oro Opaco
+- Rame Mica
+- Rosso Bruno
+green:
+- Acqua Verde Metallizzato
+- BP Green
+- Bahram Green
+- Blenheim Green
+- Del Rio Green
+- Del Rio Verde Medio
+- Emerald Green
+- English Green
+- Exposed Malachite Green
+- Green Jewel
+- Kermit Green
+- Matte Deep Green
+- Nathalie Green
+- Pino Verde
+- Piper Green
+- Seabird Green
+- Signal Green
+- The Green Jewel
+- Trans Bottiglia
+- Transitional Malachite
+- Verde Abete
+- Verde Abete Savid
+- Verde Abetone
+- Verde Almona
+- Verde Always Lucky
+- Verde Arctic
+- Verde Artic Green
+- Verde Aurora
+- Verde Azzurro Taormina
+- Verde BP
+- Verde Bahram
+- Verde Bandiera
+- Verde Blenheim
+- Verde Bosco
+- Verde Bottiglia
+- Verde British
+- Verde British Racing
+- Verde Celeste
+- Verde Chiaro
+- Verde Chiaro Metallico
+- Verde Chiaro Metallizzato
+- Verde Costiera
+- Verde Del Rio Medio
+- Verde Dora
+- Verde Farfalla
+- Verde Fortunato
+- Verde Francesca
+- Verde GB23
+- Verde GB23 Opaco
+- Verde Germoglio
+- Verde Hy Kers Lucido
+- Verde Hy-Kers
+- Verde Inglese
+- Verde Jewel
+- Verde Kers
+- Verde Kers Lucido
+- Verde Lupo
+- Verde MG1
+- Verde Mallie
+- Verde Masoni
+- Verde Masoni Opaco
+- Verde Medio
+- Verde Medio Nijinsky
+- Verde Medio Niyinski
+- Verde Medio Niyinsky
+- Verde Medio Opaco
+- Verde Menthe
+- Verde Menthe Opaco
+- Verde Militare
+- Verde Minerale
+- Verde Minerale Opaco
+- Verde Mugello
+- Verde Nadezhda
+- Verde Nathalie
+- Verde Nurburgring
+- Verde Nürburgring
+- Verde Oliva
+- Verde Pallido
+- Verde Palo
+- Verde Pimlico
+- Verde Pino
+- Verde Pino Blenheim
+- Verde Pino Opaco
+- Verde Rainforest
+- Verde Riviera
+- Verde Salvia
+- Verde Saudi
+- Verde Scurissimo
+- Verde Scuro
+- Verde Scuro Met
+- Verde Scuro Metallico
+- Verde Scuro Metallizzato
+- Verde Seabird
+- Verde Silverstone
+- Verde Speciale
+- Verde Speziale
+- Verde Storico
+- Verde Tenue
+- Verde Tenue Metallic
+- Verde Tenue Metallizzato
+- Verde Tevere
+- Verde Teverne
+- Verde Toscana
+- Verde Tracy
+- Verde Valentin
+- Verde Volterra
+- Verde Wojo
+- Verde Zeltweg
+grey:
+- Canna Di Fucile
+- Grey Gun Metal
+- Grigio 812S Opaco
+- Grigio Abu Dhabi
+- Grigio Alloy
+- Grigio Alrieri Opaco
+- Grigio Asfalto
+- Grigio Brunito
+- Grigio Caldo
+- Grigio Caldo Opaco
+- Grigio Cangiante
+- Grigio Chiaro Hiroaki
+- Grigio Cinquanta
+- Grigio Coburn
+- Grigio Competizione
+- Grigio Conchiglia
+- Grigio Corsa
+- Grigio Dadi Opaco
+- Grigio Eski
+- Grigio Eski Opaco
+- Grigio Ferro
+- Grigio Ferro Metallizzato
+- Grigio Ferro Opaco
+- Grigio Fiabe
+- Grigio Fiat
+- Grigio Fumo
+- Grigio GTS
+- Grigio Galvano
+- Grigio Ghisa
+- Grigio Granito
+- Grigio Ingrid
+- Grigio Ingrid Opaco
+- Grigio Isabel
+- Grigio Le Sancy
+- Grigio Mahmoud
+- Grigio Medio
+- Grigio Opaco
+- Grigio Ortello
+- Grigio Pascuale
+- Grigio Scaglietti
+- Grigio Scuro
+- Grigio Silverstone
+- Grigio Silverstone Opaco
+- Grigio Squalo
+- Grigio Stresy
+- Grigio Titanio
+- Grigio Tramonto
+- Moonlight Grey
+- Nuovo Grigio Ingrid
+- Shark Grey
+orange:
+- Arancio 160160
+- Arancio 3 Strati
+- Arancio Borealis
+- Arancio Ferrari
+- Arancio Kako
+- Arancio Leone Triplo Strato
+- Arancio Nuovo
+- Arancio Pastello
+- Arancio Rik
+- Arancio Tristrato
+- Arancio VC
+- Arancio Vaguely
+- Arancio Vaguely Met
+- Atomic Orange
+- Atomic Orange Opaco
+- Flash Orange
+- Milky Orange
+- Milky Orange Opaco
+- Nuovo Arancio
+- Orange Flame
+- Rama Scuro Opaco
+- Rame Opaco
+purple:
+- Prugna
+- Prugna Met
+- Prugna Metallic
+- Prugna Opaco
+- Purple Metallic Asprey
+- Rosso Vinaccia
+- Trans Amestista
+- Trans Zaffiro
+- Vinaccia
+- Vinaccia Metallizzato
+- Viola 51
+- Viola Al Humaid
+- Viola Dino
+- Viola Hong Kong
+- Viola Hong Kong Opaco
+- Viola Metallizzato
+- Viola Roman Opaco
+- Violetto Dino
+red:
+- Ajazi Red
+- Amaranto Bull Lea
+- Amaranto Roma
+- Bordeaux Pontevecchio
+- Laser Red
+- Lipstick Red
+- Nemo Red
+- Nuovo Rosso F1
+- Rosso 70 Anni
+- Rosso Alfa
+- Rosso Alltruadh
+- Rosso Angelo
+- Rosso Arcovecchio
+- Rosso Barchetta
+- Rosso Berlinetta
+- Rosso California
+- Rosso Chiaro
+- Rosso Cina
+- Rosso Coburn
+- Rosso Competizione
+- Rosso Cordoba
+- Rosso Corsa
+- Rosso Corsa Metallizzato
+- Rosso Deborah
+- Rosso Dino Opaco
+- Rosso Dora
+- Rosso Double Barrel
+- Rosso F1-75 Opaco
+- Rosso Fiammante
+- Rosso Fiorano
+- Rosso Formula 1 2007
+- Rosso Fuoco
+- Rosso GP 1000
+- Rosso Imola
+- Rosso Kapoor
+- Rosso Le Mans 2023
+- Rosso Libano
+- Rosso Magma
+- Rosso Maranello
+- Rosso Maranello Opaco
+- Rosso Marco Polo
+- Rosso Martini
+- Rosso Martino
+- Rosso Metallizzato
+- Rosso Monza
+- Rosso Mugello
+- Rosso Nearco
+- Rosso Oreno
+- Rosso Oslo Opaco
+- Rosso Passionale
+- Rosso Portofino
+- Rosso Qatar
+- Rosso Quarantasette
+- Rosso Racing 2025 Opaco
+- Rosso Rubino
+- Rosso Scuderia
+- Rosso Sergio
+- Rosso Singapore
+- Rosso Storico
+- Rosso Supercar
+- Rosso TRS
+- Rosso Takuma
+- Rosso Taormina
+- Rosso Tornado
+- Rosso Tramonto
+- Rosso Trionfale
+- Rosso Vero
+- Rosso Vulcano
+- Rosso Winner
+- Transitional Rubino
+silver:
+- Alluminio Opaco
+- Aluminum Lucido
+- Argento Auteuil
+- Argento Francesca
+- Argento Francese
+- Argento Green
+- Argento Micalizzato
+- Argento Nurburgring
+- Argento Nurburgring Opaco
+- Argento Siracusa
+- Argento Veloce
+- Crystal Silver
+- Liquid Silver
+- Sanusilver
+- Taha Silver
+white:
+- 1955 Bianco Monza
+- Avorio
+- Avorio Le Tetrarch
+- Avorio Safari
+- Avorio Tetrarch
+- Avorio The Tetrarch
+- Bianco Artico
+- Bianco Avorio
+- Bianco Avus
+- Bianco Azzurrato
+- Bianco Azzurrato Opaco
+- Bianco Bianco
+- Bianco Birdcage
+- Bianco Cervino
+- Bianco Courmayeur
+- Bianco Emirates
+- Bianco Fuji
+- Bianco Fuji Opaco
+- Bianco Hisada
+- Bianco Ilyana
+- Bianco Italia
+- Bianco Italia Opaco
+- Bianco JJ
+- Bianco King
+- Bianco Lagos Opaco
+- Bianco Liana
+- Bianco Mica Opaco
+- Bianco Mille Miglia
+- Bianco Monza 1955
+- Bianco Onda Marina
+- Bianco Ondo Marina
+- Bianco Perla
+- Bianco Polo
+- Bianco Polo Park
+- Bianco Sanae
+- Bianco Sanae Opaco
+- Bianco Sempreverde
+- Bianco Tartan
+- Madreperla
+- Madreperla Semi-Gloss
+- Perla
+- SC40 White
+- The Tetrarch Cream
+yellow:
+- Ardilla Amarillo
+- Ardilla Amarillo Opaco
+- Ardilla Amerillo
+- Bold Yellow
+- Dakar Yellow
+- Giallo Ambra
+- Giallo Dino
+- Giallo Ferrari
+- Giallo Fly
+- Giallo Fly Caldo
+- Giallo Fly Opaco
+- Giallo Gigi
+- Giallo Infernale
+- Giallo Kuramochi
+- Giallo Lady Gaga
+- Giallo Libano
+- Giallo Luce
+- Giallo Man O'War
+- Giallo Midas
+- Giallo Modena
+- Giallo Modena Opaco
+- Giallo Monte Carlo
+- Giallo Montecarlo
+- Giallo Montecarlo Opaco
+- Giallo My Swallow
+- Giallo Nancy
+- Giallo PPG
+- Giallo Senape
+- Giallo Sirius
+- Giallo Solare
+- Giallo Stemma Ferrari
+- Giallo Tre Strati
+- Giallo Triplo Strato
+- Giallo Triplo Strato Opaco
+- Giallo Tristrato
+- Indy Yellow
+- Nuovo Giallo Fly
+- Yellow Olive Magno Opaco

@@ -68,3 +68,12 @@ def test_selling_times_by_colour():
     t = colors.selling_times(con, date(2026, 11, 1))["models"]["296-gtb"]
     assert t["red"] == {"n_listed": 1, "n_sold": 1, "days_listed": 61, "days_to_sell": 40}
     assert t["black"]["days_listed"] == 31 and t["black"]["n_sold"] == 0
+
+
+def test_colour_guide_decides_before_keywords():
+    from pipeline import colors
+    assert colors.family("Verde Silverstone") == "green"          # keywords alone would say silver
+    assert colors.family("Rosso Vinaccia Metallizzato") == "purple"
+    assert colors.family("Grigio Silverstone Metallic") == "grey"
+    assert colors.family("Argento Nurburgring") == "silver"
+    assert colors.family("Rosso Corsa") == "red" and colors.family("Titanium") == "grey"

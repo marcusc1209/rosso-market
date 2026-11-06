@@ -35,9 +35,13 @@ from __future__ import annotations
 import json
 import math
 import re
+import unicodedata
 from collections import Counter, defaultdict
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Optional
+
+import yaml
 
 SOLD_DAYS = 548
 MIN_FAMILY = 3
@@ -52,7 +56,7 @@ LABELS = {"red": "Red", "black": "Black", "white": "White", "grey": "Grey", "sil
 # Checked in this order: grey before silver ("Grigio Silverstone"), every other family before
 # red, so "Blu Corsa" is blue and "Rosso Corsa red" red.
 _FAMILIES = [
-    ("grey", r"grigio|gr[ae]y|\bgris\b|canna di fucile|gunmetal|titanio|\bferro\b"),
+    ("grey", r"grigio|gr[ae]y|\bgris\b|canna di fucile|gunmetal|titanio|titanium|\bferro\b"),
     ("silver", r"argento|silver|alluminio|aluminum|aluminium|\bsil\b|nurburg"),
     ("black", r"\bnero\b|black|\bblk\b"),
     ("white", r"bianco|white|\bwht\b|avorio|ivory"),
@@ -73,8 +77,40 @@ def special(name: Optional[str]) -> bool:
     return bool(name and _SPECIAL.search(name))
 
 
+def _norm(s: str) -> str:
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower()
+    return " ".join(re.sub(r"[^a-z0-9 ]+", " ", s).split())
+
+
+_GUIDE_FILE = Path(__file__).resolve().parent.parent / "config" / "colours.yaml"
+_FINISH = re.compile(r"\b(opaco|metallizzato|metallico|metallic|met|mica|matte?|lucido|pastello|triplo strato|tristrato|nuovo|paint|pearl)\b")
+
+
+def _load_guide() -> tuple[dict, list]:
+    """Paint names from colori.info: exact names, and longer names to find inside a site's wording."""
+    try:
+        data = yaml.safe_load(_GUIDE_FILE.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return {}, []
+    exact = {}
+    for fam, names in data.items():
+        for n in names or []:
+            for k in {_norm(n), " ".join(_FINISH.sub(" ", _norm(n)).split())}:
+                if k:
+                    exact.setdefault(k, fam)
+    within = sorted(((k, f) for k, f in exact.items() if " " in k), key=lambda kf: -len(kf[0]))
+    return exact, within
+
+
+_GUIDE, _WITHIN = _load_guide()
+
+
 def family(name: Optional[str]) -> Optional[str]:
-    """The colour family a paint name belongs to, or None when the name says nothing."""
+    """The colour family a paint name belongs to, or None when the name says nothing.
+
+    The colori.info guide (config/colours.yaml) decides first: the exact paint name, then the longest
+    guide name found inside it ("2021 Verde Silverstone metallic" is green). The keyword rules below
+    sort everything the guide does not name."""
     if not name:
         return None
     s = name.strip()
@@ -82,6 +118,14 @@ def family(name: Optional[str]) -> Optional[str]:
         return None
     if special(s) and s.lower() in ("extra sample", "extra campionario", "tailor made", "special order", "paint to sample", "pts"):
         return None                       # names the programme, not the colour
+    n = _norm(s)
+    bare = " ".join(_FINISH.sub(" ", n).split())
+    if n in _GUIDE or bare in _GUIDE:
+        return _GUIDE.get(n) or _GUIDE[bare]
+    padded = f" {n} "
+    for k, f in _WITHIN:
+        if f" {k} " in padded:
+            return f
     for f, rx in _RX:
         if rx.search(s):
             return f

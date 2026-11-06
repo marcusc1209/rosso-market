@@ -24,7 +24,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Optional
 
-from . import clean, sales, taxonomy
+from . import clean, colors, sales, taxonomy
 
 STRONG = ("vin:", "chassis:")
 AGGREGATORS = {"cars.com", "autotrader.com", "cargurus.com", "cargurus", "carfax", "edmunds", "dupont registry"}
@@ -230,6 +230,7 @@ def _page(key: str, g: dict, prices: dict, comps: dict, stats: dict, today: str)
         "sale": now.get("sale"), "sale_url": now.get("sale_url"), "country": now.get("country"),
         "location": now.get("location"), "certified": now.get("certified", False), "no_reserve": now.get("no_reserve"),
         "specs": [[k, v] for k, v in spec if v not in (None, "")],
+        "colour": colors.family(pick("exterior_color")), "mileage": mileage,
         "history": events,
         "comps": [c for c in comps.get(mid, []) if c["id"] != car_id(key)][:8],
         "market": {"median_ask": _round(s.get("median")), "listings": s.get("listings")},

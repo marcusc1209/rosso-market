@@ -427,6 +427,16 @@ table.sheet.mv { min-width: 0; }
 .yk-box { background: #7fa3cc; } .yk-avg { background: #4f8a4a; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .yr-range { fill: #4a4e54; } :root:not([data-theme="light"]) .yk-range { background: #4a4e54; } }
 :root[data-theme="dark"] .yr-range { fill: #4a4e54; } :root[data-theme="dark"] .yk-range { background: #4a4e54; }
+/* this car, marked in every view of the market panel on a car page */
+.me-k { background: var(--giallo); box-shadow: inset 0 0 0 2px var(--ink); }
+.me-dot { fill: var(--giallo); stroke: var(--ink); stroke-width: 2.5; }
+.me-band { fill: var(--giallo) !important; fill-opacity: .14; }
+.me-outline { fill: none; stroke: var(--giallo); stroke-width: 3; }
+.chart-box g.bar.me rect[fill="var(--ink)"] { fill: var(--giallo); fill-opacity: 1; stroke: var(--ink); stroke-width: 1; }
+.loc-row.me span { font-weight: 700; } .loc-row.me i { background: var(--giallo); opacity: 1; box-shadow: inset 0 0 0 1px var(--ink); }
+.paint-row.me { background: color-mix(in srgb, var(--giallo) 16%, transparent); margin-inline: -20px; padding-inline: 20px; }
+.me-tag { font-size: 11px; font-weight: 700; background: var(--giallo); color: #111; padding: 2px 6px; margin-left: 6px; vertical-align: 1px; }
+@media (max-width: 640px) { .paint-row.me { margin-inline: -12px; padding-inline: 12px; } }
 /* numbers on hover for bars, boxes and lines */
 .htip { position: absolute; z-index: 6; pointer-events: none; background: var(--ink); color: var(--surface); padding: 8px 10px; font-size: 13px; line-height: 1.35; display: grid; gap: 1px; white-space: nowrap; box-shadow: 0 8px 20px rgba(0,0,0,.25); }
 .htip[hidden] { display: none; }
@@ -1135,7 +1145,19 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   const medianOf = a => { if (!a.length) return null; const q = [...a].sort((x, y) => x - y), h = q.length >> 1; return q.length % 2 ? q[h] : (q[h - 1] + q[h]) / 2; };
   const SERIES = ["var(--rosso)", "var(--ink)", "var(--ask)", "#c79a00", "#2f8a57", "#7a4bb0", "#8a8f96", "#d06d1f"];
 
-  function marketPanel(el, detail, m) {
+  // what a car page needs to mark the car in each view
+  function carMark(c) {
+    const loc = c.location || "", tail = loc.includes(",") ? loc.split(",").pop().trim() : "";
+    const state = STATE_NAMES[tail] ? tail : Object.keys(STATE_NAMES).find(k => STATE_NAMES[k] === tail) || null;
+    const sold = c.status === "sold" || c.status === "unsold";
+    const listed = (c.history || []).find(e => e.kind === "listed");
+    return { id: c.id, price: c.status === "upcoming" ? null : c.price, status: c.status, year: c.year, colour: c.colour, model: c.model.id,
+      miles: c.mileage ?? (c.history.find(e => e.mileage != null) || {}).mileage, state, country: c.country, house: sold ? c.seller : null,
+      sold, date: c.date, listed: listed ? listed.date : null, title: c.title };
+  }
+
+  function marketPanel(el, detail, m, car = null) {
+    if (car && !car.state) car.state = ((detail.listings || []).find(l => l.car === car.id) || {}).state || null;
     const pts = detail.points || [];
     const days = pts.map(p => p[0]).concat((detail.history || []).map(p => p[0])).sort();
     const last = days.length ? days[days.length - 1] : new Date().toISOString().slice(0, 10);
@@ -1165,14 +1187,15 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       // the sale figures belong to the views of sales. Mileage, listings and colours carry their own.
       el.querySelector(".mp-stats").hidden = ["mileage", "listings", "colours"].includes(t);
       el.querySelector(".mp-top .seg").style.visibility = ["mileage", "listings", "colours"].includes(t) ? "hidden" : "";
-      if (t === "sales") marketChart(body, pts.length ? pts : (detail.auction_points || []).map(p => [p[0], p[1], p[2] ? "s" : "u"]), { label: `${m.name} market`, ask: detail.history, range: st.range, bare: true });
-      else if (t === "mileage") mileageChart(body, detail.mileage, { name: m.name });
-      else if (t === "years") yearsChart(body, pts, cut, m);
-      else if (t === "variants") variantsView(body, detail.variants || [], cut, m);
-      else if (t === "volume") volumeChart(body, pts, cut, last);
-      else if (t === "locations") locationsView(body, detail, pts, cut, m);
-      else if (t === "listings") listingsView(body, detail.weekly || {}, m);
-      else colorChart(body, detail.colors, m.name);
+      if (t === "sales") marketChart(body, pts.length ? pts : (detail.auction_points || []).map(p => [p[0], p[1], p[2] ? "s" : "u"]), { label: `${m.name} market`, ask: detail.history, range: st.range, bare: true, highlight: car && car.id });
+      else if (t === "mileage") mileageChart(body, detail.mileage, { name: m.name, highlight: car && car.id,
+        me: car && car.price && car.miles != null && (car.status === "for_sale" || car.status === "sold") ? { miles: car.miles, price: car.price } : null, verb: car && car.sold ? "sold for" : "is priced" });
+      else if (t === "years") yearsChart(body, pts, cut, m, car && car.status === "for_sale" ? "f" : "s", car);
+      else if (t === "variants") variantsView(body, detail.variants || [], cut, m, car);
+      else if (t === "volume") volumeChart(body, pts, cut, last, car);
+      else if (t === "locations") locationsView(body, detail, pts, cut, m, car);
+      else if (t === "listings") listingsView(body, detail.weekly || {}, m, car);
+      else colorChart(body, detail.colors, m.name, car);
     };
     el.querySelectorAll("[data-r]").forEach(b => b.addEventListener("click", () => { st.range = b.dataset.r; draw(); }));
     el.querySelectorAll("[data-t]").forEach(b => b.addEventListener("click", () => {
@@ -1259,7 +1282,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   }
 
   // Years: for each model year the full range of prices, the middle half, the median and the average.
-  function yearsChart(el, pts, cut, m, kind = "s") {
+  function yearsChart(el, pts, cut, m, kind = "s", car = null) {
     const pick = k => pts.filter(p => p[2] === k && (k === "f" || p[0] >= cut) && pYear(p));
     const rows = pick(kind);
     const both = { s: pick("s").length, f: pick("f").length };
@@ -1283,25 +1306,27 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
         const boxW = Math.max(6, Math.min(110, bw * 0.62)), rngW = Math.max(4, Math.min(16, bw * 0.22));
         const grid = ticks.map(t => `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text class="axis" x="${L - 8}" y="${y(t) + 4}" text-anchor="end">${short(t)}</text>`).join("");
         const cols = stats.map((st_, i) => {
-          const cx = L + (i + 0.5) * bw, tipx = tipText(String(st_.yr), [plural(st_.n, kind === "s" ? "sale" : "car for sale"),
+          const mine = car && car.year === st_.yr;
+          const cx = L + (i + 0.5) * bw, tipx = tipText(String(st_.yr) + (mine ? ", this car's year" : ""), [mine && car.price ? `This car ${money(car.price)}` : "", plural(st_.n, kind === "s" ? "sale" : "car for sale"),
             st_.n > 1 ? `Range ${short(st_.min)} to ${short(st_.max)}` : "", st_.n > 3 ? `Middle half ${short(st_.p25)} to ${short(st_.p75)}` : "", `Median ${money(st_.med)}`, st_.n > 1 ? `Average ${money(st_.avg)}` : ""]);
           const boxH = Math.max(4, y(st_.p25) - y(st_.p75));
-          return `<g class="yc" data-tip="${tipx}"><rect x="${(cx - bw / 2).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${H - T - B}" fill="transparent"/>
+          return `<g class="yc" data-tip="${tipx}"><rect x="${(cx - bw / 2).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${H - T - B}" class="${mine ? "me-band" : ""}" fill="transparent"/>
             <rect x="${(cx - rngW / 2).toFixed(1)}" y="${(y(st_.max) - rngW / 2).toFixed(1)}" width="${rngW.toFixed(1)}" height="${(y(st_.min) - y(st_.max) + rngW).toFixed(1)}" rx="${(rngW / 2).toFixed(1)}" class="yr-range"/>
             <rect x="${(cx - boxW / 2).toFixed(1)}" y="${(y(st_.p75) - (boxH === 4 ? 2 : 0)).toFixed(1)}" width="${boxW.toFixed(1)}" height="${boxH.toFixed(1)}" rx="6" class="yr-box"/>
             ${Math.abs(y(st_.avg) - y(st_.med)) > 2 ? `<line x1="${cx}" x2="${cx}" y1="${y(st_.avg)}" y2="${y(st_.med)}" stroke="var(--ink)" stroke-width="1.5"/>` : ""}
             <circle cx="${cx.toFixed(1)}" cy="${y(st_.avg).toFixed(1)}" r="5" class="yr-avg"/><circle cx="${cx.toFixed(1)}" cy="${y(st_.med).toFixed(1)}" r="5.5" fill="var(--ink)"/>
+            ${car && car.price && car.year === st_.yr ? `<circle cx="${(cx + boxW / 2 + 12).toFixed(1)}" cy="${y(Math.min(max, Math.max(min, car.price))).toFixed(1)}" r="7" class="me-dot"/>` : ""}
             ${i % every === 0 ? `<text class="axis" x="${cx.toFixed(1)}" y="${H - 10}" text-anchor="middle">${st_.yr}</text>` : ""}</g>`;
         }).join("");
         cv.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(m.name)} prices by model year">${grid}${cols}</svg>`;
       };
       render(); onWidth(cv, render); hoverTips(el.querySelector(".chart-box"));
     }
-    el.querySelectorAll("[data-yk]").forEach(b => b.addEventListener("click", () => yearsChart(el, pts, cut, m, b.dataset.yk)));
+    el.querySelectorAll("[data-yk]").forEach(b => b.addEventListener("click", () => yearsChart(el, pts, cut, m, b.dataset.yk, car)));
   }
 
   // Variants: the model's sibling versions side by side, each line the running median of its auction sales.
-  function variantsView(el, vs, cut, m) {
+  function variantsView(el, vs, cut, m, car = null) {
     if (vs.length < 2) { el.innerHTML = '<div class="empty">No other versions of this model are tracked separately.</div>'; return; }
     const runMed = a => a.map((p, i) => [p[0], medianOf(a.slice(Math.max(0, i - 8), i + 1).map(q => q[1]))]).slice(Math.min(4, a.length - 1));
     const series = vs.map((v, i) => ({ v, color: SERIES[i % SERIES.length], pts: runMed(v.sold.filter(p => p[0] >= cut)) })).filter(s => s.pts.length >= 2);
@@ -1325,13 +1350,14 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       const lines = series.map(s => { const d = s.pts.map((p, i) => (i ? "L" : "M") + x(p[0]).toFixed(1) + " " + y(p[1]).toFixed(1)).join("");
         return `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.v.id === m.id ? 3.2 : 2}" stroke-linejoin="round"/>`
           + s.pts.map(p => `<circle cx="${x(p[0]).toFixed(1)}" cy="${y(p[1]).toFixed(1)}" r="7" fill="transparent" data-tip="${tipText(esc(s.v.name), [dateShort(p[0]), money(p[1])])}"/>`).join(""); }).join("");
-      cv.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Versions of the ${esc(m.name)} over time">${grid}${xg}${lines}</svg>`;
+      const me = car && car.price && car.date && car.date >= ds[0] ? `<circle cx="${x(car.date).toFixed(1)}" cy="${y(Math.min(max, Math.max(min, car.price))).toFixed(1)}" r="7" class="me-dot" data-tip="${tipText("This car", [dateShort(car.date), money(car.price)])}"/>` : "";
+      cv.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Versions of the ${esc(m.name)} over time">${grid}${xg}${lines}${me}</svg>`;
     };
     render(); onWidth(cv, render); hoverTips(el.querySelector(".chart-box")); wireRows();
   }
 
   // Volume: auction sales and cars not sold, month by month.
-  function volumeChart(el, pts, cut, last) {
+  function volumeChart(el, pts, cut, last, car = null) {
     const lots = pts.filter(p => (p[2] === "s" || p[2] === "u") && p[0] >= cut);
     if (!lots.length) { el.innerHTML = '<div class="empty">No auction results in this range.</div>'; return; }
     const first = cut || lots[0][0];
@@ -1348,7 +1374,8 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       const every = Math.max(1, Math.ceil(per.length / Math.max(2, Math.floor((W - L - R) / 52))));
       const bars = per.map(([mo, s, u, sum], i) => { const x = L + i * bw + bw * 0.14, w = Math.max(2, bw * 0.72);
         const lab = new Date(mo + "-15T12:00:00Z").toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
-        return `<g class="bar" data-tip="${tipText(lab, [`${s} sold`, u ? `${u} not sold` : "", sum ? `${money(sum)} in sales` : ""])}">${s ? `<rect x="${x.toFixed(1)}" y="${y(s).toFixed(1)}" width="${w.toFixed(1)}" height="${(y(0) - y(s)).toFixed(1)}" fill="var(--rosso)" fill-opacity=".85"/>` : ""}${u ? `<rect x="${(x + .75).toFixed(1)}" y="${(y(s + u) + .75).toFixed(1)}" width="${(w - 1.5).toFixed(1)}" height="${Math.max(0, y(s) - y(s + u) - 1.5).toFixed(1)}" fill="var(--surface)" stroke="var(--rosso)" stroke-width="1.5"/>` : ""}<rect x="${(L + i * bw).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${H - T - B}" fill="transparent"/></g>`
+        const mine = car && car.sold && car.date && car.date.startsWith(mo);
+        return `<g class="bar${mine ? " me" : ""}" data-tip="${tipText(lab + (mine ? ", this car's sale" : ""), [`${s} sold`, u ? `${u} not sold` : "", sum ? `${money(sum)} in sales` : ""])}">${mine ? `<rect x="${(x - 3).toFixed(1)}" y="${(y(s + u) - 3).toFixed(1)}" width="${(w + 6).toFixed(1)}" height="${(y(0) - y(s + u) + 3).toFixed(1)}" class="me-outline"/>` : ""}${s ? `<rect x="${x.toFixed(1)}" y="${y(s).toFixed(1)}" width="${w.toFixed(1)}" height="${(y(0) - y(s)).toFixed(1)}" fill="var(--rosso)" fill-opacity=".85"/>` : ""}${u ? `<rect x="${(x + .75).toFixed(1)}" y="${(y(s + u) + .75).toFixed(1)}" width="${(w - 1.5).toFixed(1)}" height="${Math.max(0, y(s) - y(s + u) - 1.5).toFixed(1)}" fill="var(--surface)" stroke="var(--rosso)" stroke-width="1.5"/>` : ""}<rect x="${(L + i * bw).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${H - T - B}" fill="transparent"/></g>`
           + (i % every === 0 ? `<text class="axis" x="${(x + w / 2).toFixed(1)}" y="${H - 10}" text-anchor="middle">${new Date(mo + "-15T12:00:00Z").toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}${mo.endsWith("-01") || i === 0 ? " " + mo.slice(2, 4) : ""}</text>` : ""); }).join("");
       cv.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Auction results by month">${grid}${bars}</svg>`;
     };
@@ -1356,25 +1383,28 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   }
 
   // Locations: where the cars for sale are, and where auction sales took place.
-  function locationsView(el, detail, pts, cut, m) {
+  function locationsView(el, detail, pts, cut, m, car = null) {
     const count = list => { const c = {}; list.forEach(k => { if (k) c[k] = (c[k] || 0) + 1; }); return Object.entries(c).sort((a, b) => b[1] - a[1]); };
-    const bars = (title, rows, note) => { const top = rows.length ? rows[0][1] : 1;
-      return `<div class="loc"><h3 class="loc-h">${title}</h3>${rows.length ? rows.slice(0, 12).map(([k, n]) => `<div class="loc-row"><span>${esc(k)}</span><i style="width:${(n / top * 100).toFixed(1)}%"></i><b class="num">${n}</b></div>`).join("") : '<p class="flat" style="font-size:14px">None in this range.</p>'}</div>`; };
+    const bars = (title, rows, mineKey) => { const top = rows.length ? rows[0][1] : 1;
+      const show = rows.slice(0, 12); const extra = mineKey && !show.some(r => r[0] === mineKey) ? rows.find(r => r[0] === mineKey) : null;
+      if (extra) show.push(extra);
+      return `<div class="loc"><h3 class="loc-h">${title}</h3>${rows.length ? show.map(([k, n]) => `<div class="loc-row${k === mineKey ? " me" : ""}"><span>${esc(k)}${k === mineKey ? " (this car)" : ""}</span><i style="width:${(n / top * 100).toFixed(1)}%"></i><b class="num">${n}</b></div>`).join("") : '<p class="flat" style="font-size:14px">None in this range.</p>'}</div>`; };
     const L = detail.listings || [];
     const us = L.filter(l => l.country === "United States" || !l.country);
     const states = count(us.map(l => STATE_NAMES[l.state] || null));
     const abroad = count(L.filter(l => l.country && l.country !== "United States").map(l => l.country));
     const unknown = us.filter(l => !l.state).length;
     const sold = pts.filter(p => p[2] === "s" && p[0] >= cut);
-    el.innerHTML = `<div class="locs">${bars("For sale now, by state", states)}
-      ${abroad.length ? bars("For sale now, outside the US", abroad) : ""}
-      ${bars(`Sold at auction ${rangeWords(cut)}, by country`, count(sold.map(p => p[8])))}
-      ${bars(`Sold at auction ${rangeWords(cut)}, by house`, count(sold.map(p => p[6])))}</div>`;
+    const ck = car || {};
+    el.innerHTML = `<div class="locs">${bars("For sale now, by state", states, ck.status === "for_sale" ? STATE_NAMES[ck.state] : null)}
+      ${abroad.length ? bars("For sale now, outside the US", abroad, ck.status === "for_sale" ? ck.country : null) : ""}
+      ${bars(`Sold at auction ${rangeWords(cut)}, by country`, count(sold.map(p => p[8])), ck.status === "sold" ? ck.country : null)}
+      ${bars(`Sold at auction ${rangeWords(cut)}, by house`, count(sold.map(p => p[6])), ck.status === "sold" ? ck.house : null)}</div>`;
   }
   const STATE_NAMES = { AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa", KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland", MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi", MO: "Missouri", MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey", NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio", OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont", VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming", DC: "Washington DC" };
 
   // Listings: how many cars were for sale each week, with arrivals, departures and the median ask.
-  function listingsView(el, wk, m) {
+  function listingsView(el, wk, m, car = null) {
     const w = wk.weeks || [];
     if (!w.length) { el.innerHTML = '<div class="empty">No weekly listing counts yet.</div>'; return; }
     const lastW = w[w.length - 1], prevW = w.length > 1 ? w[w.length - 2] : null;
@@ -1397,7 +1427,10 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       const aTicks = niceTicks(alo, ahi, 3).filter(t => t >= alo && t <= ahi).map(t => `<text class="axis" x="${W - RR + 6}" y="${ya(t) + 4}">${short(t)}</text>`).join("");
       const every = Math.max(1, Math.ceil(w.length / Math.max(2, Math.floor((W - L - RR) / 52))));
       const bars = w.map((r, i) => { const x = L + i * bw + bw * 0.15, bwid = Math.max(2, bw * 0.7);
-        return `<g class="bar" data-tip="${tipText("Week of " + wl(r[0]), [`${r[1]} for sale`, r[2] != null ? `${r[2]} new, ${r[3]} gone` : "", r[4] ? "Median ask " + money(r[4]) : ""])}"><rect x="${x.toFixed(1)}" y="${y(r[1]).toFixed(1)}" width="${bwid.toFixed(1)}" height="${(y(0) - y(r[1])).toFixed(1)}" fill="var(--ink)" fill-opacity=".85"/><rect x="${(L + i * bw).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${H - T - B}" fill="transparent"/></g>`
+        const next = w[i + 1] ? w[i + 1][0] : "9999";
+        const mine = car && car.listed && car.listed >= r[0] && car.listed < next;
+        const onSale = car && car.listed && car.status === "for_sale" && r[0] >= car.listed.slice(0, 10) || mine;
+        return `<g class="bar${onSale ? " me" : ""}" data-tip="${tipText("Week of " + wl(r[0]) + (mine ? ", this car listed" : ""), [`${r[1]} for sale`, r[2] != null ? `${r[2]} new, ${r[3]} gone` : "", r[4] ? "Median ask " + money(r[4]) : ""])}"><rect x="${x.toFixed(1)}" y="${y(r[1]).toFixed(1)}" width="${bwid.toFixed(1)}" height="${(y(0) - y(r[1])).toFixed(1)}" fill="var(--ink)" fill-opacity=".85"/><rect x="${(L + i * bw).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${H - T - B}" fill="transparent"/></g>`
           + (i % every === 0 ? `<text class="axis" x="${(x + bwid / 2).toFixed(1)}" y="${H - 10}" text-anchor="middle">${wl(r[0])}</text>` : ""); }).join("");
       const line = asks.length > 1 ? `<path d="${w.map((r, i) => r[4] ? [L + i * bw + bw / 2, ya(r[4])] : null).filter(Boolean).map((q, i) => (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1)).join("")}" fill="none" stroke="var(--ask)" stroke-width="2.4" stroke-linejoin="round" pointer-events="none"/>` : "";
       cv.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(m.name)} cars for sale by week">${grid}${bars}${line}${aTicks}</svg>`;
@@ -1435,7 +1468,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     if (!sold && f.days_listed == null) return '<div class="paint-days"></div>';
     return `<div class="paint-days" title="${esc(sold ? `${f.label}: ${f.days_to_sell} days on average to sell, ${plural(f.n_sold, "car")} sold` : `${f.label}: listed ${f.days_listed} days on average, ${plural(f.n_listed, "car")} for sale now`)}"><b>${sold ? f.days_to_sell : f.days_listed} days</b><small>${sold ? "avg to sell" : "avg listed so far"}</small></div>`;
   };
-  function colorChart(el, c, name) {
+  function colorChart(el, c, name, car = null) {
     const mine = c && c.model, mkt = c && c.market;
     const pct = v => (v > 0 ? "+" : v < 0 ? "\u2212" : "") + Math.abs(v).toFixed(1) + "%";
     const verdict = f => f.baseline ? "Baseline" : f.verdict === "premium" ? "Premium" : f.verdict === "discount" ? "Discount" : "No clear difference";
@@ -1448,8 +1481,9 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       const rows = fams.map(f => {
         const tip = f.baseline ? `${f.label}: the baseline, ${plural(f.n, "car")}` : `${f.label}: ${pct(f.premium_pct)} against red (90% range ${pct(f.low_pct)} to ${pct(f.high_pct)}), ${plural(f.n, "car")}`;
         const v = f.baseline ? "" : f.verdict;
-        return `<div class="paint-row${f.baseline ? " base" : ""}" title="${esc(tip)}">
-          <div class="paint-name"><i class="swatch" style="background:${SWATCH[f.family] || "var(--chip)"}"></i><div>${esc(f.label)}<small>${esc(f.paints.map(p => p[0]).join(", "))}</small></div></div>
+        const mine = car && car.colour === f.family;
+        return `<div class="paint-row${f.baseline ? " base" : ""}${mine ? " me" : ""}" title="${esc(tip)}">
+          <div class="paint-name"><i class="swatch" style="background:${SWATCH[f.family] || "var(--chip)"}"></i><div>${esc(f.label)}${mine ? ' <span class="me-tag">This car</span>' : ""}<small>${esc(f.paints.map(p => p[0]).join(", "))}</small></div></div>
           <div class="paint-track" role="img" aria-label="${esc(tip)}"><i class="zero" style="left:${x(0)}"></i>${f.baseline ? "" : `<i class="rng ${v}" style="left:${x(f.low_pct)};width:calc(${x(f.high_pct)} - ${x(f.low_pct)})"></i>`}<i class="dot" style="left:${x(f.premium_pct)};background:${SWATCH[f.family] || "var(--muted)"}"></i></div>
           ${sellCell(f)}
           <div class="paint-val"><b class="${v}">${f.baseline ? "Baseline" : pct(f.premium_pct)}</b><small>${f.baseline ? "" : verdict(f) + ", "}${plural(f.n, "car")}</small></div></div>`;
@@ -1617,8 +1651,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
               ${e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">View source ↗</a>` : ""}</div>
               <div style="position:relative">${photo(e.photo, "")}${e.n_photos > 1 ? `<span class="n">${e.n_photos}</span>` : ""}</div>${seen}${changes}</div></li>`;
           }).join("")}</ol></div>
-        <div class="car-sec"><h2>Mileage curve</h2><p class="flat" style="margin:-6px 0 16px;font-size:14px">How mileage moves ${esc(c.model.name)} prices: every one for sale now and every auction sale in the last 18 months that gave its mileage. Older sales are left out.</p><div id="car-miles"><p class="flat">Loading the curve</p></div></div>
-        <div class="car-sec"><h2>${esc(c.model.name)} market</h2><p class="flat" style="margin:-6px 0 16px;font-size:14px">This car is ringed in yellow. Hover a dot to see which car it is.</p><div id="car-mkt"><p class="flat">Loading the market</p></div></div>
+        <div class="car-sec"><h2>${esc(c.model.name)} market</h2><div class="legend" style="margin:-4px 0 14px"><span><i class="k me-k"></i>This car</span></div><div id="car-mkt"><p class="flat">Loading the market</p></div></div>
         ${c.comps.length ? `<div class="car-sec"><h2>Recent ${esc(c.model.name)} sales</h2><div class="lots" data-rows="2" data-min="4">${c.comps.map(x => `<a class="lot" ${carLink({ car: x.id, url: "#" })}>${photo(x.image, x.title, '<span class="chip sold">Sold</span>')}
           <div class="body"><h3>${esc(x.title)}</h3>${salePlace(x, true)}<div class="house">${esc(x.house || "")}</div>${x.mileage ? `<div class="specs">${miles(x.mileage)}</div>` : ""}
           <div class="bid"><div><div class="eyebrow">Sold for</div><b>${money(x.price)}</b></div><span>${dateLong(x.date)}</span></div></div></a>`).join("")}</div></div>` : ""}
@@ -1639,18 +1672,8 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     if (!detail) { try { detail = modelCache[c.model.id] = await (await fetch(`data/models/${c.model.id}.json`)).json(); } catch (e) { detail = null; } }
     if (location.hash !== "#car-" + id) return;
     const mk = document.getElementById("car-mkt");
-    const mm = document.getElementById("car-miles");
-    if (detail) {
-      marketChart(mk, detail.points || [], { highlight: c.id, label: `${c.model.name} market`, ask: detail.history });
-      // where this car sits even when it is not among the curve's cars (an older sale, say)
-      const sold = c.status === "sold";
-      const myMiles = (c.history.find(e => e.mileage != null) || {}).mileage;
-      const me = c.price && myMiles != null && (c.status === "for_sale" || sold) ? { miles: myMiles, price: c.price } : null;
-      mileageChart(mm, detail.mileage, { highlight: c.id, me, name: c.model.name, verb: sold ? "sold for" : "is priced" });
-    } else {
-      mk.innerHTML = '<p class="flat">Could not load the market for this model.</p>';
-      mm.innerHTML = '<p class="flat">Could not load the curve for this model.</p>';
-    }
+    if (detail) marketPanel(mk, detail, byId[c.model.id] || { id: c.model.id, name: c.model.name }, carMark(c));
+    else mk.innerHTML = '<p class="flat">Could not load the market for this model.</p>';
   }
 
   function viewFamily(s) {
