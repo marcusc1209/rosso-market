@@ -32,6 +32,7 @@ place of a, so a family's premium is measured within each model, never across mo
 """
 from __future__ import annotations
 
+import json
 import math
 import re
 from collections import Counter, defaultdict
@@ -238,6 +239,88 @@ def market(con, day: date, pts: Optional[list[dict]] = None) -> Optional[dict]:
     by_model = Counter(p["model"] for p in pts)
     pts = [p for p in pts if by_model[p["model"]] >= 4]
     return _premiums(pts, lambda p: f"{p['model']}:{p['year'] // 3}") if pts else None
+
+
+SELL_DAYS = 365          # cars that left the market within this many days count toward the time to sell
+
+
+def selling_times(con, day: date, tracked: Optional[dict] = None) -> dict:
+    """How long cars of each colour take to sell, per model and across every model.
+
+    days_to_sell   average days from listing to leaving the market, for cars that left in the last year
+                   (our own listings, and departures in the owner's CarGurus tracker whose colour we know)
+    days_listed    average days on the market so far, for the cars of that colour for sale now
+    Returns {"models": {model: {family: {...}}}, "market": {family: {...}}}."""
+    today = day.isoformat()
+    since = (day - timedelta(days=SELL_DAYS)).isoformat()
+    cars = {}
+    for r in con.execute("""SELECT vehicle_key, model_id, exterior_color, first_seen, removed_on, raw FROM sightings"""):
+        c = cars.setdefault(r["vehicle_key"], {"model": r["model_id"], "names": [], "start": None, "end": None, "open": False})
+        if r["exterior_color"]:
+            c["names"].append(r["exterior_color"])
+        listed = None
+        if r["raw"]:
+            try:
+                listed = ((json.loads(r["raw"]) or {}).get("extra") or {}).get("listed_on")
+            except ValueError:
+                pass
+        st = min(x[:10] for x in (r["first_seen"], listed) if x)
+        c["start"] = min(c["start"] or st, st)
+        if r["removed_on"]:
+            c["end"] = max(c["end"] or r["removed_on"][:10], r["removed_on"][:10])
+        else:
+            c["open"] = True
+    live = {k for (k,) in con.execute("SELECT vehicle_key FROM daily_asks WHERE day=?", (today,))}
+    colour_of = {}
+    for (vin, col) in con.execute("""SELECT vin, json_extract(raw, '$.exterior_color') FROM lots
+                                     WHERE vin IS NOT NULL AND json_valid(raw) AND json_extract(raw, '$.exterior_color') IS NOT NULL"""):
+        if family(col):
+            colour_of[vin.upper()] = family(col)
+    acc = defaultdict(lambda: {"listed": [], "sold": []})
+    for k, c in cars.items():
+        names = [n for n in c["names"] if family(n)]
+        f = family(Counter(names).most_common(1)[0][0]) if names else None
+        if f and k.startswith("vin:"):
+            colour_of.setdefault(k[4:].upper(), f)
+        if not f or not c["start"] or not c["model"]:
+            continue
+        start = date.fromisoformat(c["start"])
+        if k in live:
+            acc[(c["model"], f)]["listed"].append((day - start).days)
+        elif not c["open"] and c["end"] and c["end"] >= since:
+            acc[(c["model"], f)]["sold"].append(max(0, (date.fromisoformat(c["end"]) - start).days))
+    # cars that left the owner's tracker. Those already listed on its first check are left out: their start is unknown.
+    for model_id, rows in (tracked or {}).items():
+        weeks = sorted({w for r in rows for w in r["prices"]})
+        if not weeks:
+            continue
+        for r in rows:
+            seen = sorted(r["prices"])
+            f = colour_of.get(r["vin"])
+            if not f or not seen or seen[0] == weeks[0] or seen[-1] == weeks[-1] or seen[-1] < since:
+                continue
+            if "vin:" + r["vin"] in cars:
+                continue                       # counted from our own listings
+            acc[(model_id, f)]["sold"].append((date.fromisoformat(seen[-1]) - date.fromisoformat(seen[0])).days + 7)
+
+    def summary(v):
+        out = {"n_listed": len(v["listed"]), "n_sold": len(v["sold"])}
+        if v["listed"]:
+            out["days_listed"] = round(sum(v["listed"]) / len(v["listed"]))
+        if v["sold"]:
+            out["days_to_sell"] = round(sum(v["sold"]) / len(v["sold"]))
+        return out
+    models, market = defaultdict(dict), defaultdict(lambda: {"listed": [], "sold": []})
+    for (m, f), v in acc.items():
+        models[m][f] = summary(v)
+        market[f]["listed"] += v["listed"]
+        market[f]["sold"] += v["sold"]
+    return {"models": dict(models), "market": {f: summary(v) for f, v in market.items()}}
+
+
+def add_selling_times(block: Optional[dict], times: dict) -> None:
+    for row in (block or {}).get("families", []):
+        row.update(times.get(row["family"], {}))
 
 
 def all_models(con, day: date) -> dict:

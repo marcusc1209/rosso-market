@@ -182,7 +182,7 @@ table.sheet { width: 100%; border-collapse: collapse; font-size: 14px; min-width
 
 /* colour premiums against red (pipeline/colors.py): drawn as one chart panel, like the market chart */
 .paint { background: var(--surface); border: 1px solid var(--line); padding: 8px 20px 14px; }
-.paint-row { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr) 190px; gap: 18px; align-items: center; padding: 11px 0; }
+.paint-row { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr) 120px 170px; gap: 18px; align-items: center; padding: 11px 0; }
 .paint-row + .paint-row { border-top: 1px solid var(--chip); }
 .paint-row.base .paint-name { color: var(--rosso); }
 .paint-name { display: flex; gap: 12px; align-items: center; font-weight: 600; min-width: 0; }
@@ -199,7 +199,10 @@ table.sheet { width: 100%; border-collapse: collapse; font-size: 14px; min-width
 .paint-val b { font: 500 18px/1.1 var(--f-mono); font-variant-numeric: tabular-nums; }
 .paint-val b.premium { color: var(--up); } .paint-val b.discount { color: var(--down); }
 .paint-val small { font-size: 12px; color: var(--muted); white-space: nowrap; }
-.paint-axis { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr) 190px; gap: 18px; border-top: 1px solid var(--line); padding-top: 6px; }
+.paint-days { text-align: right; display: grid; gap: 1px; justify-items: end; }
+.paint-days b { font: 500 16px/1.1 var(--f-mono); font-variant-numeric: tabular-nums; }
+.paint-days small { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.paint-axis { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr) 120px 170px; gap: 18px; border-top: 1px solid var(--line); padding-top: 6px; }
 .paint-axis div { position: relative; height: 18px; font: 12px/1 var(--f-mono); color: var(--muted); }
 .paint-axis span { position: absolute; transform: translateX(-50%); top: 3px; white-space: nowrap; }
 .paint-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6px 16px; flex-wrap: wrap; margin: 26px 0 10px; }
@@ -209,9 +212,11 @@ table.sheet { width: 100%; border-collapse: collapse; font-size: 14px; min-width
 .paint-notes p { margin: 4px 0 0; }
 @media (max-width: 640px) {
   .paint { padding: 4px 12px 10px; }
-  .paint-row, .paint-axis { grid-template-columns: minmax(0, 1fr) 110px; gap: 6px 12px; }
+  .paint-row, .paint-axis { grid-template-columns: minmax(0, 1fr) 78px 92px; gap: 6px 10px; }
+  .paint-val small, .paint-days small { white-space: normal; text-align: right; }
+  .paint-name small { display: none; }
   .paint-row .paint-track, .paint-axis div { grid-column: 1 / -1; grid-row: 2; }
-  .paint-axis > :first-child, .paint-axis > :last-child { display: none; }
+  .paint-axis > :not(:nth-child(2)) { display: none; }
 }
 
 /* top movers */
@@ -1424,6 +1429,12 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   // with its 90% range. c comes from the model file (pipeline/colors.py).
   const SWATCH = { red: "#c4161c", black: "#111316", white: "#f4f4f2", grey: "#6e7378", silver: "#c3c7cb", blue: "#1f4fa3",
     yellow: "#f2c200", green: "#1f5c3a", purple: "#5b2a86", brown: "#8a6a48", orange: "#e8701a" };
+  // how long cars of a colour take to sell: from cars that sold once there are three, else how long those for sale have been listed
+  const sellCell = f => {
+    const sold = f.n_sold >= 3 && f.days_to_sell != null;
+    if (!sold && f.days_listed == null) return '<div class="paint-days"></div>';
+    return `<div class="paint-days" title="${esc(sold ? `${f.label}: ${f.days_to_sell} days on average to sell, ${plural(f.n_sold, "car")} sold` : `${f.label}: listed ${f.days_listed} days on average, ${plural(f.n_listed, "car")} for sale now`)}"><b>${sold ? f.days_to_sell : f.days_listed} days</b><small>${sold ? "avg to sell" : "avg listed so far"}</small></div>`;
+  };
   function colorChart(el, c, name) {
     const mine = c && c.model, mkt = c && c.market;
     const pct = v => (v > 0 ? "+" : v < 0 ? "\u2212" : "") + Math.abs(v).toFixed(1) + "%";
@@ -1440,15 +1451,16 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
         return `<div class="paint-row${f.baseline ? " base" : ""}" title="${esc(tip)}">
           <div class="paint-name"><i class="swatch" style="background:${SWATCH[f.family] || "var(--chip)"}"></i><div>${esc(f.label)}<small>${esc(f.paints.map(p => p[0]).join(", "))}</small></div></div>
           <div class="paint-track" role="img" aria-label="${esc(tip)}"><i class="zero" style="left:${x(0)}"></i>${f.baseline ? "" : `<i class="rng ${v}" style="left:${x(f.low_pct)};width:calc(${x(f.high_pct)} - ${x(f.low_pct)})"></i>`}<i class="dot" style="left:${x(f.premium_pct)};background:${SWATCH[f.family] || "var(--muted)"}"></i></div>
+          ${sellCell(f)}
           <div class="paint-val"><b class="${v}">${f.baseline ? "Baseline" : pct(f.premium_pct)}</b><small>${f.baseline ? "" : verdict(f) + ", "}${plural(f.n, "car")}</small></div></div>`;
       }).join("");
       const so = r.special_order;
-      const spLine = so ? `<p style="font-size:14px;margin-top:12px"><b>Special order paint</b> (Ferrari's Extra Sample, outside the standard range) ${so.verdict === "no clear difference" ? "shows no clear difference on top of its colour" : `adds ${pct(so.premium_pct)} on top of its colour`}: 90% range ${pct(so.low_pct)} to ${pct(so.high_pct)}, ${plural(so.n, "car")}. Each of these cars is counted in its real colour above.</p>` : "";
+      const spLine = so ? `<p style="font-size:14px;margin-top:12px"><b>Special order paint</b> ${so.verdict === "no clear difference" ? "shows no clear difference on top of its colour" : `adds ${pct(so.premium_pct)} on top of its colour`}, ${plural(so.n, "car")}.</p>` : "";
       const unnamed = r.special_unnamed ? `<p class="flat" style="font-size:13px;margin-top:6px">${plural(r.special_unnamed, "special order car")} left out: no site names ${r.special_unnamed === 1 ? "its" : "their"} colour yet.</p>` : "";
       const few = (r.too_few || []).length ? `<p class="flat" style="font-size:13px;margin-top:10px">Too few cars to measure: ${esc(r.too_few.map(([l, n]) => `${l} (${n})`).join(", "))}.</p>` : "";
       return `<div class="paint-head"><h3>${esc(who)}</h3><span>${plural(r.n, "car")}: ${r.for_sale.toLocaleString("en-US")} for sale now${r.sold ? `, ${r.sold.toLocaleString("en-US")} sold at auction in the last 18 months` : ""}</span></div>
         <div class="paint">${rows}
-        <div class="paint-axis"><div></div><div>${ticks.map(t => `<span style="left:${x(t)}">${t ? pct(t).replace(".0", "") : "Red"}</span>`).join("")}</div><div></div></div></div>
+        <div class="paint-axis"><div></div><div>${ticks.map(t => `<span style="left:${x(t)}">${t ? pct(t).replace(".0", "") : "Red"}</span>`).join("")}</div><div></div><div></div></div></div>
         <div class="paint-notes">${spLine}</div>`;
     };
     if (!mine && !mkt) { el.innerHTML = '<div class="empty">Not enough cars with a known colour yet.</div>'; return; }

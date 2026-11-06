@@ -52,3 +52,19 @@ def test_weekly_counts_arrivals_departures_and_fills_skipped_weeks():
     assert [r[1] for r in w] == [2, 2, 2, 2]          # the skipped week of 3/16 carries 3/9
     assert w[1][2:4] == [1, 1]                         # B arrived, C left
     assert w[3][4] == 90 and w[0][5] == 1              # listed without a price is counted but not priced
+
+
+def test_selling_times_by_colour():
+    import sqlite3
+    from pipeline import colors, db
+    con = sqlite3.connect(":memory:"); con.row_factory = sqlite3.Row
+    con.executescript(db.SCHEMA)
+    rows = [("a", "vin:A", "296-gtb", "Rosso Corsa", "2026-09-01", None), ("b", "vin:B", "296-gtb", "Rosso Corsa", "2026-08-01", "2026-09-10"),
+            ("c", "vin:C", "296-gtb", "Nero", "2026-10-01", None)]
+    for uid, vk, m, col, fs, rem in rows:
+        con.execute("INSERT INTO sightings (uid, vehicle_key, model_id, exterior_color, first_seen, removed_on) VALUES (?,?,?,?,?,?)", (uid, vk, m, col, fs, rem))
+    for vk in ("vin:A", "vin:C"):
+        con.execute("INSERT INTO daily_asks (day, vehicle_key, model_id, price_usd) VALUES ('2026-11-01', ?, '296-gtb', 300000)", (vk,))
+    t = colors.selling_times(con, date(2026, 11, 1))["models"]["296-gtb"]
+    assert t["red"] == {"n_listed": 1, "n_sold": 1, "days_listed": 61, "days_to_sell": 40}
+    assert t["black"]["days_listed"] == 31 and t["black"]["n_sold"] == 0

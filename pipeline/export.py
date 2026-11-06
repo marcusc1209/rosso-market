@@ -313,6 +313,10 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
         if i.get("uid"):
             i["car"] = idx.lot(i["uid"])
     paint = colors.all_models(con, day)
+    times = colors.selling_times(con, day, cfg.get("_tracker"))
+    colors.add_selling_times(paint["market"], times["market"])
+    for mid, block in paint["models"].items():
+        colors.add_selling_times(block, times["models"].get(mid, {}))
     payload["colors"] = paint["market"]
     out = data_dir / "site.json"
     out.write_text(json.dumps(payload, separators=(",", ":"), default=str), encoding="utf-8")
