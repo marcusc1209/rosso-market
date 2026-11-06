@@ -28,8 +28,10 @@ MIN_SPREAD = 3000
 MAX_MILES = 250_000
 
 
-def points(con, model_id: str, day: date, idx=None, skip=frozenset()) -> list[list]:
-    """[miles, price, kind l (for sale) or s (sold), car id, title, photo, where, date]"""
+def points(con, model_id: str, day: date, idx=None, skip=frozenset(), gear=None) -> list[list]:
+    """[miles, price, kind l (for sale) or s (sold), car id, title, photo, where, date, gearbox]
+
+    gear: for models sold with both gearboxes, (listing gearbox by vehicle key, lot gearbox by vehicle key and uid)."""
     today, since = day.isoformat(), (day - timedelta(days=SOLD_DAYS)).isoformat()
     out, seen = [], set()
     for r in con.execute("""
@@ -43,14 +45,14 @@ def points(con, model_id: str, day: date, idx=None, skip=frozenset()) -> list[li
                 continue          # one car listed twice without a shared VIN (a marketplace and the dealer, say)
             seen.add(same)
             out.append([round(r["mi"]), round(r["price_usd"]), "l", idx.listing(r["vehicle_key"]) if idx else None,
-                        r["title"], r["img"], r["who"], r["d"]])
+                        r["title"], r["img"], r["who"], r["d"], (gear[0](r["vehicle_key"]) or "f1") if gear else None])
     for r in con.execute("""
-        SELECT uid, mileage_mi mi, price_usd, title, image_url img, auction_house who, substr(ends_at,1,10) d FROM lots
+        SELECT uid, vehicle_key, mileage_mi mi, price_usd, title, image_url img, auction_house who, substr(ends_at,1,10) d FROM lots
         WHERE model_id=? AND status='sold' AND price_usd > 0 AND mileage_mi IS NOT NULL
           AND ends_at IS NOT NULL AND substr(ends_at,1,10) BETWEEN ? AND ?""", (model_id, since, today)):
         if r["uid"] not in skip and 0 <= r["mi"] < MAX_MILES:
             out.append([round(r["mi"]), round(r["price_usd"]), "s", idx.lot(r["uid"]) if idx else None,
-                        r["title"], r["img"], r["who"], r["d"]])
+                        r["title"], r["img"], r["who"], r["d"], (gear[1](r["vehicle_key"], r["uid"]) or "f1") if gear else None])
     return out
 
 
@@ -114,7 +116,16 @@ def fit(pts: list[list]) -> Optional[dict]:
     }
 
 
-def curve(con, model_id: str, day: date, idx=None, skip=frozenset()) -> dict:
-    pts = points(con, model_id, day, idx, skip)
-    return {"since": (day - timedelta(days=SOLD_DAYS)).isoformat(), "points": pts, "fit": fit(pts),
-            "for_sale": sum(p[2] == "l" for p in pts), "sold": sum(p[2] == "s" for p in pts)}
+def curve(con, model_id: str, day: date, idx=None, skip=frozenset(), gear=None) -> dict:
+    pts = points(con, model_id, day, idx, skip, gear)
+    since = (day - timedelta(days=SOLD_DAYS)).isoformat()
+    out = {"since": since, "points": pts, "fit": fit(pts),
+           "for_sale": sum(p[2] == "l" for p in pts), "sold": sum(p[2] == "s" for p in pts)}
+    if gear:
+        # a curve of its own for each gearbox: manual cars sell on a different curve from F1 cars
+        out["by_gear"] = {}
+        for g in ("manual", "f1"):
+            sub = [p for p in pts if p[8] == g]
+            out["by_gear"][g] = {"since": since, "points": sub, "fit": fit(sub),
+                                 "for_sale": sum(p[2] == "l" for p in sub), "sold": sum(p[2] == "s" for p in sub)}
+    return out

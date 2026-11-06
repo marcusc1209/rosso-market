@@ -347,7 +347,9 @@ def model_detail(con, model_id: str, day: date, idx=None, paint=None, extra=None
             "points": pts,
             "auction_points": [[p[0], p[1], 1 if p[2] == "s" else 0] for p in pts if p[2] in "su"],
             "upcoming": [lot_out(r) for r in upcoming],
-            "mileage": mileage.curve(con, model_id, day, idx, skip),
+            "mileage": mileage.curve(con, model_id, day, idx, skip,
+                                     (lambda vk: listing_gearbox(gb, vk), lambda vk, uid: gb.get(gb_key("lots", vk, uid)))
+                                     if model_id in taxonomy.DUAL_GEARBOX else None),
             # cars for sale week by week, with the owner's CarGurus tracker where it covers the model
             "weekly": weekly.series(con, model_id, day, (extra.get("tracker") or {}).get(model_id), extra.get("since")),
             # sibling variants side by side: their figures and dated sales
