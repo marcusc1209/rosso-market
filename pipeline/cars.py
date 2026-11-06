@@ -212,12 +212,17 @@ def _page(key: str, g: dict, prices: dict, comps: dict, stats: dict, today: str)
     raws.sort(key=lambda t: t[0], reverse=True)
     pick = lambda k: next((rw.get(k) for _, rw in raws if rw.get(k)), None)     # newest record that has it
     mileage = next((e["mileage"] for e in events if e["mileage"]), None)
+    # factory manual or F1, for the models sold with both (taxonomy.gearbox)
+    gearbox = taxonomy.gearbox_from(mid, row["year"], [(rw.get("title") or "", str(rw.get("transmission") or ""),
+                                    " ".join(str((rw.get("extra") or {}).get(t) or "") for t in ("excerpt", "subtitle", "detail")))
+                                    for _, rw in raws])
     spec = [
         ("Year", row["year"]), ("Model", model.name if model else None), ("VIN", vin),
         ("Chassis", key.split(":")[-1] if key.startswith("chassis:") else None),
         ("Mileage", f"{round(mileage):,} mi" if mileage else None),
         ("Exterior", pick("exterior_color")), ("Interior", pick("interior_color")),
-        ("Transmission", pick("transmission")), ("Location", now.get("location")),
+        ("Gearbox", {"manual": "Manual, factory six speed", "f1": "F1"}.get(gearbox)) if gearbox else ("Transmission", pick("transmission")),
+        ("Location", now.get("location")),
         ("Lot", now.get("lot_number")),
     ]
     s = stats.get(mid) or {}
@@ -230,7 +235,7 @@ def _page(key: str, g: dict, prices: dict, comps: dict, stats: dict, today: str)
         "sale": now.get("sale"), "sale_url": now.get("sale_url"), "country": now.get("country"),
         "location": now.get("location"), "certified": now.get("certified", False), "no_reserve": now.get("no_reserve"),
         "specs": [[k, v] for k, v in spec if v not in (None, "")],
-        "colour": colors.family(pick("exterior_color")), "mileage": mileage,
+        "colour": colors.family(pick("exterior_color")), "mileage": mileage, "gearbox": gearbox,
         "history": events,
         "comps": [c for c in comps.get(mid, []) if c["id"] != car_id(key)][:8],
         "market": {"median_ask": _round(s.get("median")), "listings": s.get("listings")},

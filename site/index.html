@@ -415,6 +415,8 @@ table.sheet.mv { min-width: 0; }
 .mp-tabs::-webkit-scrollbar { display: none; }
 .mp-tabs button { white-space: nowrap; }
 .mp-stats[hidden] { display: none; }
+.mp-segs { display: flex; gap: 10px; flex-wrap: wrap; }
+.chip.gear { background: var(--ink); color: var(--surface); border-color: var(--ink); }
 .mp-stats { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 .mp-body { min-height: 200px; }
 .mp-body .mkt-controls { margin-bottom: 10px; }
@@ -823,7 +825,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   });
 
   function listingCard(l) {
-    const chips = l.certified ? '<span class="chip sold">Ferrari Approved</span>' : "";
+    const chips = (l.certified ? '<span class="chip sold">Ferrari Approved</span>' : "") + (l.gearbox === "manual" ? '<span class="chip gear">Manual</span>' : "");
     return `<a class="lot" ${carLink(l)}>
       ${photo(l.image, l.title, chips)}
       <div class="body"><h3>${esc(l.title)}</h3>
@@ -841,6 +843,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     if (l.status === "sold") chips.push('<span class="chip sold">Sold</span>');
     if (l.status === "unsold") chips.push('<span class="chip unsold">Not sold</span>');
     if (l.status === "upcoming") chips.push('<span class="chip">Upcoming</span>');
+    if (l.gearbox === "manual") chips.push('<span class="chip gear">Manual</span>');
     let label, value;
     if (l.status === "live") { label = "Current bid"; value = money(l.price_usd); }
     else if (l.status === "upcoming") { label = "Estimate"; value = l.estimate_low_usd ? `${short(l.estimate_low_usd)} to ${short(l.estimate_high_usd)}` : "On request"; }
@@ -1155,7 +1158,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     const state = STATE_NAMES[tail] ? tail : Object.keys(STATE_NAMES).find(k => STATE_NAMES[k] === tail) || null;
     const sold = c.status === "sold" || c.status === "unsold";
     const listed = (c.history || []).find(e => e.kind === "listed");
-    return { id: c.id, price: c.status === "upcoming" ? null : c.price, status: c.status, year: c.year, colour: c.colour, model: c.model.id,
+    return { id: c.id, price: c.status === "upcoming" ? null : c.price, status: c.status, year: c.year, colour: c.colour, model: c.model.id, gearbox: c.gearbox,
       miles: c.mileage ?? (c.history.find(e => e.mileage != null) || {}).mileage, state, country: c.country, house: sold ? c.seller : null,
       sold, date: c.date, listed: listed ? listed.date : null, title: c.title };
   }
@@ -1166,15 +1169,25 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     const days = pts.map(p => p[0]).concat((detail.history || []).map(p => p[0])).sort();
     const last = days.length ? days[days.length - 1] : new Date().toISOString().slice(0, 10);
     const span = days.length ? (Date.parse(last) - Date.parse(days[0])) / 864e5 : 0;
-    let st = { range: span > 3 * 365 ? "3y" : "all", tab: "sales" };
+    let st = { range: span > 3 * 365 ? "3y" : "all", tab: "sales", gear: car && detail.gearbox_split && car.gearbox ? car.gearbox : "all" };
     try { const t = localStorage.getItem("rm-mtab"); if (MP_TABS.some(x => x[0] === t)) st.tab = t; } catch (e) {}
     el.innerHTML = `<div class="mp-top"><div class="tabs mp-tabs" role="tablist" aria-label="Market views">${MP_TABS.map(([k, l]) => `<button type="button" role="tab" data-t="${k}">${l}</button>`).join("")}</div>
-      <div class="seg" role="group" aria-label="Time range">${RANGES.map(([k, l]) => `<button type="button" data-r="${k}">${l}</button>`).join("")}</div></div>
+      <div class="mp-segs">${detail.gearbox_split ? `<div class="seg" role="group" aria-label="Gearbox">${[["all", "All"], ["manual", "Manual"], ["f1", "F1"]].map(([k, l]) => `<button type="button" data-g="${k}">${l}</button>`).join("")}</div>` : ""}
+      <div class="seg" role="group" aria-label="Time range">${RANGES.map(([k, l]) => `<button type="button" data-r="${k}">${l}</button>`).join("")}</div></div></div>
       <div class="mkt-stats mp-stats"></div><div class="mp-body"></div>`;
     const body = el.querySelector(".mp-body");
+    // the gearbox submarket narrows every view built from sales and listings
+    const view = () => {
+      if (st.gear === "all") return detail;
+      const g = st.gear === "manual" ? "m" : "f";
+      return Object.assign({}, detail, { points: pts.filter(p => p[2] === "a" || (p[10] || "f") === g),
+        listings: (detail.listings || []).filter(l => (l.gearbox || "f1") === st.gear) });
+    };
     const draw = () => {
       cleanupCharts(body);
       el.querySelectorAll("[data-r]").forEach(b => b.setAttribute("aria-pressed", b.dataset.r === st.range));
+      el.querySelectorAll("[data-g]").forEach(b => b.setAttribute("aria-pressed", b.dataset.g === st.gear));
+      const D2 = view(), pts = D2.points || [];
       el.querySelectorAll("[data-t]").forEach(b => b.setAttribute("aria-selected", b.dataset.t === st.tab));
       const cut = cutFor(st.range, last);
       const sold = pts.filter(p => p[2] === "s" && p[0] >= cut);
@@ -1185,23 +1198,24 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       el.querySelector(".mp-stats").innerHTML = [["Average sale", prices.length ? money(sum / prices.length) : "n/a"], ["Sales", prices.length],
         ["Dollar volume", prices.length ? money(sum) : "n/a"], ["Lowest sale", prices.length ? money(prices[0]) : "n/a"],
         ["Top sale", prices.length ? money(prices[prices.length - 1]) : "n/a"], [recent ? "Most recent, " + dateShort(recent[0]) : "Most recent", recent ? money(recent[1]) : "n/a"],
-        ["Median ask now", ask.length ? money(ask[ask.length - 1][1]) : "n/a"], ["For sale now", (detail.listings || []).length]]
+        ["Median ask now", st.gear !== "all" ? ((D2.listings || []).length ? money(medianOf(D2.listings.map(l => l.price_usd).filter(Boolean))) : "n/a") : ask.length ? money(ask[ask.length - 1][1]) : "n/a"], ["For sale now", (D2.listings || []).length]]
         .map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join("");
       const t = st.tab;
       // the sale figures belong to the views of sales. Mileage, listings and colours carry their own.
       el.querySelector(".mp-stats").hidden = ["mileage", "listings", "colours"].includes(t);
-      el.querySelector(".mp-top .seg").style.visibility = ["mileage", "listings", "colours"].includes(t) ? "hidden" : "";
+      el.querySelectorAll(".mp-segs .seg").forEach(x => x.style.visibility = ["mileage", "listings", "colours"].includes(t) ? "hidden" : "");
       if (t === "sales") marketChart(body, pts.length ? pts : (detail.auction_points || []).map(p => [p[0], p[1], p[2] ? "s" : "u"]), { label: `${m.name} market`, ask: detail.history, range: st.range, bare: true, highlight: car && car.id });
       else if (t === "mileage") mileageChart(body, detail.mileage, { name: m.name, highlight: car && car.id,
         me: car && car.price && car.miles != null && (car.status === "for_sale" || car.status === "sold") ? { miles: car.miles, price: car.price } : null, verb: car && car.sold ? "sold for" : "is priced" });
       else if (t === "years") yearsChart(body, pts, cut, m, car && car.status === "for_sale" ? "f" : "s", car);
       else if (t === "variants") variantsView(body, detail.variants || [], cut, m, car);
       else if (t === "volume") volumeChart(body, pts, cut, last, car);
-      else if (t === "locations") locationsView(body, detail, pts, cut, m, car);
+      else if (t === "locations") locationsView(body, D2, pts, cut, m, car);
       else if (t === "listings") listingsView(body, detail.weekly || {}, m, car);
       else colorChart(body, detail.colors, m.name, car);
     };
     el.querySelectorAll("[data-r]").forEach(b => b.addEventListener("click", () => { st.range = b.dataset.r; draw(); }));
+    el.querySelectorAll("[data-g]").forEach(b => b.addEventListener("click", () => { st.gear = b.dataset.g; draw(); }));
     el.querySelectorAll("[data-t]").forEach(b => b.addEventListener("click", () => {
       st.tab = b.dataset.t; try { localStorage.setItem("rm-mtab", st.tab); } catch (e) {} draw();
     }));

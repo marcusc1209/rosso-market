@@ -222,13 +222,69 @@ def variant_ids(model_id: str, models: list) -> list:
     return [x["id"] for x in models if x["family"] == fam][:8]
 
 
-def sold_points(con, skip) -> dict:
-    """model id -> [[day, price], ...] of every dated auction sale, for the variants chart."""
-    out = {}
-    for r in con.execute("""SELECT uid, model_id, substr(ends_at,1,10) d, price_usd FROM lots
+def gearboxes(con) -> dict:
+    """vehicle key (or "uid:<lot uid>" for a lot with none) -> 'manual' or 'f1', for the models sold with both.
+
+    Every listing and lot of the car counts, so a car that crossed the block as "F430 6-Speed" is manual on
+    the dealer listing that never said so (taxonomy.gearbox)."""
+    recs, meta = {}, {}
+    ids = tuple(sorted(taxonomy.DUAL_GEARBOX))
+    marks = ",".join("?" * len(ids))
+    for table, textkeys in (("sightings", ("detail", "description")), ("lots", ("excerpt", "subtitle", "description"))):
+        for r in con.execute(f"SELECT uid, vehicle_key, model_id, year, title, raw FROM {table} WHERE model_id IN ({marks})", ids):
+            k = gb_key(table, r["vehicle_key"], r["uid"])
+            try:
+                raw = json.loads(r["raw"]) if r["raw"] else {}
+            except ValueError:
+                raw = {}
+            ex = raw.get("extra") or {}
+            text = " ".join(str(ex.get(t) or raw.get(t) or "") for t in textkeys)
+            recs.setdefault(k, []).append((r["title"] or raw.get("title") or "", str(raw.get("transmission") or ""), text))
+            meta.setdefault(k, (r["model_id"], r["year"]))
+    return {k: taxonomy.gearbox_from(meta[k][0], meta[k][1], items) for k, items in recs.items()}
+
+
+def gb_key(table: str, vehicle_key, uid: str) -> str:
+    """A car's records share a gearbox only when they are matched by VIN or chassis number: a looser
+    fingerprint can join different cars (several 2007 599s sold without a VIN)."""
+    vk = vehicle_key or ""
+    if vk.startswith(("vin:", "chassis:")):
+        return vk
+    return ("s:" + vk) if table == "sightings" and vk else "uid:" + uid
+
+
+def lot_gearbox(gb: dict, r) -> "str | None":
+    return gb.get(gb_key("lots", r["vehicle_key"], r["uid"]))
+
+
+def listing_gearbox(gb: dict, vk: str) -> "str | None":
+    return gb.get(vk) if (vk or "").startswith(("vin:", "chassis:")) else gb.get("s:" + (vk or ""))
+
+
+def sold_points(con, skip, gb=None) -> dict:
+    """model id -> [[day, price, gearbox], ...] of every dated auction sale, for the variants chart."""
+    out, gb = {}, gb or {}
+    for r in con.execute("""SELECT uid, vehicle_key, model_id, substr(ends_at,1,10) d, price_usd FROM lots
                             WHERE status='sold' AND price_usd > 0 AND ends_at IS NOT NULL ORDER BY ends_at"""):
         if r["uid"] not in skip:
-            out.setdefault(r["model_id"], []).append([r["d"], round(r["price_usd"])])
+            out.setdefault(r["model_id"], []).append([r["d"], round(r["price_usd"]), lot_gearbox(gb, r)])
+    return out
+
+
+def gearbox_variants(con, day: date, v: dict, sold: list, gb: dict) -> list:
+    """A model sold with both gearboxes as two submarkets, manual and F1, with their own figures."""
+    asks = {"manual": [], "f1": []}
+    for vk, price in con.execute("SELECT vehicle_key, price_usd FROM daily_asks WHERE day=? AND model_id=? AND price_usd > 0",
+                                 (day.isoformat(), v["id"])):
+        asks[listing_gearbox(gb, vk) or "f1"].append(price)
+    since = (day - timedelta(days=365)).isoformat()
+    out = []
+    for g, label in (("manual", "manual"), ("f1", "F1")):
+        s12 = [p[1] for p in sold if p[2] == g and p[0] >= since]
+        out.append(dict(v, name=f"{v['name']} {label}", gearbox=g, listings=len(asks[g]),
+                        median=round(st.median(asks[g])) if asks[g] else None,
+                        sold_12m=len(s12), median_sold_12m=round(st.median(s12)) if s12 else None,
+                        sold=[p for p in sold if p[2] == g]))
     return out
 
 
@@ -236,6 +292,7 @@ def model_detail(con, model_id: str, day: date, idx=None, paint=None, extra=None
     extra = extra or {}
     hist = A.history(con, model_id, day, 365)
     car = (lambda uid: idx.lot(uid)) if idx else (lambda uid: None)
+    gb = extra.get("gearbox") or {}
     rows = con.execute("""
       SELECT a.vehicle_key, a.price_usd, s.title, s.url, s.mileage_mi, s.location, MAX(s.country) AS country, s.dealer_name, s.marketplace, s.certified,
              s.exterior_color, s.year, MAX(s.image_url) AS image,
@@ -245,34 +302,36 @@ def model_detail(con, model_id: str, day: date, idx=None, paint=None, extra=None
     cities = extra.get("cities") or {}
     listings = [dict(r, car=idx.listing(r["vehicle_key"]) if idx else None,
                      country=sales.listing_country(r["country"], r["location"]),
-                     state=us_state(r["location"], cities)) for r in rows]
+                     state=us_state(r["location"], cities), gearbox=listing_gearbox(gb, r["vehicle_key"])) for r in rows]
     skip = clean.implausible_lots(con)
-    lots = [r for r in con.execute("""SELECT uid, title, url, auction_house, status, price_usd, ends_at, mileage_mi, image_url AS image,
+    lots = [r for r in con.execute("""SELECT uid, vehicle_key, title, url, auction_house, status, price_usd, ends_at, mileage_mi, image_url AS image,
                                  source, country, location, raw FROM lots
                           WHERE model_id=? AND status IN ('sold','unsold') ORDER BY ends_at IS NULL, ends_at DESC LIMIT 80""",
                        (model_id,)) if r["uid"] not in skip][:60]
-    upcoming = con.execute("""SELECT uid, title, url, auction_house, status, price_usd, estimate_low_usd, estimate_high_usd, ends_at, location,
+    upcoming = con.execute("""SELECT uid, vehicle_key, title, url, auction_house, status, price_usd, estimate_low_usd, estimate_high_usd, ends_at, location,
                                      image_url AS image, source, country, raw FROM lots
                               WHERE model_id=? AND status IN ('live','upcoming') AND last_seen >= ? ORDER BY ends_at""",
                            (model_id, (day - timedelta(days=1)).isoformat())).fetchall()
-    lot_out = lambda r: {k: r[k] for k in r.keys() if k not in ("uid", "raw", "source", "country")} | A.sale_fields(r) | {"car": car(r["uid"])}
+    lot_out = lambda r: {k: r[k] for k in r.keys() if k not in ("uid", "raw", "source", "country", "vehicle_key")} | A.sale_fields(r) \
+        | {"car": car(r["uid"]), "gearbox": lot_gearbox(gb, r)}
 
     # Market chart, like classic.com: every dated auction result (sold, or not sold at its high bid),
     # every car for sale now (at the day it was first listed) and cars that left the market (last ask).
     # Each point: [day, price, kind s|u|f|a, car id, title, photo, where]
     pts = []
-    for r in con.execute("""SELECT uid, substr(ends_at,1,10) d, price_usd, status, title, image_url, auction_house,
+    for r in con.execute("""SELECT uid, vehicle_key, substr(ends_at,1,10) d, price_usd, status, title, image_url, auction_house,
                                    source, url, country, location, ends_at, raw, year FROM lots
                             WHERE model_id=? AND status IN ('sold','unsold') AND price_usd > 0 AND ends_at IS NOT NULL
                               AND substr(ends_at,1,10) <= ? ORDER BY ends_at""", (model_id, day.isoformat())):
         if r["uid"] not in skip:
             sl = sales.describe(r)
             pts.append([r["d"], round(r["price_usd"]), "s" if r["status"] == "sold" else "u", car(r["uid"]),
-                        r["title"], r["image_url"], r["auction_house"], sl["sale"], sl["country"], r["year"]])
+                        r["title"], r["image_url"], r["auction_house"], sl["sale"], sl["country"], r["year"],
+                        (lot_gearbox(gb, r) or "")[:1] or None])
     for l in listings:
         if l["price_usd"]:
             pts.append([l["first_seen"] or day.isoformat(), round(l["price_usd"]), "f", l["car"], l["title"], l["image"],
-                        l["dealer_name"] or l["marketplace"], None, None, l["year"]])
+                        l["dealer_name"] or l["marketplace"], None, None, l["year"], (l["gearbox"] or "")[:1] or None])
     live = {l["vehicle_key"] for l in listings}
     for r in con.execute("""SELECT s.vehicle_key, MAX(s.removed_on) d, s.title, MAX(s.image_url) img, s.dealer_name, s.marketplace,
                                    (SELECT p.price_usd FROM sighting_prices p WHERE p.uid = s.uid ORDER BY p.day DESC LIMIT 1) price
@@ -282,6 +341,7 @@ def model_detail(con, model_id: str, day: date, idx=None, paint=None, extra=None
                         r["dealer_name"] or r["marketplace"]])
     pts.sort(key=lambda p: p[0])
     return {"id": model_id, "history": [[p["day"], p["median"], p["n"]] for p in hist],
+            "gearbox_split": model_id in taxonomy.DUAL_GEARBOX,
             "listings": listings,
             "results": [lot_out(r) for r in lots],
             "points": pts,
@@ -291,7 +351,9 @@ def model_detail(con, model_id: str, day: date, idx=None, paint=None, extra=None
             # cars for sale week by week, with the owner's CarGurus tracker where it covers the model
             "weekly": weekly.series(con, model_id, day, (extra.get("tracker") or {}).get(model_id), extra.get("since")),
             # sibling variants side by side: their figures and dated sales
-            "variants": [dict(v, sold=(extra.get("sold") or {}).get(v["id"], [])) for v in extra.get("variants", [])],
+            "variants": [x for v in extra.get("variants", []) for x in
+                         (gearbox_variants(con, day, v, (extra.get("sold") or {}).get(v["id"], []), gb) if v["id"] in taxonomy.DUAL_GEARBOX
+                          else [dict(v, sold=(extra.get("sold") or {}).get(v["id"], []))])],
             # colour premiums against red, adjusted for year and mileage (pipeline/colors.py)
             "colors": {"model": (paint["models"].get(model_id) if paint else colors.model(con, model_id, day)),
                        "market": paint["market"] if paint else None}}
@@ -321,7 +383,8 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
     out = data_dir / "site.json"
     out.write_text(json.dumps(payload, separators=(",", ":"), default=str), encoding="utf-8")
     since = (con.execute("SELECT MIN(day) FROM daily_asks").fetchone() or [None])[0]
-    shared = {"cities": city_states(con), "sold": sold_points(con, clean.implausible_lots(con)),
+    gb = gearboxes(con)
+    shared = {"cities": city_states(con), "sold": sold_points(con, clean.implausible_lots(con), gb), "gearbox": gb,
               "tracker": cfg.get("_tracker") or {}, "since": since}
     brief = {m["id"]: {"id": m["id"], "name": m["name"], "listings": m.get("listings") or 0, "median": m.get("median"),
                        "sold_12m": (m.get("auction") or {}).get("sold_12m") or 0,

@@ -92,3 +92,16 @@ def test_late_scheduled_run_skips_a_day_that_already_ran(monkeypatch):
     assert not run.already_ran(con, date(2026, 11, 7), ["bringatrailer"])
     monkeypatch.setenv("GITHUB_EVENT_NAME", "workflow_dispatch")          # a run started on purpose always runs
     assert not run.already_ran(con, day, ["bringatrailer"])
+
+
+def test_gearbox_manual_only_when_said_and_conversions_are_f1():
+    from pipeline.taxonomy import gearbox, gearbox_from
+    assert gearbox("360-spider", 2003, "9k-Mile 2003 Ferrari 360 Spider 6-Speed") == "manual"
+    assert gearbox("360-modena", 2000, "18k-Mile 2000 Ferrari 360 Modena 6-Speed Conversion") == "f1"
+    assert gearbox("360-modena", 2003, "2003 Ferrari 360 Modena", text="its six-speed gearbox has been converted to manual operation") == "f1"
+    assert gearbox("575m", 2004, "2004 Ferrari 575M Maranello", text="one of 246 specified with a six-speed manual gearbox") == "manual"
+    assert gearbox("f430", 2007, "2007 Ferrari F430", text="a six-speed F1 automated transaxle") == "f1"
+    assert gearbox("f430-spider", 2006, "2006 Ferrari F430 Spider", "F1 - MANUAL, 6-SPEED") == "f1"   # a catalogue field, not the car
+    assert gearbox("f355-spider", 1995, "1995 Ferrari F355 Spider") == "manual"                      # before the F1 gearbox
+    assert gearbox("458-italia", 2012, "2012 Ferrari 458 Italia 6-Speed") is None
+    assert gearbox_from("f430", 2005, [("2005 Ferrari F430", "", ""), ("2005 Ferrari F430 Coupe Factory Gated 6-Speed", "", "")]) == "manual"

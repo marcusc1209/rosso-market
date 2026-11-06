@@ -233,3 +233,53 @@ def is_track_car(title: str) -> bool:
 
 def looks_like_car(title: str) -> bool:
     return not NON_CAR.search(clean_title(title))
+
+
+# ---------------------------------------------------------------- gearbox: factory manual or F1
+# Models Ferrari sold with both a gated six speed manual and the F1 paddle gearbox. Their manual
+# cars trade at a clear premium, so they are counted as their own submarket.
+DUAL_GEARBOX = {"f355", "f355-spider", "360-modena", "360-spider", "f430", "f430-spider",
+                "575m", "599-gtb", "612-scaglietti"}
+_CONVERSION = re.compile(
+    r"(?:6|six)[- ]?speed conversion|manual conversion|conver(?:ted|sion) to (?:a )?(?:gated )?(?:six[- ]speed |6[- ]speed )?manual"
+    r"|converted to manual|manual swap|swapped to (?:a )?(?:gated )?manual|retro-?fitted (?:with )?(?:a )?(?:gated )?manual", re.I)
+_MANUAL_TITLE = re.compile(r"\b(?:6|six)[- ]?speed\b(?![- ]*(?:f1|automated|sequential|paddle|dual))|\bmanual\b|\bgated\b", re.I)
+_MANUAL_TEXT = re.compile(r"(?:six|6)[- ]speed (?:gated )?manual|manual (?:transaxle|gearbox|transmission)|gated (?:manual|shifter|six|gearbox)"
+                          r"|three[- ]pedal", re.I)
+_F1 = re.compile(r"\bF1\b(?![- ]?(?:team|race|driver|world|champion))|paddle[- ]shift|automated (?:manual|transaxle|gearbox)", re.I)
+
+
+def gearbox(model_id, year=None, title="", transmission="", text=""):
+    """'manual' for a factory six speed manual, 'f1' otherwise, None for models offered with one gearbox.
+
+    A car counts as manual only when its listing says so (titles like "F355 Spider 6-Speed", or text such as
+    "six-speed manual transaxle"). A manual conversion of an F1 car is an F1 car, and so is any car whose
+    listing does not mention its gearbox. F355s from before the 1998 model year are manual: the F1 gearbox
+    was not offered yet."""
+    if model_id not in DUAL_GEARBOX:
+        return None
+    title, text, tr = title or "", text or "", (transmission or "").strip().lower()
+    if _CONVERSION.search(title) or _CONVERSION.search(text):
+        return "f1"
+    if _F1.search(title):
+        return "f1"
+    if _MANUAL_TITLE.search(title):
+        return "manual"
+    if tr in ("manual", "6-speed manual", "manual 6-speed", "6 speed manual", "manual transmission"):
+        return "manual"
+    if _MANUAL_TEXT.search(text) and not _F1.search(text):
+        return "manual"
+    if model_id.startswith("f355") and year and int(year) <= 1997:
+        return "manual"
+    return "f1"
+
+
+def gearbox_from(model_id, year, items) -> "str | None":
+    """One car's gearbox from all its listings and lots: items of (title, transmission, text)."""
+    if model_id not in DUAL_GEARBOX:
+        return None
+    titles = " | ".join(t for t, _, _ in items if t)
+    texts = " | ".join(x for _, _, x in items if x)
+    trs = [tr for _, tr, _ in items if tr]
+    tr = next((t for t in trs if (t or "").strip().lower().startswith("manual") or "manual" == (t or "").strip().lower()), trs[0] if trs else "")
+    return gearbox(model_id, year, titles, tr, texts)
