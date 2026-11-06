@@ -25,3 +25,1301 @@ ZFF90HLA3L0251840:                 # 2020 488 Pista, Wide World Ferrari (duPont 
     - [2026-10-14, 1100175]
     - [2026-10-17, 1095625]
     - [2026-10-28, 1089063]
+
+# Read from cars.com price histories on 2026-11-05, one car at a time in the browser.
+# Prices are the all-in prices cars.com shows (asking price plus the dealer's doc fee).
+
+ZFF10XLAXS0325017:                 # 2025 12cilindri, Ferrari of Naples
+  listed_on: 2026-09-21
+  source: cars.com
+  prices:
+    - [2026-09-21, 691689]
+    - [2026-10-10, 681685]
+
+ZFFKW66A490167776:                 # 2009 16m, Ferrari of Naples
+  listed_on: 2026-07-23
+  source: cars.com
+  prices:
+    - [2026-07-23, 1312685]
+
+ZFFKW66A790166492:                 # 2009 16m, Ferrari of San Diego
+  listed_on: 2026-09-19
+  source: cars.com
+  prices:
+    - [2026-09-19, 1109000]
+    - [2026-09-21, 1109122]
+    - [2026-10-10, 1100121]
+
+ZFF99SLA2N0287637:                 # 2022 296-gtb, Ferrari of Hawaii
+  listed_on: 2026-08-11
+  source: cars.com
+  prices:
+    - [2026-08-11, 329988]
+    - [2026-11-03, 289995]
+
+ZFF99SLA6P0289975:                 # 2023 296-gtb, Ferrari Dallas
+  listed_on: 2026-10-20
+  source: cars.com
+  prices:
+    - [2026-10-20, 350125]
+
+ZFF99SLA4R0310213:                 # 2024 296-gtb, Ferrari of Miami
+  listed_on: 2026-10-07
+  source: cars.com
+  prices:
+    - [2026-10-07, 351394]
+
+ZFF99SLA0S0319965:                 # 2025 296-gtb, Ferrari of Fort Lauderdale
+  listed_on: 2026-11-03
+  source: cars.com
+  prices:
+    - [2026-11-03, 371584]
+
+ZFF01SMA1R0302715:                 # 2024 296-gts, Ferrari Dallas
+  listed_on: 2026-10-24
+  source: cars.com
+  prices:
+    - [2026-10-24, 475125]
+
+ZFF01SMA1R0311687:                 # 2024 296-gts, Ferrari of San Diego
+  listed_on: 2026-10-14
+  source: cars.com
+  prices:
+    - [2026-10-14, 470122]
+
+ZFF01SMA7R0311354:                 # 2024 296-gts, The Collection
+  listed_on: 2026-10-07
+  source: cars.com
+  prices:
+    - [2026-10-07, 441294]
+
+ZFF01SMA2S0317777:                 # 2025 296-gts, Ferrari of Naples
+  listed_on: 2026-10-30
+  source: cars.com
+  prices:
+    - [2026-10-30, 431685]
+
+ZFF01SMA0S0320600:                 # 2025 296-gts, Ferrari of San Diego
+  listed_on: 2026-10-16
+  source: cars.com
+  prices:
+    - [2026-10-16, 430122]
+
+ZFF01SMA5S0319183:                 # 2025 296-gts, Ferrari of Naples
+  listed_on: 2026-10-10
+  source: cars.com
+  prices:
+    - [2026-10-10, 450694]
+
+ZFF01SMA8S0314267:                 # 2025 296-gts, Miller Motorcars
+  listed_on: 2026-06-09
+  source: cars.com
+  prices:
+    - [2026-06-09, 407498]
+    - [2026-08-08, 417498]
+    - [2026-10-11, 411498]
+
+ZFFDU57A740134609:                 # 2004 360-challenge-stradale, Ron Tonkin Gran Turismo
+  listed_on: 2026-09-16
+  source: cars.com
+  prices:
+    - [2026-09-16, 850250]
+    - [2026-10-25, 842498]
+
+ZFFYU51A040137362:                 # 2004 360-modena, Ferrari of Washington
+  listed_on: 2026-10-15
+  source: cars.com
+  prices:
+    - [2026-10-15, 375957]
+
+ZFFYT53A210123541:                 # 2001 360-spider, Ferrari of Palm Beach
+  listed_on: 2026-09-22
+  source: cars.com
+  prices:
+    - [2026-09-22, 316689]
+    - [2026-10-23, 311589]
+
+ZFFYT53A710123793:                 # 2001 360-spider, Ferrari of Greensboro
+  listed_on: 2026-10-02
+  source: cars.com
+  prices:
+    - [2026-10-02, 397999]
+    - [2026-10-15, 360899]
+
+ZFFYT53A640135342:                 # 2004 360-spider, Ron Tonkin Gran Turismo
+  listed_on: 2026-10-03
+  source: cars.com
+  prices:
+    - [2026-10-03, 350250]
+    - [2026-10-16, 347993]
+    - [2026-10-23, 343593]
+    - [2026-11-06, 340183]
+
+ZFFKW64A080163340:                 # 2008 430-scuderia, Ferrari of Denver
+  listed_on: 2026-06-19
+  source: cars.com
+  prices:
+    - [2026-06-19, 789990]
+    - [2026-07-01, 859990]
+    - [2026-10-22, 829990]
+    - [2026-10-23, 799990]
+
+ZFFKW64A790167080:                 # 2009 430-scuderia, Ferrari Dallas
+  listed_on: 2026-07-24
+  source: cars.com
+  prices:
+    - [2026-07-24, 999900]
+    - [2026-07-29, 1000125]
+    - [2026-09-29, 925900]
+
+ZFFKW64A290164751:                 # 2009 430-scuderia, Ferrari of Central Ohio
+  listed_on: 2026-07-02
+  source: cars.com
+  prices:
+    - [2026-07-02, 870381]
+    - [2026-07-14, 900265]
+    - [2026-07-21, 899939]
+    - [2026-07-23, 775292]
+    - [2026-07-31, 777489]
+    - [2026-08-12, 773762]
+    - [2026-08-25, 769919]
+    - [2026-09-03, 759146]
+    - [2026-09-11, 758945]
+    - [2026-09-15, 750387]
+    - [2026-09-30, 739482]
+    - [2026-10-09, 739682]
+    - [2026-10-14, 801425]
+    - [2026-10-25, 794358]
+    - [2026-10-28, 757311]
+
+ZFF67NFA2A0175128:                 # 2010 458-italia, Ferrari of Greensboro
+  listed_on: 2026-10-02
+  source: cars.com
+  prices:
+    - [2026-10-02, 369990]
+    - [2026-10-17, 359990]
+    - [2026-10-22, 348500]
+    - [2026-10-23, 329990]
+
+ZFF67NFA8B0182442:                 # 2011 458-italia, Ron Tonkin Gran Turismo
+  listed_on: 2026-11-01
+  source: cars.com
+  prices:
+    - [2026-11-01, 320163]
+
+ZFF67NFA8B0179038:                 # 2011 458-italia, Ferrari of San Diego
+  listed_on: 2026-10-30
+  source: cars.com
+  prices:
+    - [2026-10-30, 239010]
+
+ZFF67NFA1B0181276:                 # 2011 458-italia, Ron Tonkin Gran Turismo
+  listed_on: 2026-10-14
+  source: cars.com
+  prices:
+    - [2026-10-14, 391443]
+    - [2026-11-06, 382533]
+
+ZFF67NFA4B0177156:                 # 2011 458-italia, Ferrari of Naples
+  listed_on: 2026-10-27
+  source: cars.com
+  prices:
+    - [2026-10-27, 390582]
+
+ZFF67NFA5E0198361:                 # 2014 458-italia, Ferrari Dallas
+  listed_on: 2026-10-07
+  source: cars.com
+  prices:
+    - [2026-10-07, 390125]
+
+ZFF67NFA5F0210607:                 # 2015 458-italia, Ferrari Dallas
+  listed_on: 2026-07-24
+  source: cars.com
+  prices:
+    - [2026-07-24, 425900]
+    - [2026-07-29, 426125]
+    - [2026-10-07, 400125]
+
+ZFF78VHA8F0212673:                 # 2016 458-speciale-a, Ferrari of Austin
+  listed_on: 2026-08-06
+  source: cars.com
+  prices:
+    - [2026-08-06, 3000000]
+    - [2026-09-14, 2801920]
+    - [2026-09-17, 2751920]
+    - [2026-09-21, 2732720]
+    - [2026-09-28, 2601920]
+    - [2026-10-02, 2501920]
+    - [2026-10-17, 2401920]
+    - [2026-10-29, 2352000]
+
+ZFF78VHAXF0213825:                 # 2016 458-speciale-a, Ferrari Dallas
+  listed_on: 2026-10-08
+  source: cars.com
+  prices:
+    - [2026-10-08, 2698724]
+
+ZFF68NHA6C0188719:                 # 2012 458-spider, Ron Tonkin Gran Turismo
+  listed_on: 2026-10-11
+  source: cars.com
+  prices:
+    - [2026-10-11, 469250]
+    - [2026-10-23, 463614]
+    - [2026-11-06, 455804]
+
+ZFF68NHA1C0188059:                 # 2012 458-spider, Ferrari of San Diego
+  listed_on: 2026-09-05
+  source: cars.com
+  prices:
+    - [2026-09-05, 529999]
+    - [2026-09-21, 530121]
+    - [2026-09-26, 500121]
+    - [2026-10-10, 498121]
+
+ZFF68NHA7F0212031:                 # 2015 458-spider, The Collection
+  listed_on: 2026-08-24
+  source: cars.com
+  prices:
+    - [2026-08-24, 497294]
+
+ZFF79ALAXG0219400:                 # 2016 488-gtb, Ferrari Dallas
+  listed_on: 2026-10-20
+  source: cars.com
+  prices:
+    - [2026-10-20, 310125]
+
+ZFF79ALA9H0225559:                 # 2017 488-gtb, Ferrari of Hawaii
+  listed_on: 2026-09-08
+  source: cars.com
+  prices:
+    - [2026-09-08, 825888]
+
+ZFF79ALA3J0230617:                 # 2018 488-gtb, Ferrari of Naples
+  listed_on: 2026-10-01
+  source: cars.com
+  prices:
+    - [2026-10-01, 351685]
+
+ZFF79ALA1J0233581:                 # 2018 488-gtb, Ferrari of San Diego
+  listed_on: 2026-08-07
+  source: cars.com
+  prices:
+    - [2026-08-07, 390000]
+    - [2026-09-11, 348995]
+    - [2026-09-21, 349117]
+    - [2026-10-07, 329117]
+
+ZFF79ALA1K0245439:                 # 2019 488-gtb, Ferrari of Naples
+  listed_on: 2026-07-29
+  source: cars.com
+  prices:
+    - [2026-07-29, 381685]
+    - [2026-07-30, 421685]
+    - [2026-08-26, 410582]
+    - [2026-09-08, 401685]
+    - [2026-10-07, 396685]
+    - [2026-10-17, 366685]
+
+ZFF90HLA6L0250004:                 # 2020 488-pista, Ferrari of Naples
+  listed_on: 2026-10-27
+  source: cars.com
+  prices:
+    - [2026-10-27, 1228982]
+
+ZFF90HLA8L0248321:                 # 2020 488-pista, Ferrari of Naples
+  listed_on: 2026-09-29
+  source: cars.com
+  prices:
+    - [2026-10-05, 1301694]
+    - [2026-10-14, 1270582]
+    - [2026-10-27, 1197982]
+    - [2026-11-04, 1190582]
+
+ZFF80AMA1H0222894:                 # 2017 488-spider, Ferrari of Denver
+  listed_on: 2026-09-16
+  source: cars.com
+  prices:
+    - [2026-09-16, 399990]
+    - [2026-09-19, 395990]
+    - [2026-10-22, 379990]
+
+ZFF80AMA7J0237244:                 # 2018 488-spider, Ferrari of Denver
+  listed_on: 2026-06-29
+  source: cars.com
+  prices:
+    - [2026-06-29, 479990]
+    - [2026-09-28, 459990]
+
+ZFF80AMA2J0234610:                 # 2018 488-spider, Ferrari of Naples
+  listed_on: 2026-10-17
+  source: cars.com
+  prices:
+    - [2026-10-17, 416685]
+
+ZFF80AMA7J0232075:                 # 2018 488-spider, Ferrari of Naples
+  listed_on: 2026-09-25
+  source: cars.com
+  prices:
+    - [2026-09-25, 424582]
+    - [2026-10-07, 421685]
+    - [2026-10-13, 411582]
+    - [2026-10-14, 399444]
+    - [2026-11-04, 390582]
+
+ZFF80AMA1J0233870:                 # 2018 488-spider, Ferrari Dallas
+  listed_on: 2026-09-15
+  source: cars.com
+  prices:
+    - [2026-09-15, 425125]
+    - [2026-11-03, 420125]
+
+ZFF80AMA7J0236546:                 # 2018 488-spider, Ferrari of Central Ohio
+  listed_on: 2026-08-31
+  source: cars.com
+  prices:
+    - [2026-08-31, 432739]
+    - [2026-09-03, 417746]
+    - [2026-09-13, 399992]
+    - [2026-09-15, 394512]
+    - [2026-09-23, 394085]
+    - [2026-10-02, 393885]
+    - [2026-10-10, 393390]
+    - [2026-10-19, 391173]
+    - [2026-10-27, 389985]
+    - [2026-10-28, 380094]
+
+ZFF80AMA6J0231676:                 # 2018 488-spider, Ferrari Dallas
+  listed_on: 2026-08-21
+  source: cars.com
+  prices:
+    - [2026-08-21, 420125]
+    - [2026-09-16, 416663]
+    - [2026-09-29, 403900]
+    - [2026-10-20, 395900]
+
+ZFF80AMA3J0232851:                 # 2018 488-spider, Ferrari of San Diego
+  listed_on: 2026-08-06
+  source: cars.com
+  prices:
+    - [2026-08-06, 390000]
+    - [2026-08-20, 375000]
+    - [2026-08-29, 365000]
+    - [2026-09-09, 350000]
+    - [2026-09-19, 335000]
+    - [2026-09-21, 335122]
+    - [2026-10-23, 329910]
+
+ZFF80AMA9J0230313:                 # 2018 488-spider, Ferrari of Naples
+  listed_on: 2026-07-06
+  source: cars.com
+  prices:
+    - [2026-07-06, 419685]
+    - [2026-08-26, 411582]
+    - [2026-09-05, 407685]
+    - [2026-09-13, 400582]
+    - [2026-10-02, 397582]
+    - [2026-10-07, 390582]
+    - [2026-10-13, 377582]
+    - [2026-11-04, 376582]
+
+ZFF80AMAXK0239653:                 # 2019 488-spider, Ferrari Dallas
+  listed_on: 2026-09-28
+  source: cars.com
+  prices:
+    - [2026-09-28, 395125]
+    - [2026-10-20, 378900]
+
+ZFF80AMA1K0244482:                 # 2019 488-spider, Ferrari of Naples
+  listed_on: 2026-09-10
+  source: cars.com
+  prices:
+    - [2026-09-10, 461689]
+    - [2026-09-25, 436582]
+    - [2026-10-07, 421582]
+    - [2026-10-13, 399582]
+    - [2026-10-17, 397685]
+    - [2026-11-04, 390582]
+
+ZFFZS49A4Y0120630:                 # 2000 550-maranello, Miller Motorcars
+  listed_on: 2026-10-27
+  source: cars.com
+  prices:
+    - [2026-10-27, 397498]
+
+ZFFBV55A930134312:                 # 2003 575m, Ferrari of Greensboro
+  listed_on: 2026-09-30
+  source: cars.com
+  prices:
+    - [2026-09-30, 339990]
+    - [2026-10-07, 334950]
+    - [2026-10-17, 329990]
+    - [2026-10-23, 325000]
+
+ZFFFC60AX70155096:                 # 2007 599-gtb, Ferrari of Greensboro
+  listed_on: 2026-10-23
+  source: cars.com
+  prices:
+    - [2026-10-23, 399990]
+
+ZFFFC60A070156418:                 # 2008 599-gtb, Ron Tonkin Gran Turismo
+  listed_on: 2026-08-19
+  source: cars.com
+  prices:
+    - [2026-08-19, 340183]
+    - [2026-09-04, 333583]
+    - [2026-09-18, 330240]
+    - [2026-10-01, 323573]
+    - [2026-10-16, 319063]
+    - [2026-10-23, 313563]
+    - [2026-10-29, 310153]
+    - [2026-11-04, 309849]
+
+ZFFFC60A580160160:                 # 2008 599-gtb, Ferrari Philadelphia
+  listed_on: 2026-09-08
+  source: cars.com
+  prices:
+    - [2026-09-08, 394500]
+    - [2026-10-14, 377430]
+    - [2026-11-02, 366004]
+
+ZFF70RCA7B0176801:                 # 2011 599-gto, Ferrari of Naples
+  listed_on: 2026-10-27
+  source: cars.com
+  prices:
+    - [2026-10-27, 1998982]
+
+ZFF03TLA2N0286617:                 # 2022 812-competizione, Ferrari Dallas
+  listed_on: 2026-10-08
+  source: cars.com
+  prices:
+    - [2026-10-08, 3600224]
+
+ZFF97CMA6M0265438:                 # 2021 812-gts, Ferrari of Denver
+  listed_on: 2026-09-16
+  source: cars.com
+  prices:
+    - [2026-09-16, 929990]
+    - [2026-09-17, 899990]
+    - [2026-09-24, 879990]
+    - [2026-10-02, 849990]
+    - [2026-10-05, 839990]
+    - [2026-10-22, 819990]
+
+ZFF97CMA4M0261663:                 # 2021 812-gts, The Collection
+  listed_on: 2026-07-23
+  source: cars.com
+  prices:
+    - [2026-07-23, 891294]
+    - [2026-08-27, 841294]
+    - [2026-10-07, 811294]
+
+ZFF97CMA8M0262203:                 # 2021 812-gts, Ferrari of Naples
+  listed_on: 2026-09-21
+  source: cars.com
+  prices:
+    - [2026-09-21, 836582]
+    - [2026-10-14, 817582]
+
+ZFF97CMA4M0260108:                 # 2021 812-gts, Ferrari of Naples
+  listed_on: 2026-09-20
+  source: cars.com
+  prices:
+    - [2026-09-20, 881685]
+    - [2026-09-23, 871685]
+    - [2026-09-25, 867582]
+    - [2026-10-07, 860582]
+    - [2026-10-13, 857582]
+    - [2026-10-14, 821582]
+
+ZFF97CMA0M0262762:                 # 2021 812-gts, Ferrari of Miami
+  listed_on: 2026-08-19
+  source: cars.com
+  prices:
+    - [2026-08-19, 871294]
+    - [2026-10-10, 752294]
+
+ZFF97CMA7M0267912:                 # 2021 812-gts, The Collection
+  listed_on: 2026-07-30
+  source: cars.com
+  prices:
+    - [2026-07-30, 898620]
+    - [2026-07-31, 891294]
+    - [2026-08-26, 871294]
+    - [2026-09-28, 836294]
+    - [2026-10-07, 816294]
+
+ZFF97CMA6N0276988:                 # 2022 812-gts, Ferrari of Denver
+  listed_on: 2026-08-21
+  source: cars.com
+  prices:
+    - [2026-08-21, 929000]
+
+ZFF97CMA3N0269318:                 # 2022 812-gts, Ferrari of Denver
+  listed_on: 2026-06-19
+  source: cars.com
+  prices:
+    - [2026-06-19, 949990]
+    - [2026-07-01, 929990]
+    - [2026-09-28, 899990]
+    - [2026-10-02, 869990]
+    - [2026-10-22, 859990]
+
+ZFF97CMA2N0281010:                 # 2022 812-gts, Ferrari of Denver
+  listed_on: 2026-07-01
+  source: cars.com
+  prices:
+    - [2026-07-01, 949990]
+    - [2026-09-17, 929990]
+    - [2026-09-28, 919990]
+    - [2026-10-02, 879990]
+    - [2026-10-22, 869990]
+
+ZFF97CMA5N0276223:                 # 2022 812-gts, Ferrari of Naples
+  listed_on: 2026-10-08
+  source: cars.com
+  prices:
+    - [2026-10-08, 861685]
+    - [2026-10-14, 841582]
+    - [2026-11-04, 830582]
+
+ZFF97CMA1N0277479:                 # 2022 812-gts, Ferrari of Naples
+  listed_on: 2026-10-08
+  source: cars.com
+  prices:
+    - [2026-10-08, 831685]
+    - [2026-10-14, 826582]
+    - [2026-11-04, 806582]
+
+ZFF97CMA3N0282439:                 # 2022 812-gts, Ferrari of Naples
+  listed_on: 2026-07-31
+  source: cars.com
+  prices:
+    - [2026-07-31, 881685]
+    - [2026-08-26, 861582]
+    - [2026-09-10, 849689]
+    - [2026-09-25, 832582]
+    - [2026-10-14, 813506]
+    - [2026-11-05, 751685]
+
+ZFF97CMA3P0297249:                 # 2023 812-gts, The Collection
+  listed_on: 2026-09-28
+  source: cars.com
+  prices:
+    - [2026-09-28, 966294]
+    - [2026-10-07, 951294]
+
+ZFF97CMA6P0291896:                 # 2023 812-gts, The Collection
+  listed_on: 2026-08-31
+  source: cars.com
+  prices:
+    - [2026-08-31, 1101294]
+    - [2026-09-28, 1031294]
+
+ZFF97CMA3P0293640:                 # 2023 812-gts, Ferrari Dallas
+  listed_on: 2026-07-22
+  source: cars.com
+  prices:
+    - [2026-07-22, 990900]
+    - [2026-07-29, 991125]
+    - [2026-08-13, 935847]
+    - [2026-09-05, 900125]
+    - [2026-09-16, 874900]
+    - [2026-10-20, 865900]
+
+ZFF83CLA7K0241493:                 # 2019 812-superfast, Ferrari of San Diego
+  listed_on: 2026-10-24
+  source: cars.com
+  prices:
+    - [2026-10-24, 590122]
+    - [2026-10-31, 575010]
+
+ZFF83CLA9K0238269:                 # 2019 812-superfast, Ferrari of Atlanta
+  listed_on: 2026-10-07
+  source: cars.com
+  prices:
+    - [2026-10-07, 549900]
+    - [2026-11-03, 537590]
+    - [2026-11-05, 538299]
+
+ZFF83CLA7K0247102:                 # 2019 812-superfast, Ferrari of Naples
+  listed_on: 2026-09-21
+  source: cars.com
+  prices:
+    - [2026-09-21, 603689]
+    - [2026-09-22, 641685]
+    - [2026-10-08, 636685]
+    - [2026-10-13, 617582]
+    - [2026-10-14, 602582]
+    - [2026-10-27, 597982]
+    - [2026-11-04, 576582]
+
+ZFF83CLA1K0238248:                 # 2019 812-superfast, Ferrari of San Diego
+  listed_on: 2026-09-26
+  source: cars.com
+  prices:
+    - [2026-09-26, 595122]
+    - [2026-10-21, 570122]
+    - [2026-11-05, 555000]
+
+ZFF83CLA1K0242316:                 # 2019 812-superfast, Ferrari of Naples
+  listed_on: 2026-07-25
+  source: cars.com
+  prices:
+    - [2026-07-25, 661685]
+    - [2026-08-26, 640582]
+    - [2026-09-12, 638582]
+    - [2026-09-23, 626685]
+    - [2026-09-25, 590582]
+    - [2026-10-07, 572582]
+    - [2026-10-14, 566582]
+    - [2026-10-17, 561685]
+    - [2026-10-26, 559685]
+    - [2026-10-27, 549982]
+    - [2026-11-04, 547582]
+
+ZFF83CLA3K0241698:                 # 2019 812-superfast, Ferrari of San Diego
+  listed_on: 2026-09-02
+  source: cars.com
+  prices:
+    - [2026-09-02, 600000]
+    - [2026-09-03, 620000]
+    - [2026-09-21, 620122]
+    - [2026-09-26, 610122]
+    - [2026-10-21, 570122]
+    - [2026-11-05, 560000]
+
+ZFF83CLA8L0254674:                 # 2020 812-superfast, Ferrari of Naples
+  listed_on: 2026-09-04
+  source: cars.com
+  prices:
+    - [2026-09-04, 671689]
+    - [2026-09-23, 641685]
+    - [2026-10-02, 636582]
+    - [2026-10-13, 631582]
+    - [2026-10-14, 626582]
+    - [2026-10-17, 621685]
+    - [2026-10-27, 599982]
+    - [2026-11-04, 590582]
+
+ZFF65LJA3B0181829:                 # 2011 california, Ferrari of Atlanta
+  listed_on: 2026-10-09
+  source: cars.com
+  prices:
+    - [2026-10-09, 99575]
+
+ZFF65LJA9C0188642:                 # 2012 california, Ferrari of Hawaii
+  listed_on: 2026-06-13
+  source: cars.com
+  prices:
+    - [2026-06-13, 99988]
+    - [2026-07-23, 97888]
+    - [2026-08-11, 101888]
+    - [2026-08-19, 99499]
+
+ZFF77XJA4F0209133:                 # 2015 california-t, Ferrari of Naples
+  listed_on: 2026-09-25
+  source: cars.com
+  prices:
+    - [2026-09-25, 145144]
+    - [2026-10-07, 144685]
+    - [2026-10-17, 141685]
+
+ZFF77XJA8F0208700:                 # 2015 california-t, Ferrari Dallas
+  listed_on: 2026-09-02
+  source: cars.com
+  prices:
+    - [2026-09-02, 140950]
+    - [2026-09-16, 136720]
+    - [2026-09-29, 134900]
+    - [2026-10-20, 129900]
+
+ZFF74UFA6E0198991:                 # 2014 f12berlinetta, Ferrari Dallas
+  listed_on: 2026-10-07
+  source: cars.com
+  prices:
+    - [2026-10-07, 450125]
+    - [2026-10-20, 447900]
+
+ZFF74UFA8E0203222:                 # 2014 f12berlinetta, Ferrari of San Diego
+  listed_on: 2026-09-05
+  source: cars.com
+  prices:
+    - [2026-09-05, 520000]
+    - [2026-09-21, 520122]
+    - [2026-09-26, 510122]
+    - [2026-10-23, 499910]
+    - [2026-10-29, 475010]
+
+ZFF74UFA1E0202705:                 # 2014 f12berlinetta, Ferrari Dallas
+  listed_on: 2026-07-24
+  source: cars.com
+  prices:
+    - [2026-07-24, 519900]
+    - [2026-07-29, 520125]
+    - [2026-09-05, 495125]
+    - [2026-09-16, 460125]
+    - [2026-09-29, 491900]
+    - [2026-10-20, 481900]
+
+ZFF74UFA3F0206255:                 # 2015 f12berlinetta, Ferrari of Denver
+  listed_on: 2026-10-06
+  source: cars.com
+  prices:
+    - [2026-10-06, 749000]
+
+ZFF74UFA0G0218980:                 # 2016 f12berlinetta, Ferrari of Naples
+  listed_on: 2026-10-28
+  source: cars.com
+  prices:
+    - [2026-10-28, 626685]
+
+ZFFEW58A870156345:                 # 2007 f430, Ferrari of Greensboro
+  listed_on: 2026-09-21
+  source: cars.com
+  prices:
+    - [2026-09-21, 280899]
+    - [2026-09-30, 278990]
+    - [2026-10-07, 269950]
+    - [2026-10-17, 265000]
+    - [2026-10-23, 260000]
+
+ZFFEW59A560147048:                 # 2006 f430-spider, Ron Tonkin Gran Turismo
+  listed_on: 2026-10-16
+  source: cars.com
+  prices:
+    - [2026-10-16, 240250]
+    - [2026-11-06, 236882]
+
+ZFFEW59A060145286:                 # 2006 f430-spider, Ferrari of Greensboro
+  listed_on: 2026-09-21
+  source: cars.com
+  prices:
+    - [2026-09-21, 289990]
+    - [2026-10-02, 285990]
+    - [2026-10-07, 279950]
+    - [2026-10-23, 277990]
+
+ZFFEW59A770156271:                 # 2007 f430-spider, Ferrari Dallas
+  listed_on: 2026-07-24
+  source: cars.com
+  prices:
+    - [2026-07-24, 259900]
+    - [2026-07-29, 260125]
+    - [2026-08-13, 234617]
+    - [2026-09-05, 259125]
+    - [2026-09-16, 256215]
+    - [2026-09-29, 244900]
+    - [2026-10-20, 237900]
+
+ZFFEW59A480159436:                 # 2008 f430-spider, Ron Tonkin Gran Turismo
+  listed_on: 2026-10-10
+  source: cars.com
+  prices:
+    - [2026-10-10, 279122]
+    - [2026-10-24, 273622]
+
+ZFFEW59A280158690:                 # 2008 f430-spider, Ron Tonkin Gran Turismo
+  listed_on: 2026-09-17
+  source: cars.com
+  prices:
+    - [2026-09-17, 280222]
+    - [2026-10-16, 278022]
+    - [2026-10-23, 274722]
+
+ZFFEW59A980164258:                 # 2008 f430-spider, Ferrari of Greensboro
+  listed_on: 2026-09-14
+  source: cars.com
+  prices:
+    - [2026-09-14, 319990]
+    - [2026-10-02, 314899]
+    - [2026-10-07, 299950]
+
+ZFF93LMA4M0259200:                 # 2021 f8-spider, Ferrari Dallas
+  listed_on: 2026-10-27
+  source: cars.com
+  prices:
+    - [2026-10-27, 538900]
+
+ZFF93LMA3M0261326:                 # 2021 f8-spider, Ferrari of Naples
+  listed_on: 2026-10-16
+  source: cars.com
+  prices:
+    - [2026-10-16, 501685]
+    - [2026-10-27, 498582]
+
+ZFF93LMA0M0261641:                 # 2021 f8-spider, Ferrari Dallas
+  listed_on: 2026-10-07
+  source: cars.com
+  prices:
+    - [2026-10-07, 525125]
+    - [2026-10-20, 559900]
+
+ZFF93LMA4M0261643:                 # 2021 f8-spider, Ferrari of Naples
+  listed_on: 2026-09-25
+  source: cars.com
+  prices:
+    - [2026-09-25, 641582]
+    - [2026-10-07, 616685]
+    - [2026-10-14, 610582]
+    - [2026-10-17, 601685]
+    - [2026-10-27, 593982]
+    - [2026-11-04, 580582]
+
+ZFF93LMA3M0261987:                 # 2021 f8-spider, Ferrari of San Diego
+  listed_on: 2026-09-10
+  source: cars.com
+  prices:
+    - [2026-09-10, 600000]
+    - [2026-09-21, 600122]
+    - [2026-09-26, 590122]
+    - [2026-10-23, 580010]
+    - [2026-11-05, 579910]
+
+ZFF93LMAXN0280604:                 # 2022 f8-spider, Ferrari of Naples
+  listed_on: 2026-10-14
+  source: cars.com
+  prices:
+    - [2026-10-14, 657244]
+    - [2026-10-27, 645982]
+    - [2026-11-04, 640582]
+
+ZFF93LMA1N0276778:                 # 2022 f8-spider, The Collection
+  listed_on: 2026-08-13
+  source: cars.com
+  prices:
+    - [2026-08-13, 671294]
+    - [2026-08-26, 651294]
+    - [2026-10-07, 601294]
+
+ZFF93LMA7P0295998:                 # 2023 f8-spider, Ferrari of San Diego
+  listed_on: 2026-10-07
+  source: cars.com
+  prices:
+    - [2026-10-07, 740010]
+    - [2026-10-21, 714010]
+    - [2026-10-28, 699122]
+    - [2026-11-04, 687915]
+
+ZFF93LMA9P0295033:                 # 2023 f8-spider, Ferrari Dallas
+  listed_on: 2026-09-28
+  source: cars.com
+  prices:
+    - [2026-09-28, 796125]
+
+ZFF93LMA3P0297182:                 # 2023 f8-spider, Ferrari of Naples
+  listed_on: 2026-10-07
+  source: cars.com
+  prices:
+    - [2026-10-07, 721685]
+    - [2026-10-14, 700582]
+    - [2026-10-27, 688982]
+    - [2026-11-04, 677582]
+
+ZFF93LMA6P0292302:                 # 2023 f8-spider, The Collection
+  listed_on: 2026-08-07
+  source: cars.com
+  prices:
+    - [2026-08-07, 694394]
+    - [2026-08-15, 761294]
+    - [2026-08-26, 726294]
+    - [2026-09-28, 711294]
+    - [2026-10-07, 701294]
+
+ZFF92LLAXL0255008:                 # 2020 f8-tributo, Ferrari of Miami
+  listed_on: 2026-08-27
+  source: cars.com
+  prices:
+    - [2026-08-27, 451294]
+
+ZFF92LLA4L0253481:                 # 2020 f8-tributo, Ferrari Dallas
+  listed_on: 2026-09-03
+  source: cars.com
+  prices:
+    - [2026-09-03, 435125]
+    - [2026-09-16, 430125]
+    - [2026-09-29, 415900]
+    - [2026-10-20, 429900]
+
+ZFF92LLA3M0263355:                 # 2021 f8-tributo, Ferrari of Naples
+  listed_on: 2026-10-17
+  source: cars.com
+  prices:
+    - [2026-10-17, 467685]
+
+ZFF92LLA6N0272228:                 # 2022 f8-tributo, Ferrari of San Diego
+  listed_on: 2026-10-23
+  source: cars.com
+  prices:
+    - [2026-10-23, 515122]
+    - [2026-10-29, 475010]
+
+ZFF92LLA9N0275043:                 # 2022 f8-tributo, Ferrari of Atlanta
+  listed_on: 2026-10-06
+  source: cars.com
+  prices:
+    - [2026-10-06, 465900]
+
+ZFF89FPA8K0241562:                 # 2019 portofino, Maranello
+  listed_on: 2026-09-24
+  source: cars.com
+  prices:
+    - [2026-09-24, 190170]
+    - [2026-10-16, 188170]
+
+ZFF89FPA8L0249677:                 # 2020 portofino, Maranello
+  listed_on: 2026-09-24
+  source: cars.com
+  prices:
+    - [2026-09-24, 196970]
+    - [2026-10-11, 196170]
+
+ZFF89FPA9L0258405:                 # 2020 portofino, Ferrari of Miami
+  listed_on: 2026-08-26
+  source: cars.com
+  prices:
+    - [2026-08-26, 201294]
+
+ZFF89FPA2L0255524:                 # 2020 portofino, Ferrari of Central Ohio
+  listed_on: 2026-07-15
+  source: cars.com
+  prices:
+    - [2026-07-15, 163890]
+    - [2026-07-22, 156277]
+    - [2026-07-31, 154737]
+    - [2026-08-08, 164388]
+    - [2026-08-17, 164138]
+    - [2026-08-25, 162998]
+    - [2026-09-03, 160335]
+    - [2026-09-11, 158176]
+    - [2026-09-12, 149995]
+    - [2026-09-19, 148342]
+    - [2026-09-30, 152324]
+    - [2026-10-09, 150395]
+    - [2026-10-14, 145351]
+    - [2026-10-27, 145251]
+    - [2026-10-28, 140398]
+
+ZFF89FPA7L0252876:                 # 2020 portofino, Ferrari of San Diego
+  listed_on: 2026-06-23
+  source: cars.com
+  prices:
+    - [2026-06-23, 209999]
+    - [2026-07-22, 208500]
+    - [2026-08-26, 206415]
+    - [2026-09-21, 206537]
+    - [2026-09-26, 203122]
+    - [2026-10-20, 200122]
+    - [2026-10-21, 195122]
+
+ZFF02RPAXN0284873:                 # 2022 portofino-m, Ferrari Lake Forest
+  listed_on: 2026-10-30
+  source: cars.com
+  prices:
+    - [2026-10-30, 295900]
+
+ZFF02RPAXN0275493:                 # 2022 portofino-m, Ferrari of Naples
+  listed_on: 2026-10-29
+  source: cars.com
+  prices:
+    - [2026-10-29, 271685]
+
+ZFF02RPA7N0270008:                 # 2022 portofino-m, Ferrari of Austin
+  listed_on: 2026-10-16
+  source: cars.com
+  prices:
+    - [2026-10-16, 276920]
+    - [2026-11-05, 272000]
+
+ZFF02RPA0N0283778:                 # 2022 portofino-m, Ferrari of Naples
+  listed_on: 2026-10-21
+  source: cars.com
+  prices:
+    - [2026-10-21, 291685]
+
+ZFF02RPA4N0274209:                 # 2022 portofino-m, Ferrari Lake Forest
+  listed_on: 2026-09-23
+  source: cars.com
+  prices:
+    - [2026-09-23, 299000]
+    - [2026-10-15, 289000]
+    - [2026-11-05, 288000]
+
+ZFF02RPA6N0273918:                 # 2022 portofino-m, Ferrari of San Francisco
+  listed_on: 2026-07-30
+  source: cars.com
+  prices:
+    - [2026-07-30, 279122]
+    - [2026-09-17, 274151]
+    - [2026-10-13, 267962]
+
+ZFF02RPA5N0271500:                 # 2022 portofino-m, Twin Cities Performance
+  listed_on: 2026-09-09
+  source: cars.com
+  prices:
+    - [2026-09-09, 259990]
+    - [2026-10-03, 249990]
+    - [2026-11-03, 239640]
+
+ZFF02RPA5N0285767:                 # 2022 portofino-m, Ferrari of Atlanta
+  listed_on: 2026-10-14
+  source: cars.com
+  prices:
+    - [2026-10-14, 299900]
+
+ZFF02RPA4N0272542:                 # 2022 portofino-m, Ferrari of Hawaii
+  listed_on: 2026-10-01
+  source: cars.com
+  prices:
+    - [2026-10-01, 259995]
+
+ZFF02RPA9N0274674:                 # 2022 portofino-m, Ferrari of Long Island
+  listed_on: 2026-08-06
+  source: cars.com
+  prices:
+    - [2026-08-06, 285075]
+    - [2026-08-20, 286075]
+    - [2026-09-02, 280075]
+    - [2026-09-10, 282075]
+    - [2026-09-24, 281075]
+    - [2026-10-06, 280875]
+    - [2026-10-07, 285075]
+    - [2026-11-04, 280075]
+
+ZFF02RPA4P0293393:                 # 2023 portofino-m, Miller Motorcars
+  listed_on: 2026-10-31
+  source: cars.com
+  prices:
+    - [2026-10-31, 271498]
+
+ZFF02RPA1P0292184:                 # 2023 portofino-m, Scottsdale Ferrari
+  listed_on: 2026-10-25
+  source: cars.com
+  prices:
+    - [2026-10-25, 306598]
+
+ZFF02RPA0P0288532:                 # 2023 portofino-m, Ferrari of Fort Lauderdale
+  listed_on: 2026-10-07
+  source: cars.com
+  prices:
+    - [2026-10-07, 291584]
+    - [2026-10-08, 301584]
+    - [2026-10-29, 291584]
+
+ZFF02RPA2P0287432:                 # 2023 portofino-m, Twin Cities Performance
+  listed_on: 2026-08-18
+  source: cars.com
+  prices:
+    - [2026-08-18, 299990]
+    - [2026-10-03, 295990]
+    - [2026-11-03, 289640]
+
+ZFF02RPA4P0298500:                 # 2023 portofino-m, Ron Tonkin Gran Turismo
+  listed_on: 2026-09-23
+  source: cars.com
+  prices:
+    - [2026-09-23, 310153]
+    - [2026-10-01, 304653]
+    - [2026-10-16, 303553]
+    - [2026-10-23, 299950]
+    - [2026-10-29, 299142]
+
+ZFF02RPA5P0294777:                 # 2023 portofino-m, Ferrari of Seattle
+  listed_on: 2026-06-19
+  source: cars.com
+  prices:
+    - [2026-06-19, 293000]
+    - [2026-10-21, 289995]
+
+ZFF02RPA9P0296824:                 # 2023 portofino-m, Continental Autosports
+  listed_on: 2026-09-19
+  source: cars.com
+  prices:
+    - [2026-09-19, 310411]
+
+ZFF02RPA8P0296037:                 # 2023 portofino-m, Ferrari of Boca Raton
+  listed_on: 2026-08-13
+  source: cars.com
+  prices:
+    - [2026-08-13, 310684]
+    - [2026-09-16, 310584]
+    - [2026-09-19, 301584]
+
+ZFF02RPA1P0297501:                 # 2023 portofino-m, Miller Motorcars
+  listed_on: 2026-08-29
+  source: cars.com
+  prices:
+    - [2026-08-29, 291498]
+    - [2026-11-05, 287498]
+
+ZFF02RPA2P0287429:                 # 2023 portofino-m, Miller Motorcars
+  listed_on: 2026-06-12
+  source: cars.com
+  prices:
+    - [2026-06-12, 291498]
+    - [2026-08-27, 289498]
+    - [2026-10-01, 286498]
+    - [2026-11-05, 277498]
+
+ZFF02RPAXP0296282:                 # 2023 portofino-m, Ferrari Philadelphia
+  listed_on: 2026-04-10
+  source: cars.com
+  prices:
+    - [2026-04-10, 306995]
+    - [2026-05-15, 307500]
+    - [2026-06-09, 300416]
+    - [2026-07-13, 295423]
+    - [2026-08-07, 292301]
+    - [2026-09-09, 288945]
+    - [2026-11-02, 285500]
+
+ZSG06VTA6R0302570:                 # 2024 purosangue, Ferrari Dallas
+  listed_on: 2026-11-02
+  source: cars.com
+  prices:
+    - [2026-11-02, 499900]
+
+ZSG06VTA1T0329151:                 # 2026 purosangue, Ferrari of Naples
+  listed_on: 2026-10-01
+  source: cars.com
+  prices:
+    - [2026-10-01, 611685]
+    - [2026-10-09, 610685]
+    - [2026-10-27, 599982]
+    - [2026-11-03, 581685]
+
+ZFF98RNA9N0269774:                 # 2022 roma, Ferrari of Atlanta
+  listed_on: 2026-10-30
+  source: cars.com
+  prices:
+    - [2026-10-30, 205890]
+    - [2026-11-05, 206588]
+
+ZFF98RNA2N0274850:                 # 2022 roma, Ferrari of Washington
+  listed_on: 2026-10-22
+  source: cars.com
+  prices:
+    - [2026-10-22, 205957]
+
+ZFF09RPA7R0307625:                 # 2024 roma-spider, Ferrari of Denver
+  listed_on: 2026-09-10
+  source: cars.com
+  prices:
+    - [2026-09-10, 299990]
+    - [2026-09-19, 289990]
+
+ZFF09RPA8R0309352:                 # 2024 roma-spider, Ferrari Dallas
+  listed_on: 2026-09-17
+  source: cars.com
+  prices:
+    - [2026-09-17, 295125]
+    - [2026-09-29, 292900]
+    - [2026-09-30, 289900]
+
+ZFF09RPA2S0315539:                 # 2025 roma-spider, Ferrari of Atlanta
+  listed_on: 2026-10-28
+  source: cars.com
+  prices:
+    - [2026-10-28, 297900]
+    - [2026-11-05, 298592]
+
+ZFF09RPA1S0311854:                 # 2025 roma-spider, The Collection
+  listed_on: 2026-10-07
+  source: cars.com
+  prices:
+    - [2026-10-07, 301294]
+    - [2026-11-03, 291294]
+
+ZFF09RPA2S0322460:                 # 2025 roma-spider, Ferrari of Atlanta
+  listed_on: 2026-10-06
+  source: cars.com
+  prices:
+    - [2026-10-06, 349750]
+
+ZFF09RPA4S0318409:                 # 2025 roma-spider, Ferrari of Miami
+  listed_on: 2026-10-03
+  source: cars.com
+  prices:
+    - [2026-10-03, 491394]
+    - [2026-10-06, 492294]
+    - [2026-11-03, 442294]
+
+ZFF09RPA5S0315468:                 # 2025 roma-spider, Ferrari of San Diego
+  listed_on: 2026-07-23
+  source: cars.com
+  prices:
+    - [2026-07-23, 339969]
+    - [2026-07-31, 349999]
+    - [2026-08-01, 360000]
+    - [2026-08-20, 350000]
+    - [2026-08-28, 347000]
+    - [2026-09-18, 339000]
+    - [2026-09-21, 339122]
+    - [2026-10-24, 315001]
+
+ZFF09RPA8S0325427:                 # 2025 roma-spider, Ferrari of San Diego
+  listed_on: 2026-07-09
+  source: cars.com
+  prices:
+    - [2026-07-09, 344999]
+    - [2026-08-15, 339000]
+    - [2026-08-29, 334000]
+    - [2026-09-03, 329000]
+    - [2026-09-21, 329122]
+    - [2026-09-26, 323122]
+    - [2026-10-20, 320010]
+    - [2026-10-21, 315010]
+
+ZFF96NMAXN0283344:                 # 2022 sf90-spider, Ferrari of Atlanta
+  listed_on: 2026-10-06
+  source: cars.com
+  prices:
+    - [2026-10-06, 650000]
+
+ZFF96NMA3P0297329:                 # 2023 sf90-spider, Ferrari of Denver
+  listed_on: 2026-09-24
+  source: cars.com
+  prices:
+    - [2026-09-24, 599990]
+    - [2026-10-22, 595990]
+
+ZFF96NMA7P0287290:                 # 2023 sf90-spider, Ferrari of Naples
+  listed_on: 2026-10-13
+  source: cars.com
+  prices:
+    - [2026-10-13, 607685]
+
+ZFF96NMA7R0308237:                 # 2024 sf90-spider, Miller Motorcars
+  listed_on: 2026-10-08
+  source: cars.com
+  prices:
+    - [2026-10-08, 611498]
+    - [2026-10-11, 591498]
+    - [2026-11-05, 584498]
+
+ZFF96NMAXS0313017:                 # 2025 sf90-spider, Ferrari of San Diego
+  listed_on: 2026-10-30
+  source: cars.com
+  prices:
+    - [2026-10-30, 835961]
+    - [2026-11-03, 699909]
+
+ZFF96NMA3S0317166:                 # 2025 sf90-spider, Ferrari of San Diego
+  listed_on: 2026-10-14
+  source: cars.com
+  prices:
+    - [2026-10-14, 590121]
+    - [2026-10-17, 620122]
+
+ZFF95NLA5N0286284:                 # 2022 sf90-stradale, Ferrari of San Diego
+  listed_on: 2026-10-24
+  source: cars.com
+  prices:
+    - [2026-10-24, 599122]
+
+ZFF95NLA2N0279499:                 # 2022 sf90-stradale, Ferrari of Denver
+  listed_on: 2026-08-19
+  source: cars.com
+  prices:
+    - [2026-08-19, 499990]
+    - [2026-09-19, 489990]
+    - [2026-10-05, 479990]
