@@ -24,8 +24,10 @@ this source runs on the home runner (a residential connection), like Ferrari
 Approved and SOMO. The challenge is never worked around.
 
 Private sales live on a separate site (broadarrowprivatesales.com) and are never read.
-Lots whose result is final, or that publish no price, are remembered so each
-page is read once. `lot_pages` caps the pages read per run (10 s apart).
+Lots whose result is final, or that were sold with no price published, are remembered so
+each page is read once. Results go up a day or more after a sale, so a lot past its sale
+that still shows only an estimate is read again each run for RESULT_WAIT_DAYS.
+`lot_pages` caps the pages read per run (10 s apart).
 """
 from __future__ import annotations
 
@@ -225,6 +227,26 @@ def parse_lot(html: str, url: str, events: dict, today: date, source: str = "bro
     return rec, ("upcoming" if status == "upcoming" else "final")
 
 
+RESULT_WAIT_DAYS = 60       # a lot past its sale with only an estimate is read again each run for this long
+
+
+def awaiting_since(skip: Optional[str]) -> Optional[str]:
+    """Day a past lot was first seen without a result ('past lot ...|2026-11-01')."""
+    if skip and skip.startswith("past lot") and "|" in skip:
+        return skip.rsplit("|", 1)[1]
+    return None
+
+
+def retry_awaiting(skip: str, today: date) -> bool:
+    """Whether a skipped lot is worth reading again: only a lot still awaiting its result, for
+    RESULT_WAIT_DAYS after the first look. Entries stored without a day (read once and given up
+    on before this existed) are read again too."""
+    if not skip.startswith("past lot"):
+        return False
+    since = awaiting_since(skip)
+    return since is None or (today - date.fromisoformat(since)).days <= RESULT_WAIT_DAYS
+
+
 class BroadArrow(Source):
     kind = AUCTION
 
@@ -270,15 +292,20 @@ class BroadArrow(Source):
                 row = con.execute("SELECT status FROM lots WHERE uid=?", (f"{self.name}:{code}",)).fetchone()
                 if row and row[0] in ("sold", "unsold"):
                     continue                              # final result already stored
-                if db.kv_get(con, "ba_skip:" + code):
-                    continue                              # no published price: read once, never again
+                skip = db.kv_get(con, "ba_skip:" + code)
+                if skip and not retry_awaiting(skip, today):
+                    continue                              # no published price: not read again
             if budget <= 0:
                 break
             budget -= 1
             rec, why = parse_lot(self._get(url), url, events, today, self.name)
             if rec is None:
-                if con is not None and why.startswith(("sold, price", "past lot")):
+                if con is not None and why.startswith("sold, price"):
                     db.kv_set(con, "ba_skip:" + code, why)
+                elif con is not None and why.startswith("past lot"):
+                    # results go up a day or more after a sale: keep looking for a while
+                    since = awaiting_since(db.kv_get(con, "ba_skip:" + code)) or today.isoformat()
+                    db.kv_set(con, "ba_skip:" + code, f"{why}|{since}")
                 self.log.debug("%s: %s", url, why)
                 continue
             yield rec
