@@ -1323,3 +1323,54 @@ ZFF95NLA2N0279499:                 # 2022 sf90-stradale, Ferrari of Denver
     - [2026-08-19, 499990]
     - [2026-09-19, 489990]
     - [2026-10-05, 479990]
+
+# Cars from before 17 character VINs, by the site's chassis key, found on cars.com by model and dealer.
+
+chassis:308:021695:                # 1977 308, Ferrari of Central Ohio
+  listed_on: 2026-07-10
+  source: cars.com
+  url: https://www.cars.com/vehicledetail/fc08c34f-ce25-4afb-86cd-8ecc039656c1/
+  prices:
+    - [2026-07-10, 149898]
+    - [2026-07-18, 150279]
+    - [2026-07-23, 130278]
+    - [2026-07-31, 125490]
+    - [2026-08-20, 124283]
+    - [2026-08-25, 119898]
+    - [2026-09-04, 114948]
+    - [2026-09-13, 110395]
+    - [2026-09-21, 109845]
+    - [2026-09-30, 155898]
+    - [2026-11-05, 154897]
+
+chassis:308:035851:                # 1981 308, Ferrari of Fort Lauderdale
+  listed_on: 2026-03-04
+  source: cars.com
+  url: https://www.cars.com/vehicledetail/2e1c2a8d-f298-4849-aa00-a0ed8d27c90b/
+  prices:
+    - [2026-03-04, 194900]
+    - [2026-06-24, 196584]
+    - [2026-09-19, 186584]
+
+chassis:308:031801:                # 1980 308, Continental Autosports
+  listed_on: 2026-05-02
+  source: cars.com
+  url: https://www.cars.com/vehicledetail/75f32bd0-e9cd-4213-8eda-6b710dc4a52b/
+  prices:
+    - [2026-05-02, 94999]
+    - [2026-08-18, 95411]
+
+chassis:308:019145:                # 1976 308, Continental Autosports
+  listed_on: 2024-07-04
+  source: cars.com
+  url: https://www.cars.com/vehicledetail/ea03c283-8c7d-49f9-822c-4b2abd490f34/
+  prices:
+    - [2024-07-04, 279900]
+    - [2024-09-29, 249900]
+    - [2025-03-09, 239999]
+    - [2025-09-25, 224999]
+    - [2025-10-11, 209999]
+    - [2026-01-18, 249900]
+    - [2026-03-21, 239900]
+    - [2026-08-18, 240312]
+    - [2026-10-10, 230312]

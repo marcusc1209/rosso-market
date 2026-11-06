@@ -12,6 +12,8 @@ there can be entered per VIN instead:
         - [2026-08-29, 1199000]
         - [2026-10-02, 1149000]
 
+A car from before 17 character VINs goes by the site's key instead, such as chassis:308:021695.
+
 An entry gives every listing of that car its date (when the date is earlier than what a site
 published) and the price history before we saw the car. It applies to stored listings at once
 (so a republish shows it) and to each new record a run reads.
@@ -45,7 +47,9 @@ def load(config_path) -> dict:
             continue
         day = str(v.get("listed_on") or "")[:10] or None
         prices = [[str(d)[:10], float(pr)] for d, pr in (v.get("prices") or []) if d and pr]
-        out[str(vin).strip().upper()] = {"listed_on": day, "how": str(v.get("source") or "entered by hand"),
+        k = str(vin).strip()
+        # a VIN, or for cars from before VINs the site's own key: chassis:<model>:<number>
+        out[k.lower() if k.lower().startswith("chassis:") else k.upper()] = {"listed_on": day, "how": str(v.get("source") or "entered by hand"),
                                          "url": v.get("url"), "prices": sorted(prices)}
     return out
 
@@ -71,7 +75,8 @@ def apply_db(con, entries: dict) -> int:
     """Bring stored listings in line with the file, so a republish shows the entries."""
     n = 0
     for vin, ov in entries.items():
-        for uid, raw in con.execute("SELECT uid, raw FROM sightings WHERE vehicle_key=? AND json_valid(raw)", ("vin:" + vin,)).fetchall():
+        vk = vin if vin.startswith("chassis:") else "vin:" + vin
+        for uid, raw in con.execute("SELECT uid, raw FROM sightings WHERE vehicle_key=? AND json_valid(raw)", (vk,)).fetchall():
             r = json.loads(raw)
             extra = r.setdefault("extra", {})
             if _merge(extra, ov):
