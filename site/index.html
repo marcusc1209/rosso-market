@@ -820,7 +820,6 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     const b = D.brief;
     const mm = D.market_movers || { since: null, all: [] };
     if (mm.since && !mm.all.length && !mm.active) mm.since = null;
-    const nModels = D.models.length;
     const live = D.auctions.live;
     const ix = D.index;
     const ixLast = ix.length ? ix[ix.length - 1][1] : null;
@@ -833,7 +832,6 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       <div class="wrap">
         <div class="eyebrow"><span class="dot"></span>As of ${dateLong(D.as_of)}, ${esc(D.region)}</div>
         <h1>Rosso<br><span>Market</span></h1>
-        <p class="lede">Daily asking prices, auction results and market intelligence for every Ferrari for sale in the US and every hypercar for sale worldwide, from the 308 to the SF90 XX, with auction results from around the world.</p>
         <div class="hero-index">
           <div><b>${ixLast ? ixLast.toFixed(1) : "n/a"}</b><small>Ask index, 90 days ago = 100</small></div>
           <div><b>${ix30 == null ? "n/a" : (ix30 < 0 ? "▼ " : "▲ ") + Math.abs(ix30).toFixed(1) + "%"}</b><small>Last 30 days</small></div>
@@ -842,7 +840,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       </div>
     </section>
     <div class="jump"><div class="wrap jump-scroll"><div class="jump-row" role="navigation" aria-label="Sections">
-      ${[["brief", "Market Brief"], ["movers", "Market Movers"], ["auctions-sec", "Auctions"], ["families", "Models"], ["insights", "Insights"], ["news-sec", "News"]]
+      ${[["brief", "Market Brief"], ["movers", "Market Movers"], ["auctions-sec", "Auctions"], ["insights", "Insights"], ["news-sec", "News"]]
         .map(([id, t]) => `<button type="button" data-jump="${id}">${t}</button>`).join("")}
     </div></div></div>
 
@@ -852,7 +850,6 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
         <h2>${esc(b.headline)}</h2>
         <div class="eyebrow" style="margin-bottom:12px">What changed this week</div>
         <ul class="changes">${b.bullets.map(x => `<li><b>${esc(x.label)}</b><span>${esc(x.text)}</span></li>`).join("")}</ul>
-        <p class="flat" style="margin:0">We are watching ${b.tracked_listings.toLocaleString("en-US")} tracked Ferraris across ${nModels} models and ${b.active_auctions} live auctions. Each car is counted once, however many sites list it.</p>
       </div>
       <div class="stats">
         <div class="stat"><b>${b.tracked_listings.toLocaleString("en-US")}</b><span>Tracked listings</span></div>
@@ -867,20 +864,11 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       ${mm.since ? `<div class="movers">${moverCard("gainer", mm.gainer, mm.since)}${moverCard("decliner", mm.decliner, mm.since)}${moverCard("active", mm.active, mm.since)}</div>
         ${topMoves(mm.all)}`
         : '<div class="empty">Movers appear once there is a week of asking prices to compare.</div>'}
-      <p class="rule">Week over week: each model's median asking price this week against last week, model year by model year (2021 cars against 2021 cars), weighted by how many cars each year has. Every car counts, so a batch of cheaper cars arriving or price cuts on cars already listed both pull a model down.${mm.how === "rebuilt" ? " Until we hold a full week of daily snapshots, last week's asks are rebuilt from AutoTrader's own price histories and listing dates, and both weeks use those cars only." : ""} Most active counts cars newly listed, cars that left the market and auction sales.</p>
     </div></section>
 
     <section class="block" id="auctions-sec"><div class="wrap">
       <div class="sec-head"><div><div class="eyebrow">Live Auction Watch</div><h2>Notable auctions</h2></div><a class="link-more" href="#auctions">All auctions →</a></div>
       ${live.length ? `<div class="lots" data-rows="2" data-min="4">${live.slice(0, 16).map(lotCard).join("")}</div>` : '<div class="empty">No Ferrari lots are live right now.</div>'}
-    </div></section>
-
-    <section class="block" id="families"><div class="wrap">
-      <div class="sec-head"><div><div class="eyebrow">Explore by Model</div><h2>Go deeper into each family</h2></div></div>
-      <div class="families">${D.families.map(f => `<a class="family" href="#family-${f.slug}">
-        <h3>${esc(f.name)}</h3><div class="n">${f.listings ? plural(f.listings, "car") + " for sale, " : ""}${plural(f.sold_12m || 0, "auction sale")} in 12 months, ${plural(f.models.length, "model")}</div>
-        <div class="sig"><span>${esc(f.signal)}</span>${f.change != null ? chg(f.change) : ""}</div>
-        <span class="go">Explore ${esc(f.name)} →</span></a>`).join("")}</div>
     </div></section>
 
     <section class="block" id="insights"><div class="wrap">

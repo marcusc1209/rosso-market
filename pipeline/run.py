@@ -196,8 +196,11 @@ def main(argv=None):
         from .fetch import Browser
         Browser.shutdown()
     else:
+        # only sources that are switched on: retired and disabled ones (autotrader_ca, autotrader_us) stay off the site
+        live = {n for n, sc in (cfg.get("sources") or {}).items() if sc.get("enabled")}
         reports = [dict(source=r["source"], state=r["status"], detail=r["error"] or "", accepted=r["accepted"])
-                   for r in con.execute("SELECT * FROM runs WHERE id IN (SELECT MAX(id) FROM runs GROUP BY source)")]
+                   for r in con.execute("SELECT * FROM runs WHERE id IN (SELECT MAX(id) FROM runs GROUP BY source)")
+                   if r["source"] in live]
 
     if cfg["_listing_history"]:
         log.info("%d stored listings updated from listing_history.yaml", overrides.apply_db(con, cfg["_listing_history"]))
