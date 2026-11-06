@@ -77,3 +77,18 @@ def test_colour_guide_decides_before_keywords():
     assert colors.family("Grigio Silverstone Metallic") == "grey"
     assert colors.family("Argento Nurburgring") == "silver"
     assert colors.family("Rosso Corsa") == "red" and colors.family("Titanium") == "grey"
+
+
+def test_late_scheduled_run_skips_a_day_that_already_ran(monkeypatch):
+    import sqlite3
+    from pipeline import db, run
+    con = sqlite3.connect(":memory:"); con.row_factory = sqlite3.Row
+    con.executescript(db.SCHEMA)
+    con.execute("INSERT INTO runs (day, source, status) VALUES ('2026-11-06', 'bringatrailer', 'ok')")
+    day = date(2026, 11, 6)
+    monkeypatch.setenv("GITHUB_EVENT_NAME", "schedule")
+    assert run.already_ran(con, day, ["bringatrailer", "mecum"])
+    assert not run.already_ran(con, day, ["ferrari_approved"])            # the home run's sources
+    assert not run.already_ran(con, date(2026, 11, 7), ["bringatrailer"])
+    monkeypatch.setenv("GITHUB_EVENT_NAME", "workflow_dispatch")          # a run started on purpose always runs
+    assert not run.already_ran(con, day, ["bringatrailer"])

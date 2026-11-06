@@ -137,6 +137,17 @@ def run_day(con, cfg, day: date, sources, fx, where: str = "all") -> list[dict]:
     return reports
 
 
+def already_ran(con, day: date, names: list) -> bool:
+    """GitHub starts scheduled workflows hours late, so each day's runs are started on time from
+    outside GitHub (a scheduled task dispatches them). The schedule in the workflow stays as a backup,
+    and when it fires after that day's run has happened, it skips instead of running twice."""
+    if os.environ.get("GITHUB_EVENT_NAME") != "schedule":
+        return False
+    row = con.execute(f"SELECT COUNT(*) FROM runs WHERE day=? AND source IN ({','.join('?' * len(names))})",
+                      (day.isoformat(), *names)).fetchone()
+    return bool(row and row[0])
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default=os.environ.get("FM_CONFIG", "config/sources.yaml"))
@@ -183,14 +194,21 @@ def main(argv=None):
     clean.purge(con)        # stored rows that today's filters would reject
 
     reports: list[dict] = []
+    only = set(a.only.split(",")) if a.only else None
     if not a.export_only:
-        only = set(a.only.split(",")) if a.only else None
         sources = build_sources(cfg, day, only, a.where)
         for _, _, ctx in sources:
             ctx.con = con
         if not sources:
             log.error("no sources enabled")
             return 1
+        if already_ran(con, day, [s[0] for s in sources]):
+            # GitHub's late scheduled run: the day's run already happened, so only republish
+            log.info("these sources already ran today (%s): this late scheduled run only republishes", day)
+            for _, _, ctx in sources:
+                ctx.close()
+            a.export_only = True
+    if not a.export_only:
         fx = fx_rates(cfg, sources[0][2].fetcher if cfg["settings"].get("fx_live") else None)
         for back in range(a.backfill, -1, -1):
             reports = run_day(con, cfg, day - timedelta(days=back), sources, fx, a.where)
