@@ -77,6 +77,9 @@ def series(con, model_id: str, today: date, tracked: list | None = None, since: 
     # when we started, so the count would seem to climb. Those models start at our first snapshot.
     if not tracked and since:
         first = max(first, _monday(date.fromisoformat(since)))
+    # and models it covers start at its first check, for the same reason
+    if tweek:
+        first = max(first, date.fromisoformat(min(tweek)))
     out, prev, last_tv = [], None, {}
     wk = first
     while wk <= today:
