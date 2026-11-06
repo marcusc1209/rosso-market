@@ -154,6 +154,9 @@ def auction_stats(con, day: date) -> dict:
             "sold_12m": len(sold), "closed_12m": len(now),
             "median_sold_12m": None if med is None else round(med),
             "low_12m": sold[0] if sold else None, "high_12m": sold[-1] if sold else None,
+            # the middle half of sale prices, drawn against the middle half of asks on the site
+            "p25_12m": round(A._q(sold, 0.25)) if len(sold) >= 4 else None,
+            "p75_12m": round(A._q(sold, 0.75)) if len(sold) >= 4 else None,
             "change_yoy": None if not (med and med_prev and len(sold) >= 8) else round((med / med_prev - 1) * 100, 1),
             "sell_through_12m": round(len(sold) / len(now) * 100) if now else None,
             "last_sold": None if not last else {"day": last["d"], "price": last["price_usd"]},

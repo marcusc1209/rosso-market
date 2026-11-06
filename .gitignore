@@ -3,3 +3,8 @@ public/
 __pycache__/
 .pytest_cache/
 *.pyc
+
+# design review captures
+.impeccable/review/
+.impeccable/questions/
+.impeccable/build/

@@ -1,0 +1,359 @@
+{
+ "schemaVersion": 2,
+ "generatedAt": "2026-11-06T05:00:23.561641Z",
+ "title": "Design System: Rosso Market",
+ "extensions": {
+  "colorMeta": {
+   "ask": {
+    "role": "primary",
+    "displayName": "Cobalt Ask",
+    "tonalRamp": [
+     "#0b133c",
+     "#122064",
+     "#182d8c",
+     "#1f38b0",
+     "#5a70d6",
+     "#91a0e4",
+     "#c8cff1",
+     "#edf0fb"
+    ]
+   },
+   "sold": {
+    "role": "secondary",
+    "displayName": "Vermilion Sold",
+    "tonalRamp": [
+     "#431308",
+     "#70200e",
+     "#9d2d14",
+     "#c53819",
+     "#e87055",
+     "#f0a08e",
+     "#f7cfc6",
+     "#fdf0ed"
+    ]
+   },
+   "giallo": {
+    "role": "tertiary",
+    "displayName": "Giallo Band",
+    "tonalRamp": [
+     "#4d3d00",
+     "#806600",
+     "#b28f00",
+     "#e0b400",
+     "#ffd940",
+     "#ffe680",
+     "#fff2bf",
+     "#fffbeb"
+    ]
+   },
+   "paper": {
+    "role": "neutral",
+    "displayName": "Paper",
+    "tonalRamp": [
+     "#494948",
+     "#7a7a78",
+     "#aaaaa8",
+     "#d6d6d3",
+     "#f6f6f4",
+     "#f9f9f8",
+     "#fcfcfb",
+     "#fefefe"
+    ]
+   },
+   "sheet": {
+    "role": "neutral",
+    "displayName": "Sheet",
+    "tonalRamp": [
+     "#4d4d4d",
+     "#808080",
+     "#b2b2b2",
+     "#e0e0e0",
+     "#ffffff",
+     "#ffffff",
+     "#ffffff",
+     "#ffffff"
+    ]
+   },
+   "ink": {
+    "role": "neutral",
+    "displayName": "Ink",
+    "tonalRamp": [
+     "#070708",
+     "#0c0c0e",
+     "#101013",
+     "#141418",
+     "#515154",
+     "#8b8b8d",
+     "#c5c5c6",
+     "#ececed"
+    ]
+   },
+   "ink-2": {
+    "role": "neutral",
+    "displayName": "Ink Two",
+    "tonalRamp": [
+     "#141517",
+     "#222226",
+     "#303036",
+     "#3c3d44",
+     "#73747a",
+     "#a2a2a6",
+     "#d0d0d2",
+     "#f0f0f1"
+    ]
+   },
+   "ink-3": {
+    "role": "neutral",
+    "displayName": "Ink Three",
+    "tonalRamp": [
+     "#1e1e21",
+     "#323237",
+     "#46474d",
+     "#585961",
+     "#8b8c92",
+     "#b2b2b6",
+     "#d8d8db",
+     "#f3f3f3"
+    ]
+   },
+   "rule": {
+    "role": "neutral",
+    "displayName": "Rule",
+    "tonalRamp": [
+     "#414140",
+     "#6c6c6a",
+     "#989894",
+     "#bfbfbb",
+     "#e2e2df",
+     "#ececea",
+     "#f6f6f4",
+     "#fcfcfc"
+    ]
+   },
+   "wash": {
+    "role": "neutral",
+    "displayName": "Wash",
+    "tonalRamp": [
+     "#464644",
+     "#747472",
+     "#a2a29f",
+     "#ccccc8",
+     "#eeeeea",
+     "#f4f4f1",
+     "#f9f9f8",
+     "#fdfdfd"
+    ]
+   },
+   "ask-deep": {
+    "role": "primary",
+    "displayName": "Deep Cobalt",
+    "tonalRamp": [
+     "#070c29",
+     "#0c1445",
+     "#111c61",
+     "#152379",
+     "#525ea7",
+     "#8c94c4",
+     "#c5c9e2",
+     "#edeef6"
+    ]
+   },
+   "sold-deep": {
+    "role": "secondary",
+    "displayName": "Deep Vermilion",
+    "tonalRamp": [
+     "#320d04",
+     "#521507",
+     "#731d0a",
+     "#91250c",
+     "#bc5f4a",
+     "#d29486",
+     "#e8cac3",
+     "#f8eeec"
+    ]
+   },
+   "up": {
+    "role": "status",
+    "displayName": "Up",
+    "tonalRamp": [
+     "#052216",
+     "#093825",
+     "#0d4e34",
+     "#106341",
+     "#4d9477",
+     "#88b8a4",
+     "#c4dbd2",
+     "#ecf4f1"
+    ]
+   },
+   "down": {
+    "role": "status",
+    "displayName": "Down",
+    "tonalRamp": [
+     "#360b07",
+     "#5a120c",
+     "#7e1811",
+     "#9e1f15",
+     "#c75a52",
+     "#da918c",
+     "#ecc8c5",
+     "#f9eded"
+    ]
+   }
+  },
+  "typographyMeta": {
+   "display": {
+    "displayName": "Display",
+    "purpose": "Model, family and page names, width 125."
+   },
+   "headline": {
+    "displayName": "Headline",
+    "purpose": "The overview opening sentence."
+   },
+   "title": {
+    "displayName": "Title",
+    "purpose": "Section headings, width 116 to 118."
+   },
+   "body": {
+    "displayName": "Body",
+    "purpose": "Text and data, tabular figures."
+   },
+   "label": {
+    "displayName": "Label",
+    "purpose": "Column heads and value labels."
+   }
+  },
+  "shadows": [
+   {
+    "name": "float",
+    "value": "0 24px 40px -12px rgba(0,0,0,.22)",
+    "purpose": "Menus, search results and chart tips only."
+   }
+  ],
+  "motion": [
+   {
+    "name": "ease-out-expo",
+    "value": "cubic-bezier(.16, 1, .3, 1)",
+    "purpose": "All transitions and the print wipe."
+   },
+   {
+    "name": "print",
+    "value": "clip-path inset wipe, 420ms, sold ink 90ms after ask",
+    "purpose": "Overprint strips printing in on first render."
+   }
+  ],
+  "breakpoints": [
+   {
+    "name": "phone",
+    "value": "640px"
+   },
+   {
+    "name": "board-stack",
+    "value": "720px"
+   },
+   {
+    "name": "tablet",
+    "value": "900px"
+   },
+   {
+    "name": "board-compact",
+    "value": "1100px"
+   },
+   {
+    "name": "wide",
+    "value": "1500px"
+   }
+  ]
+ },
+ "components": [
+  {
+   "name": "Overprint Strip",
+   "kind": "custom",
+   "refersTo": "strip",
+   "description": "Asks against sales for one model, the signature.",
+   "html": "<div class=\"ds-strip\"><i class=\"ds-wa\" style=\"left:20%;width:60%\"></i><i class=\"ds-ba\" style=\"left:45%;width:20%\"></i><i class=\"ds-ws\" style=\"left:10%;width:55%\"></i><i class=\"ds-bs\" style=\"left:32%;width:22%\"></i><i class=\"ds-ma\" style=\"left:55%\"></i><i class=\"ds-ms\" style=\"left:42%\"></i></div>",
+   "css": ".ds-strip{position:relative;height:22px;width:320px;background:#fff}.ds-strip i{position:absolute}.ds-wa,.ds-ws{height:1px;opacity:.7}.ds-wa{top:7px;background:#2340c8}.ds-ws{top:15px;background:#e0401c}.ds-ba,.ds-bs{height:13px;opacity:.62;mix-blend-mode:multiply}.ds-ba{top:1px;background:#2340c8}.ds-bs{top:8px;background:#e0401c}.ds-ma,.ds-ms{width:2px;height:13px}.ds-ma{top:-2px;background:#18288a}.ds-ms{top:11px;background:#a52a0e}"
+  },
+  {
+   "name": "Outline Button",
+   "kind": "button",
+   "refersTo": "button-line",
+   "description": "Secondary actions such as show all models.",
+   "html": "<button class=\"ds-btn-line\">Show all 80 models</button>",
+   "css": ".ds-btn-line{border:1px solid #17171b;background:#fff;color:#17171b;padding:10px 18px;font:620 14px/1 Archivo,Arial,sans-serif;border-radius:0;cursor:pointer}.ds-btn-line:hover{background:#17171b;color:#fff}.ds-btn-line:focus-visible{outline:2px solid #2340c8;outline-offset:2px}"
+  },
+  {
+   "name": "Solid Button",
+   "kind": "button",
+   "refersTo": "button-solid",
+   "description": "The one action on a car page.",
+   "html": "<a class=\"ds-btn-solid\" href=\"#\">Contact seller</a>",
+   "css": ".ds-btn-solid{display:inline-flex;background:#17171b;color:#fff;padding:13px 20px;font:640 14px/1 Archivo,Arial,sans-serif;text-decoration:none}.ds-btn-solid:hover{background:#2340c8}.ds-btn-solid:focus-visible{outline:2px solid #2340c8;outline-offset:2px}"
+  },
+  {
+   "name": "Header Band",
+   "kind": "nav",
+   "refersTo": "header-band",
+   "description": "Yellow band with the overprint mark and navigation.",
+   "html": "<nav class=\"ds-band\"><span class=\"ds-mark\"><i></i><i></i></span><b>Rosso Market</b><a aria-current=\"page\">Overview</a><a>Auctions</a></nav>",
+   "css": ".ds-band{display:flex;align-items:center;gap:18px;height:60px;padding:0 20px;background:#ffcc00;color:#17171b;font:560 14px Archivo,Arial,sans-serif}.ds-band b{font-weight:860;font-stretch:125%;font-size:20px}.ds-band a{padding:20px 4px}.ds-band a[aria-current]{box-shadow:inset 0 -3px 0 #17171b}.ds-mark{position:relative;width:30px;height:22px}.ds-mark i{position:absolute;top:0;width:22px;height:22px;border-radius:50%;mix-blend-mode:multiply}.ds-mark i:first-child{left:0;background:#2340c8}.ds-mark i:last-child{right:0;background:#e0401c}"
+  },
+  {
+   "name": "Sold Chip",
+   "kind": "chip",
+   "refersTo": "chip-sold",
+   "description": "Result chips on lot cards.",
+   "html": "<span class=\"ds-chip-sold\">Sold</span> <span class=\"ds-chip-live\">Ending soon</span>",
+   "css": ".ds-chip-sold,.ds-chip-live{font:640 11px/1 Archivo,Arial,sans-serif;padding:5px 7px}.ds-chip-sold{background:#e0401c;color:#fff}.ds-chip-live{background:#ffcc00;color:#17171b;border:1px solid #17171b}"
+  },
+  {
+   "name": "Search Field",
+   "kind": "input",
+   "refersTo": "input-search",
+   "description": "VIN and model search in the band.",
+   "html": "<input class=\"ds-search\" placeholder=\"VIN or model\">",
+   "css": ".ds-search{border:1px solid #17171b;background:#fffbe6;color:#17171b;padding:9px 12px;font:14px Archivo,Arial,sans-serif;border-radius:0}.ds-search:focus-visible{outline:2px solid #17171b;outline-offset:1px;background:#fff}"
+  },
+  {
+   "name": "Lot Card",
+   "kind": "card",
+   "refersTo": "lot",
+   "description": "Auction lot or listing with photo and price.",
+   "html": "<a class=\"ds-lot\"><div class=\"ds-ph\"></div><b>2014 Ferrari 458 Spider</b><span>Current bid</span><strong>$255,000</strong></a>",
+   "css": ".ds-lot{display:grid;gap:4px;width:240px;border-top:2px solid #17171b;font:14px Archivo,Arial,sans-serif;color:#17171b;text-decoration:none}.ds-ph{aspect-ratio:4/3;background:#e8e8e3}.ds-lot span{font-size:12px;color:#64656e}.ds-lot strong{font-size:19px;font-weight:720}.ds-lot:hover b{text-decoration:underline}"
+  }
+ ],
+ "narrative": {
+  "northStar": "Overprint",
+  "overview": "Asks in cobalt and sales in vermilion, printed over each other on white paper after Milan racing print of the 1950s and 60s. Where they overlap they turn violet: where the market clears.",
+  "keyCharacteristics": [
+   "Two data inks with blended overlap",
+   "Yellow header band",
+   "One variable family, expanded for titles",
+   "Hairline rules and square corners",
+   "Standard controls"
+  ],
+  "rules": [
+   {
+    "name": "The Two Inks Rule",
+    "body": "Cobalt means asking and vermilion means sold, everywhere. Overlap comes from blending, never a painted third colour.",
+    "section": "colors"
+   },
+   {
+    "name": "The Yellow Is Not Data Rule",
+    "body": "Giallo marks shell, selection, liveness and this car. Never a price.",
+    "section": "colors"
+   }
+  ],
+  "dos": [
+   "Do use cobalt for every ask and vermilion for every sale.",
+   "Do keep numbers in tabular figures.",
+   "Do draw icons as inline SVG."
+  ],
+  "donts": [
+   "Don't put a label above a heading.",
+   "Don't round corners or add card shadows.",
+   "Don't fill a missing photo with text."
+  ]
+ }
+}
