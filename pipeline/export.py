@@ -380,10 +380,17 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
     for mid, block in paint["models"].items():
         colors.add_selling_times(block, times["models"].get(mid, {}))
     payload["colors"] = paint["market"]
+    gb = gearboxes(con)
+    # cars for sale by gearbox, for the Models menu's 6-Speed and F1 entries
+    for m in payload["models"]:
+        if m["id"] in taxonomy.DUAL_GEARBOX:
+            n = {"manual": 0, "f1": 0}
+            for (vk,) in con.execute("SELECT vehicle_key FROM daily_asks WHERE day=? AND model_id=?", (day.isoformat(), m["id"])):
+                n[listing_gearbox(gb, vk) or "f1"] += 1
+            m["gearbox_listings"] = n
     out = data_dir / "site.json"
     out.write_text(json.dumps(payload, separators=(",", ":"), default=str), encoding="utf-8")
     since = (con.execute("SELECT MIN(day) FROM daily_asks").fetchone() or [None])[0]
-    gb = gearboxes(con)
     shared = {"cities": city_states(con), "sold": sold_points(con, clean.implausible_lots(con), gb), "gearbox": gb,
               "tracker": cfg.get("_tracker") or {}, "since": since}
     brief = {m["id"]: {"id": m["id"], "name": m["name"], "listings": m.get("listings") or 0, "median": m.get("median"),

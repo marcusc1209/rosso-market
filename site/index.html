@@ -417,6 +417,12 @@ table.sheet.mv { min-width: 0; }
 .mp-stats[hidden] { display: none; }
 .mp-segs { display: flex; gap: 10px; flex-wrap: wrap; }
 .chip.gear { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+/* Models menu: a model sold with both gearboxes opens into its F1 and 6-Speed pages */
+.mgroup .mg-main span:first-child::after { content: ""; display: inline-block; width: 5px; height: 5px; margin-left: 8px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: translateY(-3px) rotate(45deg); opacity: .5; }
+.mgroup .mg-sub { display: none; margin: 0 0 4px 12px; padding-left: 10px; border-left: 2px solid var(--rosso); }
+.mgroup:hover .mg-sub, .mgroup:focus-within .mg-sub { display: block; }
+.mgroup .mg-sub a { font-size: 13px; }
+@media (hover: none) { .mgroup .mg-sub { display: block; } }
 .mp-stats { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 .mp-body { min-height: 200px; }
 .mp-body .mkt-controls { margin-bottom: 10px; }
@@ -976,7 +982,11 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     </div></div>`;
   }
 
-  async function viewModel(id) {
+  // "#model-360-spider--6-speed" is the model's factory manual cars only, "--f1" its F1 cars only
+  const GEAR_ROUTES = { "6-speed": "manual", "f1": "f1" };
+  async function viewModel(arg) {
+    const [id, gslug] = arg.split("--");
+    if (GEAR_ROUTES[gslug]) return viewModelGear(id, GEAR_ROUTES[gslug]);
     const m = byId[id];
     if (!m) return notFound();
     const a = m.auction || {};
@@ -986,19 +996,70 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       [a.change_yoy != null ? chg(a.change_yoy) : "n/a", "Median sold vs a year earlier"], [a.sell_through_12m != null ? a.sell_through_12m + "%" : "n/a", "Sell through, 12 months"]);
     if (a.last_sold) kpis.push([money(a.last_sold.price), "Last sale, " + dateLong(a.last_sold.day)]);
     app.innerHTML = pageHead(`<a href="#family-${slug(m.family)}">${esc(m.family)}</a>`, esc(m.name),
-      `Auction results for the Ferrari ${esc(m.name)} from every house we track, with asking prices from dealers ${m.family === "Hypercars and limited series" ? "anywhere in the world, since so few exist that the world is one market for them" : "in the US"} as they come in.`, kpis)
+      `Auction results for the Ferrari ${esc(m.name)} from every house we track, with asking prices from dealers ${m.family === "Hypercars and limited series" ? "anywhere in the world, since so few exist that the world is one market for them" : "in the US"} as they come in.${m.gearbox_listings ? ` Both gearboxes together: see <a href="#model-${id}--6-speed">${esc(m.name)} 6-Speed</a> or <a href="#model-${id}--f1">${esc(m.name)} F1</a> on its own.` : ""}`, kpis)
       + `<section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Sales and asking prices</div><h2>Market</h2></div></div>
          <div id="m-auc"><p class="flat">Loading results</p></div></div></section>
          <section class="block" id="m-up-sec" hidden><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Coming up</div><h2>Live and upcoming lots</h2></div></div><div class="lots" id="m-up"></div></div></section>
          <section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">For sale now</div><h2>Tracked listings</h2></div></div><div id="m-list"><p class="flat">Loading listings</p></div></div></section>
          <section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Auction results</div><h2>Recent hammer prices</h2></div></div><div id="m-res"></div></div></section>`;
     window.scrollTo(0, 0);
-    let detail = modelCache[id];
-    if (!detail) {
-      try { detail = modelCache[id] = await (await fetch(`data/models/${id}.json`)).json(); }
-      catch (e) { document.getElementById("m-auc").innerHTML = '<p class="flat">Could not load this model\'s market. Refresh to try again.</p>'; return; }
+    const detail = await loadModel(id);
+    if (!detail) { document.getElementById("m-auc").innerHTML = '<p class="flat">Could not load this model\'s market. Refresh to try again.</p>'; return; }
+    if (location.hash !== "#model-" + arg) return;
+    modelBody(m, detail);
+  }
+
+  async function loadModel(id) {
+    if (!modelCache[id]) {
+      try { modelCache[id] = await (await fetch(`data/models/${id}.json`)).json(); } catch (e) { return null; }
     }
-    if (location.hash !== "#model-" + id) return;
+    return modelCache[id];
+  }
+
+  // only one gearbox's cars: listings, lots and every chart point
+  function gearDetail(detail, gear) {
+    const g = gear === "manual" ? "m" : "f", is = x => (x.gearbox || "f1") === gear;
+    const points = (detail.points || []).filter(p => p[2] !== "a" && (p[10] || "f") === g);
+    const cars = new Set([...points.map(p => p[3]), ...(detail.listings || []).filter(is).map(l => l.car)].filter(Boolean));
+    return Object.assign({}, detail, { listings: (detail.listings || []).filter(is), results: (detail.results || []).filter(is),
+      upcoming: (detail.upcoming || []).filter(is), points, history: [], weekly: {}, gearbox_split: false, fixedGear: gear,
+      auction_points: points.filter(p => p[2] === "s" || p[2] === "u").map(p => [p[0], p[1], p[2] === "s" ? 1 : 0]),
+      mileage: detail.mileage && Object.assign({}, detail.mileage, { points: (detail.mileage.points || []).filter(p => cars.has(p[3])) }) });
+  }
+
+  async function viewModelGear(id, gear) {
+    const m = byId[id];
+    if (!m || !m.gearbox_listings) return notFound();
+    const name = gear === "manual" ? `${m.name} 6-Speed` : m.name;
+    app.innerHTML = `<div class="wrap loading">Loading ${esc(name)}</div>`;
+    window.scrollTo(0, 0);
+    const full = await loadModel(id);
+    if (location.hash !== `#model-${id}--${gear === "manual" ? "6-speed" : "f1"}`) return;
+    if (!full) { app.innerHTML = '<div class="wrap loading">Could not load this model. Refresh to try again.</div>'; return; }
+    const d = gearDetail(full, gear);
+    const yearAgo = new Date(D.as_of + "T12:00:00Z"); yearAgo.setUTCFullYear(yearAgo.getUTCFullYear() - 1);
+    const cut = yearAgo.toISOString().slice(0, 10);
+    const s12 = d.points.filter(p => p[2] === "s" && p[0] >= cut), u12 = d.points.filter(p => p[2] === "u" && p[0] >= cut);
+    const asks = d.listings.map(l => l.price_usd).filter(Boolean), days = d.listings.map(daysListed).filter(x => x != null);
+    const lastS = d.points.filter(p => p[2] === "s").pop();
+    const kpis = [[asks.length ? money(medianOf(asks)) : "n/a", "Median ask"], [d.listings.length, "For sale now"], [days.length ? Math.round(medianOf(days)) : "n/a", "Median days listed"],
+      [s12.length ? money(medianOf(s12.map(p => p[1]))) : "n/a", "Median sold, 12 months"], [s12.length, "Sold at auction, 12 months"],
+      [s12.length + u12.length ? Math.round(s12.length / (s12.length + u12.length) * 100) + "%" : "n/a", "Sell through, 12 months"]];
+    if (lastS) kpis.push([money(lastS[1]), "Last sale, " + dateLong(lastS[0])]);
+    const other = gear === "manual" ? [`#model-${id}--f1`, `${m.name} F1`] : [`#model-${id}--6-speed`, `${m.name} 6-Speed`];
+    app.innerHTML = pageHead(`<a href="#family-${slug(m.family)}">${esc(m.family)}</a> / <a href="${modelLink(id)}">${esc(m.name)}</a>`, esc(name),
+      `${gear === "manual" ? "Factory six speed manual cars only." : "F1 gearbox cars only, manual conversions included."} See <a href="${other[0]}">${esc(other[1])}</a> or <a href="${modelLink(id)}">both together</a>.`, kpis)
+      + modelSections();
+    modelBody(m, d);
+  }
+
+  const modelSections = () => `<section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Sales and asking prices</div><h2>Market</h2></div></div>
+         <div id="m-auc"></div></div></section>
+         <section class="block" id="m-up-sec" hidden><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Coming up</div><h2>Live and upcoming lots</h2></div></div><div class="lots" id="m-up"></div></div></section>
+         <section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">For sale now</div><h2>Tracked listings</h2></div></div><div id="m-list"></div></div></section>
+         <section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Auction results</div><h2>Recent hammer prices</h2></div></div><div id="m-res"></div></div></section>`;
+
+  function modelBody(m, detail) {
     marketPanel(document.getElementById("m-auc"), detail, m);
     if ((detail.upcoming || []).length) { document.getElementById("m-up-sec").hidden = false; document.getElementById("m-up").innerHTML = detail.upcoming.map(lotCard).join(""); }
     const listTable = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Car</th><th class="r">Mileage</th><th>Colour</th><th>Seller</th><th class="r">Days listed</th><th class="r">Asking</th></tr></thead><tbody>
@@ -1171,7 +1232,9 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     const span = days.length ? (Date.parse(last) - Date.parse(days[0])) / 864e5 : 0;
     let st = { range: span > 3 * 365 ? "3y" : "all", tab: "sales", gear: car && detail.gearbox_split && car.gearbox ? car.gearbox : "all" };
     try { const t = localStorage.getItem("rm-mtab"); if (MP_TABS.some(x => x[0] === t)) st.tab = t; } catch (e) {}
-    el.innerHTML = `<div class="mp-top"><div class="tabs mp-tabs" role="tablist" aria-label="Market views">${MP_TABS.map(([k, l]) => `<button type="button" role="tab" data-t="${k}">${l}</button>`).join("")}</div>
+    const TABS_HERE = detail.fixedGear ? MP_TABS.filter(t => t[0] !== "listings" && t[0] !== "colours") : MP_TABS;
+    if (!TABS_HERE.some(t => t[0] === st.tab)) st.tab = "sales";
+    el.innerHTML = `<div class="mp-top"><div class="tabs mp-tabs" role="tablist" aria-label="Market views">${TABS_HERE.map(([k, l]) => `<button type="button" role="tab" data-t="${k}">${l}</button>`).join("")}</div>
       <div class="mp-segs">${detail.gearbox_split ? `<div class="seg" role="group" aria-label="Gearbox">${[["all", "All"], ["manual", "Manual"], ["f1", "F1"]].map(([k, l]) => `<button type="button" data-g="${k}">${l}</button>`).join("")}</div>` : ""}
       <div class="seg" role="group" aria-label="Time range">${RANGES.map(([k, l]) => `<button type="button" data-r="${k}">${l}</button>`).join("")}</div></div></div>
       <div class="mkt-stats mp-stats"></div><div class="mp-body"></div>`;
@@ -1198,7 +1261,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       el.querySelector(".mp-stats").innerHTML = [["Average sale", prices.length ? money(sum / prices.length) : "n/a"], ["Sales", prices.length],
         ["Dollar volume", prices.length ? money(sum) : "n/a"], ["Lowest sale", prices.length ? money(prices[0]) : "n/a"],
         ["Top sale", prices.length ? money(prices[prices.length - 1]) : "n/a"], [recent ? "Most recent, " + dateShort(recent[0]) : "Most recent", recent ? money(recent[1]) : "n/a"],
-        ["Median ask now", st.gear !== "all" ? ((D2.listings || []).length ? money(medianOf(D2.listings.map(l => l.price_usd).filter(Boolean))) : "n/a") : ask.length ? money(ask[ask.length - 1][1]) : "n/a"], ["For sale now", (D2.listings || []).length]]
+        ["Median ask now", st.gear !== "all" || detail.fixedGear ? ((D2.listings || []).length ? money(medianOf(D2.listings.map(l => l.price_usd).filter(Boolean))) : "n/a") : ask.length ? money(ask[ask.length - 1][1]) : "n/a"], ["For sale now", (D2.listings || []).length]]
         .map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join("");
       const t = st.tab;
       // the sale figures belong to the views of sales. Mileage, listings and colours carry their own.
@@ -1809,7 +1872,10 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   // ------------------------------------------------------------ chrome
   function buildMenu() {
     document.getElementById("menu-grid").innerHTML = D.families.map(f => `<div><h4>${esc(f.name)}</h4>
-      ${f.models.map(id => byId[id]).filter(Boolean).map(m => `<a href="${modelLink(m.id)}"><span>${esc(m.name)}</span><span class="num">${m.listings || (m.auction || {}).sold_12m || ""}</span></a>`).join("")}</div>`).join("");
+      ${f.models.map(id => byId[id]).filter(Boolean).map(m => m.gearbox_listings
+        ? `<div class="mgroup"><a href="${modelLink(m.id)}" class="mg-main"><span>${esc(m.name)}</span><span class="num">${m.listings || (m.auction || {}).sold_12m || ""}</span></a>
+            <div class="mg-sub"><a href="#model-${m.id}--f1"><span>${esc(m.name)}</span><span class="num">${m.gearbox_listings.f1 || ""}</span></a><a href="#model-${m.id}--6-speed"><span>${esc(m.name)} 6-Speed</span><span class="num">${m.gearbox_listings.manual || ""}</span></a></div></div>`
+        : `<a href="${modelLink(m.id)}"><span>${esc(m.name)}</span><span class="num">${m.listings || (m.auction || {}).sold_12m || ""}</span></a>`).join("")}</div>`).join("");
   }
 
   function buildFooter() {
