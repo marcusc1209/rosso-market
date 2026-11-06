@@ -1,0 +1,7 @@
+# Gearbox corrections for the models sold with both a manual and an F1 gearbox
+# (F355, 360, F430, 575M, 599, 612). A listing that never states its gearbox is counted as F1,
+# so a factory six speed car whose listings stay silent goes here, by VIN or chassis number.
+#
+#   VIN or chassis number: manual   (factory six speed)
+#   VIN or chassis number: f1
+ZFFEW58A350141572: manual    # 2005 F430 coupe, Broad Arrow Oct 31 2026

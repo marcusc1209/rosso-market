@@ -278,6 +278,14 @@ token its own script makes), Autolist (its results are CarGurus inventory) and
 Exotic Car Trader (about 20 live Ferraris), carsforsale.com (Cloudflare challenge). eBay Motors has an official free API that
 needs the owner's developer keys.
 
+## Manual and F1
+
+The F355, 360, F430, 575M, 599 and 612 were sold with a factory six speed manual or the F1 gearbox, and their
+model pages split into the two (`pipeline/taxonomy.py`, `gearbox`). A car counts as manual only when one of its
+listings or lots says so. A conversion, or a car whose listings never mention the gearbox, counts as F1. When the
+owner knows a car's gearbox and its listings stay silent, it goes in `config/gearbox.yaml` by VIN or chassis
+number (`ZFFEW58A350141572: manual`), which wins over the listings on every page.
+
 ## Market panel on model pages
 
 Each model page has one market panel, like classic.com's price tracker: a time range (1, 3 or 5 years, or all),

@@ -216,6 +216,8 @@ def _page(key: str, g: dict, prices: dict, comps: dict, stats: dict, today: str)
     gearbox = taxonomy.gearbox_from(mid, row["year"], [(rw.get("title") or "", str(rw.get("transmission") or ""),
                                     " ".join(str((rw.get("extra") or {}).get(t) or "") for t in ("excerpt", "subtitle", "detail")))
                                     for _, rw in raws])
+    if gearbox and (taxonomy.fixed_gearbox(key) or taxonomy.fixed_gearbox(vin)):
+        gearbox = taxonomy.fixed_gearbox(key) or taxonomy.fixed_gearbox(vin)
     spec = [
         ("Year", row["year"]), ("Model", model.name if model else None), ("VIN", vin),
         ("Chassis", key.split(":")[-1] if key.startswith("chassis:") else None),

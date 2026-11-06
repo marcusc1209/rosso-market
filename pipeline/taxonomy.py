@@ -274,6 +274,35 @@ def gearbox(model_id, year=None, title="", transmission="", text=""):
     return "f1"
 
 
+_FIXES_FILE = __import__("pathlib").Path(__file__).resolve().parent.parent / "config" / "gearbox.yaml"
+
+
+def _load_fixes() -> dict:
+    """config/gearbox.yaml: VIN or chassis number -> 'manual' or 'f1', set by hand."""
+    try:
+        import yaml
+        d = yaml.safe_load(_FIXES_FILE.read_text(encoding="utf-8")) or {}
+    except (OSError, ValueError, ImportError):
+        return {}
+    out = {}
+    for k, v in d.items():
+        v = str(v).strip().lower()
+        v = "manual" if v in ("manual", "6-speed", "6 speed", "six speed") else "f1" if v == "f1" else None
+        if v:
+            out[str(k).strip().upper()] = v
+    return out
+
+
+GEARBOX_FIXES = _load_fixes()
+
+
+def fixed_gearbox(vehicle_key) -> "str | None":
+    """The gearbox set by hand for a car, from its vehicle key ("vin:..." or "chassis:...") or bare VIN."""
+    k = str(vehicle_key or "")
+    k = k.split(":", 1)[1] if k.startswith(("vin:", "chassis:")) else k
+    return GEARBOX_FIXES.get(k.strip().upper()) if k else None
+
+
 def gearbox_from(model_id, year, items) -> "str | None":
     """One car's gearbox from all its listings and lots: items of (title, transmission, text)."""
     if model_id not in DUAL_GEARBOX:

@@ -105,3 +105,11 @@ def test_gearbox_manual_only_when_said_and_conversions_are_f1():
     assert gearbox("f355-spider", 1995, "1995 Ferrari F355 Spider") == "manual"                      # before the F1 gearbox
     assert gearbox("458-italia", 2012, "2012 Ferrari 458 Italia 6-Speed") is None
     assert gearbox_from("f430", 2005, [("2005 Ferrari F430", "", ""), ("2005 Ferrari F430 Coupe Factory Gated 6-Speed", "", "")]) == "manual"
+
+
+def test_gearbox_fixes_by_vin():
+    from pipeline import taxonomy
+    assert taxonomy.fixed_gearbox("vin:ZFFEW58A350141572") == "manual"
+    assert taxonomy.fixed_gearbox("ZFFEW58A350141572") == "manual"
+    assert taxonomy.fixed_gearbox("vin:ZFFEW58A000000000") is None
+    assert taxonomy.fixed_gearbox(None) is None

@@ -241,7 +241,9 @@ def gearboxes(con) -> dict:
             text = " ".join(str(ex.get(t) or raw.get(t) or "") for t in textkeys)
             recs.setdefault(k, []).append((r["title"] or raw.get("title") or "", str(raw.get("transmission") or ""), text))
             meta.setdefault(k, (r["model_id"], r["year"]))
-    return {k: taxonomy.gearbox_from(meta[k][0], meta[k][1], items) for k, items in recs.items()}
+    # config/gearbox.yaml wins over what the listings say
+    return {k: (taxonomy.fixed_gearbox(k) if k.startswith(("vin:", "chassis:")) else None)
+            or taxonomy.gearbox_from(meta[k][0], meta[k][1], items) for k, items in recs.items()}
 
 
 def gb_key(table: str, vehicle_key, uid: str) -> str:
