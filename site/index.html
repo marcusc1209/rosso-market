@@ -415,6 +415,21 @@ table.sheet.mv { min-width: 0; }
 .sheet tr.me td { background: var(--chip); }
 .bar-s, .bar-u, .bar-f { width: 12px; height: 12px; display: inline-block; background: var(--rosso); }
 .bar-u { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--rosso); } .bar-f { background: var(--ink); opacity: .85; }
+/* years: price range, middle half, median, average */
+.yr-range { fill: #c9cbce; } .yr-box { fill: #7fa3cc; } .yr-avg { fill: #4f8a4a; }
+.yc.hot .yr-box { fill: #5f8bbd; } .yc.hot .yr-range { fill: #b3b6ba; }
+.yk-range, .yk-box { width: 16px; height: 8px; border-radius: 4px; display: inline-block; background: #c9cbce; }
+.yk-box { background: #7fa3cc; } .yk-avg { background: #4f8a4a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .yr-range { fill: #4a4e54; } :root:not([data-theme="light"]) .yk-range { background: #4a4e54; } }
+:root[data-theme="dark"] .yr-range { fill: #4a4e54; } :root[data-theme="dark"] .yk-range { background: #4a4e54; }
+/* numbers on hover for bars, boxes and lines */
+.htip { position: absolute; z-index: 6; pointer-events: none; background: var(--ink); color: var(--surface); padding: 8px 10px; font-size: 13px; line-height: 1.35; display: grid; gap: 1px; white-space: nowrap; box-shadow: 0 8px 20px rgba(0,0,0,.25); }
+.htip[hidden] { display: none; }
+.htip b { font-weight: 600; margin-bottom: 2px; }
+.htip span { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.chart-box g.bar.hot rect:first-child { fill-opacity: 1; }
+.chart-box g.bar.hot rect[fill="var(--rosso)"] { fill-opacity: 1; }
+.chart-box [data-tip] { cursor: default; }
 .locs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 18px 28px; }
 .loc { background: var(--surface); border: 1px solid var(--line); padding: 16px 18px; }
 .loc-h { font: 700 18px/1.1 var(--f-display); text-transform: uppercase; margin: 0 0 12px; }
@@ -423,7 +438,7 @@ table.sheet.mv { min-width: 0; }
 .loc-row i { height: 12px; background: var(--rosso); opacity: .8; min-width: 2px; }
 .loc-row b { text-align: right; font: 500 14px var(--f-mono); }
 .loc-note { font-size: 13px; margin: 10px 0 0; }
-@media (max-width: 640px) { .mp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mp-stats b { font-size: 16px; } .mp-top { align-items: stretch; } .mp-top .seg { align-self: flex-start; } .mp-tabs { margin-inline: calc(-1 * var(--gutter, 16px)); padding-inline: var(--gutter, 16px); } }
+@media (max-width: 640px) { .mp-top { align-items: stretch; } .mp-top .seg { align-self: flex-start; } .mp-tabs { margin-inline: calc(-1 * var(--gutter, 16px)); padding-inline: var(--gutter, 16px); } }
 .tabs button { border: 1px solid var(--line); background: var(--surface); padding: 7px 12px; cursor: pointer; font-size: 13px; font-weight: 500; }
 .tabs button[aria-selected="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
 .prose { max-width: 66ch; font-size: 17px; }
@@ -695,7 +710,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   function chartSize(cv) {
     const W = Math.max(300, Math.min(1800, Math.round(cv.clientWidth || 900)));
     const H = W < 520 ? Math.round(W * 0.8) : W < 900 ? Math.round(W * 0.48) : Math.max(340, Math.min(500, Math.round(W * 0.34)));
-    return { W, H, L: W < 520 ? 50 : 64, R: W < 520 ? 10 : 18, r: W < 520 ? 3.4 : 4.2 };
+    return { W, H, L: W < 520 ? 58 : 64, R: W < 520 ? 10 : 18, r: W < 520 ? 3.4 : 4.2 };
   }
   // every page view can leave watchers behind; the next view clears them
   const PAGE_CLEANUP = [];
@@ -970,8 +985,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       </tbody></table></div>`;
     const mList = document.getElementById("m-list");
     if (detail.listings.length) {
-      switchable(mList, detail.listings, listingCard, listTable, { id: "listings", sorts: LISTING_SORTS,
-        note: "Listed dates come from duPont Registry, which publishes the day each car went up for sale. A car listed on several sites shows the earliest date. Cars on no dated site show the day we first saw them; our tracking began on Oct 31, 2026." });
+      switchable(mList, detail.listings, listingCard, listTable, { id: "listings", sorts: LISTING_SORTS });
     } else mList.innerHTML = '<div class="empty">No cars listed right now.</div>';
     const resTable = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Lot</th><th>Sale</th><th>Country</th><th>Closed</th><th class="r">Mileage</th><th>Result</th><th class="r">Price</th></tr></thead><tbody>
       ${items.map(r => `<tr><td class="thumb">${photo(r.image, "")}</td><td class="name"><a ${carLink(r)}>${esc(r.title)}</a></td><td>${saleLink(r) || esc(r.auction_house)}<div class="flat" style="font-size:12px">${esc(r.auction_house)}</div></td><td>${esc(countryOf(r))}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td><td class="r num">${miles(r.mileage_mi)}</td>
@@ -1112,6 +1126,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     ["locations", "Locations"], ["listings", "Listings"], ["colours", "Colours"]];
   const cutFor = (range, last) => { if (range === "all") return ""; const d = new Date(last + "T12:00:00Z"); d.setUTCFullYear(d.getUTCFullYear() - +range[0]); return d.toISOString().slice(0, 10); };
   const yearOf = t => { const m = /^(\d{4})\b/.exec(t || ""); return m ? +m[1] : null; };
+  const pYear = p => p[9] || yearOf(p[4]);
   const medianOf = a => { if (!a.length) return null; const q = [...a].sort((x, y) => x - y), h = q.length >> 1; return q.length % 2 ? q[h] : (q[h - 1] + q[h]) / 2; };
   const SERIES = ["var(--rosso)", "var(--ink)", "var(--ask)", "#c79a00", "#2f8a57", "#7a4bb0", "#8a8f96", "#d06d1f"];
 
@@ -1164,7 +1179,31 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   function cleanupCharts(el) { el.innerHTML = ""; }
   const rangeWords = cut => cut ? "since " + dateShort(cut) : "on record";
 
-  // A scatter with a card for the car under the pointer, shared by the years chart.
+  // Hover (or tap) any bar, box or line carrying data-tip to see its numbers.
+  function hoverTips(box) {
+    box.style.position = "relative";
+    const tip = document.createElement("div");
+    tip.className = "htip"; tip.hidden = true; box.appendChild(tip);
+    let on = null;
+    const show = e => {
+      const t = e.target.closest && e.target.closest("[data-tip]");
+      if (on && on !== t) on.classList.remove("hot");
+      if (!t || !box.contains(t)) { tip.hidden = true; on = null; return; }
+      on = t; t.classList.add("hot");
+      tip.innerHTML = t.dataset.tip; tip.hidden = false;
+      const br = box.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+      let left = e.clientX - br.left + 14, top = e.clientY - br.top - h - 10;
+      if (left + w > br.width - 4) left = e.clientX - br.left - w - 14;
+      if (top < 4) top = e.clientY - br.top + 16;
+      tip.style.left = Math.max(4, left) + "px"; tip.style.top = top + "px";
+    };
+    box.addEventListener("pointermove", show);
+    box.addEventListener("pointerdown", show);
+    box.addEventListener("pointerleave", () => { tip.hidden = true; if (on) on.classList.remove("hot"); on = null; });
+  }
+  const tipText = (head, lines) => esc(`<b>${head}</b>` + lines.filter(Boolean).map(l => `<span>${l}</span>`).join(""));
+
+  // A scatter with a card for the car under the pointer.
   // items: [x, y, kind s|u|f, car id, title, photo, sub line]
   function dotChart(el, items, cfg) {
     el.innerHTML = `<div class="chart-box mkt"><div class="cv"></div><div class="tip" hidden></div></div>`;
@@ -1214,21 +1253,46 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     cv.addEventListener("click", e => { const i = nearest(e); if (i < 0) return show(-1); if (i === sel && items[i][3]) location.hash = "car-" + items[i][3]; else show(i); });
   }
 
-  // Years: every sale and every car for sale now by model year, with each year's median sale and median ask.
-  function yearsChart(el, pts, cut, m) {
-    const rows = pts.filter(p => (p[2] === "f" || (p[2] === "s" && p[0] >= cut)) && yearOf(p[4]));
-    if (!rows.length) { el.innerHTML = '<div class="empty">No dated sales or listings with a model year in this range.</div>'; return; }
-    const yrs = [...new Set(rows.map(p => yearOf(p[4])))].sort((a, b) => a - b);
-    const jit = (s, i) => (((i * 9301 + 49297) % 233280) / 233280 - 0.5) * 0.5;
-    const items = rows.map((p, i) => [yearOf(p[4]) + jit(p[1], i), p[1], p[2], p[3], p[4], p[5],
-      (p[2] === "s" ? "Sold " + dateShort(p[0]) : "For sale, listed " + dateShort(p[0])) + (p[6] ? ", " + p[6] : "")]);
-    const by = (k) => yrs.map(yr => [yr, medianOf(rows.filter(p => p[2] === k && yearOf(p[4]) === yr).map(p => p[1]))]).filter(q => q[1]);
-    const table = yrs.map(yr => { const s = rows.filter(p => p[2] === "s" && yearOf(p[4]) === yr).map(p => p[1]), f = rows.filter(p => p[2] === "f" && yearOf(p[4]) === yr).map(p => p[1]);
-      return `<tr><td class="name">${yr}</td><td class="r num">${f.length || ""}</td><td class="r num">${f.length ? money(medianOf(f)) : ""}</td><td class="r num">${s.length || ""}</td><td class="r num">${s.length ? money(medianOf(s)) : ""}</td></tr>`; }).join("");
-    el.innerHTML = `<div class="legend" style="margin-bottom:10px"><span><i class="k k-s"></i>Sold ${rangeWords(cut)}</span><span><i class="k k-f"></i>For sale now</span><span><i class="tick-s"></i>Median sale</span><span><i class="tick-a"></i>Median ask</span></div><div class="mp-chart"></div>
-      <div class="tbl-wrap" style="margin-top:16px"><table class="sheet"><thead><tr><th>Model year</th><th class="r">For sale</th><th class="r">Median ask</th><th class="r">Sold</th><th class="r">Median sale</th></tr></thead><tbody>${table}</tbody></table></div>`;
-    dotChart(el.querySelector(".mp-chart"), items, { label: `${m.name} prices by model year`, xDomain: [yrs[0] - 0.7, yrs[yrs.length - 1] + 0.7], xTicks: yrs, xLabel: v => String(v),
-      lines: [{ name: "Median sale", color: "var(--rosso)", pts: by("s"), marks: true, half: 16 }, { name: "Median ask", color: "var(--ask)", pts: by("f"), marks: true, half: 16 }] });
+  // Years: for each model year the full range of prices, the middle half, the median and the average.
+  function yearsChart(el, pts, cut, m, kind = "s") {
+    const pick = k => pts.filter(p => p[2] === k && (k === "f" || p[0] >= cut) && pYear(p));
+    const rows = pick(kind);
+    const both = { s: pick("s").length, f: pick("f").length };
+    const toggle = `<div class="seg" role="group" aria-label="Prices">${[["s", "Sold"], ["f", "For sale now"]].map(([k, l]) => `<button type="button" data-yk="${k}" aria-pressed="${k === kind}">${l} (${both[k]})</button>`).join("")}</div>`;
+    if (!rows.length) {
+      el.innerHTML = `<div class="mkt-controls">${toggle}</div><div class="empty">${kind === "s" ? "No sales with a model year in this range." : "No cars for sale with a model year."}</div>`;
+    } else {
+      const q = (a, f) => { const i = (a.length - 1) * f, lo = Math.floor(i); return a[lo] + (a[Math.min(lo + 1, a.length - 1)] - a[lo]) * (i - lo); };
+      const yrs = [...new Set(rows.map(p => pYear(p)))].sort((a, b) => a - b);
+      const stats = yrs.map(yr => { const v = rows.filter(p => pYear(p) === yr).map(p => p[1]).sort((a, b) => a - b);
+        return { yr, n: v.length, min: v[0], max: v[v.length - 1], p25: q(v, .25), p75: q(v, .75), med: q(v, .5), avg: v.reduce((t, x) => t + x, 0) / v.length }; });
+      el.innerHTML = `<div class="mkt-controls">${toggle}<div class="legend"><span><i class="yk-range"></i>Price range</span><span><i class="yk-box"></i>Middle half</span><span><i class="k" style="background:var(--ink)"></i>Median</span><span><i class="k yk-avg"></i>Average</span></div></div>
+        <div class="chart-box"><div class="cv"></div></div>`;
+      const cv = el.querySelector(".cv"), T = 14, B = 34;
+      const render = () => {
+        const { W, H, L, R } = chartSize(cv);
+        const hi = Math.max(...stats.map(s => s.max)), lo = Math.min(...stats.map(s => s.min));
+        const ticks = niceTicks(Math.max(0, lo * 0.85), hi * 1.05, 5), min = Math.min(ticks[0], lo * 0.85), max = Math.max(ticks[ticks.length - 1], hi);
+        const y = v => T + (1 - (v - min) / (max - min)) * (H - T - B);
+        const bw = (W - L - R) / stats.length, every = Math.max(1, Math.ceil(stats.length / Math.max(2, Math.floor((W - L - R) / 44))));
+        const boxW = Math.max(6, Math.min(110, bw * 0.62)), rngW = Math.max(4, Math.min(16, bw * 0.22));
+        const grid = ticks.map(t => `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text class="axis" x="${L - 8}" y="${y(t) + 4}" text-anchor="end">${short(t)}</text>`).join("");
+        const cols = stats.map((st_, i) => {
+          const cx = L + (i + 0.5) * bw, tipx = tipText(String(st_.yr), [plural(st_.n, kind === "s" ? "sale" : "car for sale"),
+            st_.n > 1 ? `Range ${short(st_.min)} to ${short(st_.max)}` : "", st_.n > 3 ? `Middle half ${short(st_.p25)} to ${short(st_.p75)}` : "", `Median ${money(st_.med)}`, st_.n > 1 ? `Average ${money(st_.avg)}` : ""]);
+          const boxH = Math.max(4, y(st_.p25) - y(st_.p75));
+          return `<g class="yc" data-tip="${tipx}"><rect x="${(cx - bw / 2).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${H - T - B}" fill="transparent"/>
+            <rect x="${(cx - rngW / 2).toFixed(1)}" y="${(y(st_.max) - rngW / 2).toFixed(1)}" width="${rngW.toFixed(1)}" height="${(y(st_.min) - y(st_.max) + rngW).toFixed(1)}" rx="${(rngW / 2).toFixed(1)}" class="yr-range"/>
+            <rect x="${(cx - boxW / 2).toFixed(1)}" y="${(y(st_.p75) - (boxH === 4 ? 2 : 0)).toFixed(1)}" width="${boxW.toFixed(1)}" height="${boxH.toFixed(1)}" rx="6" class="yr-box"/>
+            ${Math.abs(y(st_.avg) - y(st_.med)) > 2 ? `<line x1="${cx}" x2="${cx}" y1="${y(st_.avg)}" y2="${y(st_.med)}" stroke="var(--ink)" stroke-width="1.5"/>` : ""}
+            <circle cx="${cx.toFixed(1)}" cy="${y(st_.avg).toFixed(1)}" r="5" class="yr-avg"/><circle cx="${cx.toFixed(1)}" cy="${y(st_.med).toFixed(1)}" r="5.5" fill="var(--ink)"/>
+            ${i % every === 0 ? `<text class="axis" x="${cx.toFixed(1)}" y="${H - 10}" text-anchor="middle">${st_.yr}</text>` : ""}</g>`;
+        }).join("");
+        cv.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(m.name)} prices by model year">${grid}${cols}</svg>`;
+      };
+      render(); onWidth(cv, render); hoverTips(el.querySelector(".chart-box"));
+    }
+    el.querySelectorAll("[data-yk]").forEach(b => b.addEventListener("click", () => yearsChart(el, pts, cut, m, b.dataset.yk)));
   }
 
   // Variants: the model's sibling versions side by side, each line the running median of its auction sales.
@@ -1239,7 +1303,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     const tbl = `<div class="tbl-wrap" style="margin-top:16px"><table class="sheet"><thead><tr><th>Version</th><th class="r">For sale</th><th class="r">Median ask</th><th class="r">Sold, 12 months</th><th class="r">Median sale, 12 months</th><th class="r">Ask vs sale</th></tr></thead><tbody>
       ${vs.map((v, i) => `<tr class="click${v.id === m.id ? " me" : ""}" data-href="${modelLink(v.id)}"><td class="name"><i class="vk" style="background:${SERIES[i % SERIES.length]}"></i><a href="${modelLink(v.id)}">${esc(v.name)}</a></td><td class="r num">${v.listings || ""}</td><td class="r num">${v.median ? money(v.median) : "n/a"}</td><td class="r num">${v.sold_12m || ""}</td><td class="r num">${v.median_sold_12m ? money(v.median_sold_12m) : "n/a"}</td><td class="r">${v.median && v.median_sold_12m ? chg((v.median / v.median_sold_12m - 1) * 100) : ""}</td></tr>`).join("")}</tbody></table></div>`;
     if (!series.length) { el.innerHTML = '<p class="flat" style="margin:0 0 6px;font-size:14px">Too few dated sales in this range to draw the versions over time.</p>' + tbl; wireRows(); return; }
-    el.innerHTML = `<div class="legend" style="margin-bottom:10px">${series.map(s => `<span><i class="vk" style="background:${s.color}"></i>${esc(s.v.name)}</span>`).join("")}<span class="flat">Each line: running median of the last nine sales</span></div>
+    el.innerHTML = `<div class="legend" style="margin-bottom:10px">${series.map(s => `<span><i class="vk" style="background:${s.color}"></i>${esc(s.v.name)}</span>`).join("")}</div>
       <div class="chart-box"><div class="cv"></div></div>${tbl}`;
     const cv = el.querySelector(".cv"), T = 14, B = 34;
     const render = () => {
@@ -1253,10 +1317,12 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       const step = Math.max(1, Math.ceil(yrs.length / Math.max(2, Math.floor((W - L - R) / 56))));
       const xg = (yrs.length ? yrs.filter((_, i) => i % step === 0).map(yr => [`${yr}-01-01`, yr]) : [[ds[0], dateShort(ds[0])], [ds[ds.length - 1], dateShort(ds[ds.length - 1])]])
         .map(([d, l]) => `<line class="grid-line" x1="${x(d)}" x2="${x(d)}" y1="${T}" y2="${H - B}"/><text class="axis" x="${x(d)}" y="${H - 10}" text-anchor="middle">${l}</text>`).join("");
-      const lines = series.map(s => `<path d="${s.pts.map((p, i) => (i ? "L" : "M") + x(p[0]).toFixed(1) + " " + y(p[1]).toFixed(1)).join("")}" fill="none" stroke="${s.color}" stroke-width="${s.v.id === m.id ? 3.2 : 2}" stroke-linejoin="round"><title>${esc(s.v.name)}: ${money(s.pts[s.pts.length - 1][1])}</title></path>`).join("");
+      const lines = series.map(s => { const d = s.pts.map((p, i) => (i ? "L" : "M") + x(p[0]).toFixed(1) + " " + y(p[1]).toFixed(1)).join("");
+        return `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.v.id === m.id ? 3.2 : 2}" stroke-linejoin="round"/>`
+          + s.pts.map(p => `<circle cx="${x(p[0]).toFixed(1)}" cy="${y(p[1]).toFixed(1)}" r="7" fill="transparent" data-tip="${tipText(esc(s.v.name), [dateShort(p[0]), money(p[1])])}"/>`).join(""); }).join("");
       cv.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Versions of the ${esc(m.name)} over time">${grid}${xg}${lines}</svg>`;
     };
-    render(); onWidth(cv, render); wireRows();
+    render(); onWidth(cv, render); hoverTips(el.querySelector(".chart-box")); wireRows();
   }
 
   // Volume: auction sales and cars not sold, month by month.
@@ -1277,27 +1343,27 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       const every = Math.max(1, Math.ceil(per.length / Math.max(2, Math.floor((W - L - R) / 52))));
       const bars = per.map(([mo, s, u, sum], i) => { const x = L + i * bw + bw * 0.14, w = Math.max(2, bw * 0.72);
         const lab = new Date(mo + "-15T12:00:00Z").toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
-        return `<g><title>${lab}: ${s} sold${sum ? ", " + money(sum) : ""}${u ? `, ${u} not sold` : ""}</title>${s ? `<rect x="${x.toFixed(1)}" y="${y(s).toFixed(1)}" width="${w.toFixed(1)}" height="${(y(0) - y(s)).toFixed(1)}" fill="var(--rosso)" fill-opacity=".85"/>` : ""}${u ? `<rect x="${(x + .75).toFixed(1)}" y="${(y(s + u) + .75).toFixed(1)}" width="${(w - 1.5).toFixed(1)}" height="${Math.max(0, y(s) - y(s + u) - 1.5).toFixed(1)}" fill="var(--surface)" stroke="var(--rosso)" stroke-width="1.5"/>` : ""}<rect x="${(L + i * bw).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${H - T - B}" fill="transparent"/></g>`
+        return `<g class="bar" data-tip="${tipText(lab, [`${s} sold`, u ? `${u} not sold` : "", sum ? `${money(sum)} in sales` : ""])}">${s ? `<rect x="${x.toFixed(1)}" y="${y(s).toFixed(1)}" width="${w.toFixed(1)}" height="${(y(0) - y(s)).toFixed(1)}" fill="var(--rosso)" fill-opacity=".85"/>` : ""}${u ? `<rect x="${(x + .75).toFixed(1)}" y="${(y(s + u) + .75).toFixed(1)}" width="${(w - 1.5).toFixed(1)}" height="${Math.max(0, y(s) - y(s + u) - 1.5).toFixed(1)}" fill="var(--surface)" stroke="var(--rosso)" stroke-width="1.5"/>` : ""}<rect x="${(L + i * bw).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${H - T - B}" fill="transparent"/></g>`
           + (i % every === 0 ? `<text class="axis" x="${(x + w / 2).toFixed(1)}" y="${H - 10}" text-anchor="middle">${new Date(mo + "-15T12:00:00Z").toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}${mo.endsWith("-01") || i === 0 ? " " + mo.slice(2, 4) : ""}</text>` : ""); }).join("");
       cv.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Auction results by month">${grid}${bars}</svg>`;
     };
-    render(); onWidth(cv, render);
+    render(); onWidth(cv, render); hoverTips(el.querySelector(".chart-box"));
   }
 
   // Locations: where the cars for sale are, and where auction sales took place.
   function locationsView(el, detail, pts, cut, m) {
     const count = list => { const c = {}; list.forEach(k => { if (k) c[k] = (c[k] || 0) + 1; }); return Object.entries(c).sort((a, b) => b[1] - a[1]); };
     const bars = (title, rows, note) => { const top = rows.length ? rows[0][1] : 1;
-      return `<div class="loc"><h3 class="loc-h">${title}</h3>${rows.length ? rows.slice(0, 12).map(([k, n]) => `<div class="loc-row"><span>${esc(k)}</span><i style="width:${(n / top * 100).toFixed(1)}%"></i><b class="num">${n}</b></div>`).join("") : '<p class="flat" style="font-size:14px">None in this range.</p>'}${note ? `<p class="flat loc-note">${note}</p>` : ""}</div>`; };
+      return `<div class="loc"><h3 class="loc-h">${title}</h3>${rows.length ? rows.slice(0, 12).map(([k, n]) => `<div class="loc-row"><span>${esc(k)}</span><i style="width:${(n / top * 100).toFixed(1)}%"></i><b class="num">${n}</b></div>`).join("") : '<p class="flat" style="font-size:14px">None in this range.</p>'}</div>`; };
     const L = detail.listings || [];
     const us = L.filter(l => l.country === "United States" || !l.country);
     const states = count(us.map(l => STATE_NAMES[l.state] || null));
     const abroad = count(L.filter(l => l.country && l.country !== "United States").map(l => l.country));
     const unknown = us.filter(l => !l.state).length;
     const sold = pts.filter(p => p[2] === "s" && p[0] >= cut);
-    el.innerHTML = `<div class="locs">${bars("For sale now, by state", states, unknown ? `${plural(unknown, "car")} with no state given.` : "")}
+    el.innerHTML = `<div class="locs">${bars("For sale now, by state", states)}
       ${abroad.length ? bars("For sale now, outside the US", abroad) : ""}
-      ${bars(`Sold at auction ${rangeWords(cut)}, by country`, count(sold.map(p => p[8])), sold.some(p => !p[8]) ? `${plural(sold.filter(p => !p[8]).length, "sale")} with no country given.` : "")}
+      ${bars(`Sold at auction ${rangeWords(cut)}, by country`, count(sold.map(p => p[8])))}
       ${bars(`Sold at auction ${rangeWords(cut)}, by house`, count(sold.map(p => p[6])))}</div>`;
   }
   const STATE_NAMES = { AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa", KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland", MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi", MO: "Missouri", MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey", NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio", OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont", VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming", DC: "Washington DC" };
@@ -1308,12 +1374,12 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     if (!w.length) { el.innerHTML = '<div class="empty">No weekly listing counts yet.</div>'; return; }
     const lastW = w[w.length - 1], prevW = w.length > 1 ? w[w.length - 2] : null;
     const wl = d => dateShort(d).replace(/, \d{4}$/, "");
-    el.innerHTML = `<div class="legend" style="margin-bottom:10px"><span><i class="bar-f"></i>Cars for sale</span><span><i class="line-ask"></i>Median ask</span>${w.some(r => r[5]) ? '<span><i class="bar-f" style="opacity:.4"></i>Weeks rebuilt before our daily snapshots</span>' : ""}
+    el.innerHTML = `<div class="legend" style="margin-bottom:10px"><span><i class="bar-f"></i>Cars for sale</span><span><i class="line-ask"></i>Median ask</span>
         <span class="flat">This week ${lastW[1]}${prevW ? `, a week earlier ${prevW[1]} (${lastW[1] - prevW[1] >= 0 ? "+" : "−"}${Math.abs(lastW[1] - prevW[1])})` : ""}</span></div>
       <div class="chart-box"><div class="cv"></div></div>
       <div class="tbl-wrap" style="margin-top:16px"><table class="sheet"><thead><tr><th>Week of</th><th class="r">For sale</th><th class="r">New</th><th class="r">Gone</th><th class="r">Median ask</th><th class="r">Change</th></tr></thead><tbody>
       ${w.slice().reverse().slice(0, 12).map((r, i, a) => { const p = a[i + 1]; return `<tr><td class="num">${wl(r[0])}</td><td class="r num">${r[1]}</td><td class="r num">${r[2] ?? ""}</td><td class="r num">${r[3] ?? ""}</td><td class="r num">${r[4] ? money(r[4]) : "n/a"}</td><td class="r">${p && p[4] && r[4] ? chg((r[4] / p[4] - 1) * 100) : ""}</td></tr>`; }).join("")}</tbody></table></div>
-      <p class="flat loc-note">${wk.tracker ? `Weeks before ${dateShort(wk.since || lastW[0])} come from the CarGurus price tracker joined with every listing date we hold, so they are a floor: a car that sold without showing up on CarGurus is missing.` : `Counted from our daily snapshots, which began ${dateShort(wk.since || lastW[0])}. A new week is added every Monday.`}</p>`;
+`;
     const cv = el.querySelector(".cv"), T = 14, B = 34;
     const render = () => {
       const { W, H, L, R } = chartSize(cv);
@@ -1326,12 +1392,12 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       const aTicks = niceTicks(alo, ahi, 3).filter(t => t >= alo && t <= ahi).map(t => `<text class="axis" x="${W - RR + 6}" y="${ya(t) + 4}">${short(t)}</text>`).join("");
       const every = Math.max(1, Math.ceil(w.length / Math.max(2, Math.floor((W - L - RR) / 52))));
       const bars = w.map((r, i) => { const x = L + i * bw + bw * 0.15, bwid = Math.max(2, bw * 0.7);
-        return `<g><title>Week of ${wl(r[0])}: ${r[1]} for sale${r[2] != null ? `, ${r[2]} new, ${r[3]} gone` : ""}${r[4] ? ", median ask " + money(r[4]) : ""}</title><rect x="${x.toFixed(1)}" y="${y(r[1]).toFixed(1)}" width="${bwid.toFixed(1)}" height="${(y(0) - y(r[1])).toFixed(1)}" fill="var(--ink)" fill-opacity="${r[5] ? .45 : .85}"/><rect x="${(L + i * bw).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${H - T - B}" fill="transparent"/></g>`
+        return `<g class="bar" data-tip="${tipText("Week of " + wl(r[0]), [`${r[1]} for sale`, r[2] != null ? `${r[2]} new, ${r[3]} gone` : "", r[4] ? "Median ask " + money(r[4]) : ""])}"><rect x="${x.toFixed(1)}" y="${y(r[1]).toFixed(1)}" width="${bwid.toFixed(1)}" height="${(y(0) - y(r[1])).toFixed(1)}" fill="var(--ink)" fill-opacity=".85"/><rect x="${(L + i * bw).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${H - T - B}" fill="transparent"/></g>`
           + (i % every === 0 ? `<text class="axis" x="${(x + bwid / 2).toFixed(1)}" y="${H - 10}" text-anchor="middle">${wl(r[0])}</text>` : ""); }).join("");
-      const line = asks.length > 1 ? `<path d="${w.map((r, i) => r[4] ? [L + i * bw + bw / 2, ya(r[4])] : null).filter(Boolean).map((q, i) => (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1)).join("")}" fill="none" stroke="var(--ask)" stroke-width="2.4" stroke-linejoin="round"/>` : "";
+      const line = asks.length > 1 ? `<path d="${w.map((r, i) => r[4] ? [L + i * bw + bw / 2, ya(r[4])] : null).filter(Boolean).map((q, i) => (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1)).join("")}" fill="none" stroke="var(--ask)" stroke-width="2.4" stroke-linejoin="round" pointer-events="none"/>` : "";
       cv.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(m.name)} cars for sale by week">${grid}${bars}${line}${aTicks}</svg>`;
     };
-    render(); onWidth(cv, render);
+    render(); onWidth(cv, render); hoverTips(el.querySelector(".chart-box"));
   }
 
   // ------------------------------------------------------------ photos viewer
@@ -1383,11 +1449,10 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       return `<div class="paint-head"><h3>${esc(who)}</h3><span>${plural(r.n, "car")}: ${r.for_sale.toLocaleString("en-US")} for sale now${r.sold ? `, ${r.sold.toLocaleString("en-US")} sold at auction in the last 18 months` : ""}</span></div>
         <div class="paint">${rows}
         <div class="paint-axis"><div></div><div>${ticks.map(t => `<span style="left:${x(t)}">${t ? pct(t).replace(".0", "") : "Red"}</span>`).join("")}</div><div></div></div></div>
-        <div class="paint-notes">${spLine}${unnamed}${few}</div>`;
+        <div class="paint-notes">${spLine}</div>`;
     };
     if (!mine && !mkt) { el.innerHTML = '<div class="empty">Not enough cars with a known colour yet.</div>'; return; }
-    el.innerHTML = `<p class="flat" style="margin:-6px 0 4px;font-size:14px;max-width:80ch">What each colour adds or takes off the price of a car that is otherwise the same: same model, same year, same mileage, painted red instead. A dot right of the line means buyers are asked to pay more than for red. Where the range crosses the line, the cars do not show a clear difference yet.</p>`
-      + (mine ? block(mine, name) : `<p class="flat" style="margin-top:16px">Not enough ${esc(name)} cars with a known colour to compare against red yet, so only the market wide figures are shown.</p>`)
+    el.innerHTML = (mine ? block(mine, name) : `<p class="flat" style="margin-top:16px">Not enough ${esc(name)} cars with a known colour to compare against red yet, so only the market wide figures are shown.</p>`)
       + (mkt ? block(mkt, "Every model") : "");
   }
   // Mileage curve: price against mileage for one model, cars for sale now and sales in the last 18 months,
@@ -1410,10 +1475,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
         [f ? `${Math.round(f.low_miles / 1000)}k to ${Math.round(f.high_miles / 1000)}k miles` : "Mileage effect", effect],
         ...(vs != null ? [["This car vs the curve", chg(vs)]] : [])].map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join("")}</div>
       <div class="legend" style="margin-bottom:10px"><span><i class="k k-f"></i>For sale now</span><span><i class="k k-s"></i>Sold</span>${f ? '<span><i class="line-med"></i>Mileage curve</span><span><i class="band"></i>Typical spread</span>' : ""}${me ? '<span><i class="k" style="box-shadow:0 0 0 3px var(--giallo)"></i>This car</span>' : ""}</div>
-      <div class="chart-box mkt"><div class="cv"></div><div class="tip" hidden></div></div>
-      <p class="flat" style="font-size:13px;margin-top:10px">${f
-        ? `Going from ${miles(f.low_miles)} to ${miles(f.high_miles)} moves a typical ${esc(opts.name || "car")} from ${money(f.low_price)} to ${money(f.high_price)}. `
-        : "There are not enough cars with spread out mileage to fit a curve yet. "}${vs != null ? `This car ${opts.verb || "is priced"} ${Math.abs(vs).toFixed(1)}% ${vs < 0 ? "below" : "above"} what the curve expects for its mileage. ` : ""}Model year and spec also move prices, so read the curve as a guide.${off ? ` ${plural(off, "car")} above ${miles(xmax)} not shown.` : ""}</p>`;
+      <div class="chart-box mkt"><div class="cv"></div><div class="tip" hidden></div></div>`;
     const cv = el.querySelector(".cv"), tip = el.querySelector(".tip"), box = el.querySelector(".mkt");
     const T = 14, B = 34;
     let W, H, pos, svg, sel = -1;

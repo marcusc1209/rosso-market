@@ -262,17 +262,17 @@ def model_detail(con, model_id: str, day: date, idx=None, paint=None, extra=None
     # Each point: [day, price, kind s|u|f|a, car id, title, photo, where]
     pts = []
     for r in con.execute("""SELECT uid, substr(ends_at,1,10) d, price_usd, status, title, image_url, auction_house,
-                                   source, url, country, location, ends_at, raw FROM lots
+                                   source, url, country, location, ends_at, raw, year FROM lots
                             WHERE model_id=? AND status IN ('sold','unsold') AND price_usd > 0 AND ends_at IS NOT NULL
                               AND substr(ends_at,1,10) <= ? ORDER BY ends_at""", (model_id, day.isoformat())):
         if r["uid"] not in skip:
             sl = sales.describe(r)
             pts.append([r["d"], round(r["price_usd"]), "s" if r["status"] == "sold" else "u", car(r["uid"]),
-                        r["title"], r["image_url"], r["auction_house"], sl["sale"], sl["country"]])
+                        r["title"], r["image_url"], r["auction_house"], sl["sale"], sl["country"], r["year"]])
     for l in listings:
         if l["price_usd"]:
             pts.append([l["first_seen"] or day.isoformat(), round(l["price_usd"]), "f", l["car"], l["title"], l["image"],
-                        l["dealer_name"] or l["marketplace"]])
+                        l["dealer_name"] or l["marketplace"], None, None, l["year"]])
     live = {l["vehicle_key"] for l in listings}
     for r in con.execute("""SELECT s.vehicle_key, MAX(s.removed_on) d, s.title, MAX(s.image_url) img, s.dealer_name, s.marketplace,
                                    (SELECT p.price_usd FROM sighting_prices p WHERE p.uid = s.uid ORDER BY p.day DESC LIMIT 1) price
