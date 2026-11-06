@@ -66,7 +66,7 @@ nav.main { display: flex; flex-wrap: wrap; gap: 4px 2px; align-items: center; }
 nav.main a, nav.main summary { padding: 8px 10px; text-decoration: none; font-weight: 500; font-size: 14px; color: var(--muted); cursor: pointer; border-radius: 2px; list-style: none; }
 nav.main summary::-webkit-details-marker { display: none; }
 nav.main a:hover, nav.main summary:hover, nav.main a[aria-current="page"] { color: var(--ink); }
-nav.main a[aria-current="page"] { box-shadow: inset 0 -2px 0 var(--rosso); }
+nav.main a[aria-current="page"], nav.main summary.current, details.models[open] summary { box-shadow: inset 0 -2px 0 var(--rosso); color: var(--ink); }
 details.models { position: static; }
 details.models summary::after { content: " \25BE"; font-size: 11px; }
 .menu { position: absolute; left: 0; right: 0; top: 100%; background: var(--surface); border-bottom: 1px solid var(--line); box-shadow: 0 18px 30px rgba(0,0,0,.08); }
@@ -1826,6 +1826,8 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
     const h = location.hash.slice(1) || "overview";
     document.getElementById("models-menu").open = false;
     document.querySelectorAll("nav.main [data-nav]").forEach(a => a.dataset.nav === h ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
+    // the Models menu is the current section on model and family pages (Hypercars has its own link)
+    document.querySelector("#models-menu summary").classList.toggle("current", h.startsWith("model-") || (h.startsWith("family-") && h !== "family-hypercars-and-limited-series"));
     if (h === "overview") return viewOverview();
     if (h.startsWith("model-")) return viewModel(h.slice(6));
     if (h.startsWith("car-")) return viewCar(h.slice(4));
