@@ -125,6 +125,11 @@ class _Marketplace(Source):
 AT_SITE = "https://www.autotrader.com"
 AT_SEARCH = (AT_SITE + "/cars-for-sale/ferrari?searchRadius=0&listingTypes=USED,CERTIFIED"
              "&numRecords={n}&firstRecord={first}&sortBy=derivedpriceASC")
+# The listings feed the site's own pages use (checked 2026-11-07 in a real browser: 2,356 Ferraris nationwide, the
+# same listing objects as the search page). robots.txt does not disallow /rest/lsc/. The search pages are refused to
+# automated readers by Akamai, which is why the HTML route stopped on 2026-11-01.
+AT_API = (AT_SITE + "/rest/lsc/listing?makeCode=FER&searchRadius=0&listingTypes=USED,CERTIFIED"
+          "&numRecords={n}&firstRecord={first}&sortBy=derivedpriceASC")
 
 
 def flight_data(html: str) -> str:
@@ -207,7 +212,55 @@ def map_autotrader(a: dict, owners: dict, source: str, today) -> Optional[RawRec
 
 
 class AutoTrader(_Marketplace):
+    def _feed(self, url: str) -> Optional[dict]:
+        """The listings feed: a plain request first, then the same request from inside the site's page in a real
+        browser. If both are refused the run stops there: a refusal is not worked around."""
+        if not self.use_browser:
+            try:
+                data = self.ctx.fetcher.get_json(url)
+                if isinstance(data, dict) and "listings" in data:
+                    return data
+                self.log.info("plain request returned no listings feed, switching to the browser")
+            except Exception as e:
+                self.log.info("plain request refused (%s), switching to the browser", e)
+            self.use_browser = True
+        time.sleep(float(self.cfg.get("browser_pause_seconds", 3)))
+        try:
+            data = self.ctx.browser.json_in_page(AT_SITE + "/cars-for-sale/all-cars/ferrari", url)
+        except Exception as e:
+            self.log.warning("listings feed refused in the browser too (%s)", e)
+            return None
+        return data if isinstance(data, dict) and "listings" in data else None
+
     def fetch(self) -> Iterator[RawRecord]:
+        if self.cfg.get("feed", True):
+            yield from self._fetch_feed()
+        else:
+            yield from self._fetch_pages()
+
+    def _fetch_feed(self) -> Iterator[RawRecord]:
+        size = int(self.cfg.get("page_size", 100))
+        first, total, seen = 0, None, set()
+        for _ in range(int(self.cfg.get("max_pages", 40))):
+            data = self._feed(AT_API.format(n=size, first=first))
+            if not data:
+                break
+            rows = data.get("listings") or []
+            owners = {str(o.get("id")): o for o in data.get("owners") or [] if isinstance(o, dict)}
+            total = data.get("totalResultCount", total)
+            for a in rows:
+                if str(a.get("id")) in seen:
+                    continue
+                seen.add(str(a.get("id")))
+                rec = map_autotrader(a, owners, self.name, self.ctx.run_date)
+                if rec:
+                    yield rec
+            first += size
+            if not rows or total is None or first >= int(total):
+                break
+        self.log.info("%d listings read of %s", len(seen), total)
+
+    def _fetch_pages(self) -> Iterator[RawRecord]:
         size = int(self.cfg.get("page_size", 100))
         first, total, seen = 0, None, set()
         cap = int(self.cfg.get("max_pages", 40))
