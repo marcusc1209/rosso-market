@@ -230,15 +230,18 @@ def _rebuilt_week_ago(con, day: date, target: str) -> tuple[list, list]:
     return list(last.values()), now
 
 
-def week_over_week(con, day: date) -> dict:
+def week_over_week(con, day: date, back: int = 7) -> dict:
     """Median asking price by model, this week against last week, compared model year by
     model year (a 2023 car against 2023 cars) so a different mix of years does not
     pass for a price move. Every car counts: a batch of cheaper cars arriving, or cuts on
     cars already listed, moves the median, which is the point."""
-    target = _d(day, 7)
-    snaps = [d for d in available_days(con) if _d(day, 10) <= d <= target]
-    if snaps:
-        since, how = snaps[-1], "snapshot"
+    target = _d(day, back)
+    days = available_days(con)
+    snaps = [d for d in days if _d(day, back + 3) <= d <= target]
+    # a longer period that reaches back before our first snapshot runs from that first snapshot
+    first = next((d for d in days if back > 7 and d <= _d(day, 3)), None)
+    if snaps or first:
+        since, how = (snaps[-1] if snaps else first), "snapshot"
         last, now = _asks_with_year(con, since), _asks_with_year(con, day.isoformat())
     else:
         since, how = target, "rebuilt"
@@ -277,9 +280,9 @@ def _group(rows) -> dict:
     return g
 
 
-def market_movers(con, day: date, stats: dict, covers: dict) -> dict:
-    """Biggest gainer and decliner by asking price, week over week, and the most active model."""
-    wow = week_over_week(con, day)
+def market_movers(con, day: date, stats: dict, covers: dict, back: int = 7) -> dict:
+    """Biggest gainer and decliner by asking price over `back` days, and the most active model."""
+    wow = week_over_week(con, day, back)
     base = wow["since"]
     out = {"since": base, "how": wow["how"], "gainer": None, "decliner": None, "active": None, "all": []}
     for x in wow["models"]:
@@ -291,7 +294,7 @@ def market_movers(con, day: date, stats: dict, covers: dict) -> dict:
             out["gainer"] = out["all"][0]
         if out["all"][-1]["change"] < 0:
             out["decliner"] = out["all"][-1]
-    then_day = _base_day(con, day)
+    then_day = _base_day(con, day, back)
     now = snapshot(con, day)
     then = snapshot(con, date.fromisoformat(then_day)) if then_day else {}
 
@@ -543,11 +546,11 @@ def brief(stats: dict, mv: list, ovn: dict, auc: dict, history_days: int = 99) -
             headline = f"Tracking {tracked:,} Ferraris for sale. Weekly price moves begin after seven days of data"
         bullets = []
         if auc["live"]:
-            bullets.append({"label": "Live now", "text": f"{len(auc['live'])} Ferrari auctions are open across the houses we follow."})
+            bullets.append({"label": "Live now", "text": f"{len(auc['live'])} Ferrari lots are live right now on the auction sites we follow."})
         sold_30 = [l for l in sold_30 if not l.get("outlier")]
         if sold_30:
             top = max(sold_30, key=lambda l: l["price_usd"] or 0)
-            bullets.append({"label": "Recent results", "text": f"{len(sold_30)} Ferraris sold at auction in the last 90 days at the houses we date results for. "
+            bullets.append({"label": "Recent results", "text": f"{len(sold_30)} Ferraris sold at auction in the last 90 days on the auction sites that date their results. "
                             f"The highest was {top['title']} at {_money(top['price_usd'])}."})
         bullets.append({"label": "History", "text": f"{history_days} day{'s' if history_days != 1 else ''} of daily asking price snapshots so far."})
         return {"headline": headline, "bullets": bullets, "tracked_listings": tracked, "active_auctions": len(auc["live"]),

@@ -8,7 +8,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from . import analytics as A
-from . import cars, clean, colors, fairvalue, mileage, sales, taxonomy, weekly
+from . import cars, clean, colors, fairvalue, mileage, pulse, sales, taxonomy, weekly
 
 
 def _takes(content_dir: Path) -> list[dict]:
@@ -125,6 +125,7 @@ def build(con, day: date, cfg: dict, health: list[dict]) -> dict:
         "takes": _takes(Path(cfg["settings"].get("content_dir", "content"))),
         "news": news,
         "health": health,
+        "coverage": coverage(con, cfg, models),
         "rules": {"mover_min_pct": A.MOVER_MIN_PCT, "mover_min_cars": A.MOVER_MIN_CARS},
     }
 
@@ -183,6 +184,28 @@ US_STATES = {"Alabama": "AL", "Alaska": "AK", "Arizona": "AZ", "Arkansas": "AR",
     "Texas": "TX", "Utah": "UT", "Vermont": "VT", "Virginia": "VA", "Washington": "WA", "West Virginia": "WV", "Wisconsin": "WI",
     "Wyoming": "WY", "District of Columbia": "DC"}
 _ABBR = set(US_STATES.values())
+
+
+# what each source is called on the site
+SOURCE_NAMES = {
+    "ferrari_approved": "Ferrari Approved", "dupont_registry": "duPont Registry", "classiccars": "ClassicCars.com",
+    "bringatrailer": "Bring a Trailer", "carsandbids": "Cars & Bids", "somo": "Sotheby's Motorsport",
+    "dupont_live": "duPont Registry Live", "rmsothebys": "RM Sotheby's", "mecum": "Mecum", "broadarrow": "Broad Arrow",
+    "gooding": "Gooding Christie's", "bonhams": "Bonhams", "pcarmarket": "PCARMARKET", "marketcheck": "MarketCheck",
+    "autotrader_us": "Autotrader", "cars_com": "Cars.com",
+}
+
+
+def coverage(con, cfg: dict, models: list) -> dict:
+    """How much of the market the site covers: cars seen, models, and every source it reads."""
+    cars_n = con.execute("""SELECT COUNT(*) FROM (SELECT vehicle_key FROM sightings WHERE model_id IS NOT NULL AND vehicle_key IS NOT NULL
+                            UNION SELECT COALESCE(vehicle_key, uid) FROM lots WHERE model_id IS NOT NULL)""").fetchone()[0]
+    names = [SOURCE_NAMES.get(k, (v or {}).get("label") or k) for k, v in (cfg.get("sources") or {}).items()
+             if (v or {}).get("enabled") and k in SOURCE_NAMES]
+    if cfg.get("_tracker"):
+        names.append("CarGurus")             # the owner's weekly CarGurus checks (pipeline/tracker.py)
+    return {"cars": cars_n, "models": sum(1 for m in models if m.get("listings") or (m.get("auction") or {}).get("sold_12m")),
+            "sources": names}
 
 
 def city_states(con) -> dict:
@@ -373,7 +396,8 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
     sales.prime(con)                     # sale names and links the adapters keep in kv
     payload = build(con, day, cfg, health)
     # one page per car, and every card on the site points at it
-    pages, idx = cars.build(con, day, A.model_stats(con, day))
+    stats = A.model_stats(con, day)
+    pages, idx = cars.build(con, day, stats)
     gb = gearboxes(con)
     # what each car for sale (and each lot coming up) should sell for (pipeline/fairvalue.py)
     fv = fairvalue.build(con, day, gb, clean.implausible_lots(con))
@@ -400,6 +424,15 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
     for mid, block in paint["models"].items():
         colors.add_selling_times(block, times["models"].get(mid, {}))
     payload["colors"] = paint["market"]
+    # movers over 30 days (asks), 90 days and 12 months (sale prices, adjusted by the fair value fit)
+    payload["pulse"] = pulse.build(con, day, fv.get("fit"), stats, payload.get("covers") or {})
+    if fv.get("fit") is not None:
+        payload["index"] = pulse.index(fv["fit"], day)
+        payload["market_change"] = {k: payload["pulse"][k].get("market") for k in pulse.PERIODS}
+    # the models a car can be valued for, for Value my car (pipeline/fairvalue.py)
+    if fv.get("fit") is not None:
+        (data_dir / "valuer.json").write_text(json.dumps(fairvalue.valuer(fv["fit"], fv["models"], day),
+                                                         separators=(",", ":"), default=str), encoding="utf-8")
     # cars for sale by gearbox, for the Models menu's 6-Speed and F1 entries
     for m in payload["models"]:
         if m["id"] in taxonomy.DUAL_GEARBOX:

@@ -145,6 +145,37 @@ section.block { padding-block: 56px; border-bottom: 1px solid var(--line); scrol
 .stat span { color: var(--muted); font-size: 13px; text-align: right; }
 .stat em { display: block; font-style: normal; font-size: 12px; }
 
+/* coverage strip at the foot of the overview */
+.cover-sec { text-align: center; border-top: 1px solid var(--line); }
+.cover-sec p { color: var(--muted); margin: 10px auto 0; max-width: 60ch; }
+.cover-stats { display: flex; justify-content: center; gap: clamp(28px, 10vw, 140px); margin: 34px 0 30px; flex-wrap: wrap; }
+.cover-stats div { display: grid; gap: 6px; }
+.cover-stats b { font: 600 clamp(24px, 3vw, 30px)/1 var(--f-mono); font-variant-numeric: tabular-nums; }
+.cover-stats span { color: var(--muted); font-size: 13px; }
+.cover-eb { margin-bottom: 14px; }
+.marquee { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.marquee-track { display: flex; width: max-content; animation: marquee 45s linear infinite; }
+.marquee-track span { padding: 6px 26px; color: var(--muted); font-weight: 500; font-size: 15px; white-space: nowrap; }
+.marquee:hover .marquee-track { animation-play-state: paused; }
+@keyframes marquee { to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .marquee { -webkit-mask-image: none; mask-image: none; } .marquee-track { animation: none; flex-wrap: wrap; width: auto; justify-content: center; } .marquee-track .dup { display: none; } }
+/* value my car */
+.val { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 40px; align-items: start; }
+.val-form { display: grid; gap: 16px; border-top: 2px solid var(--ink); padding-top: 18px; }
+.val-form label { display: grid; gap: 6px; font-size: 13px; font-weight: 500; }
+.val-form label > span { color: var(--muted); letter-spacing: .06em; text-transform: uppercase; font-size: 12px; }
+.val-form select, .val-form input[type=number] { font: 500 16px var(--f-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); padding: 10px 12px; border-radius: 0; width: 100%; }
+.val-form [hidden] { display: none; }
+.val-form .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.val-form .check { display: flex; gap: 10px; align-items: center; font-weight: 400; font-size: 14px; }
+.val-form .check input { width: 18px; height: 18px; accent-color: var(--rosso); }
+.val-out { border-top: 2px solid var(--ink); padding-top: 18px; display: grid; gap: 14px; }
+.val-out .big { font: 500 clamp(36px, 5vw, 52px)/1 var(--f-mono); font-variant-numeric: tabular-nums; }
+.val-out .rng { color: var(--muted); font-size: 15px; }
+.val-out .row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+.val-out .row span:first-child { color: var(--muted); }
+.val-like h3 { margin: 28px 0 14px; font: 600 15px var(--f-body); }
+@media (max-width: 900px) { .val { grid-template-columns: minmax(0, 1fr); gap: 28px; } }
 /* movers */
 .movers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .mover { background: var(--surface); border: 1px solid var(--line); text-decoration: none; display: grid; grid-template-rows: auto 1fr; overflow: hidden; transition: border-color .15s; }
@@ -287,7 +318,19 @@ table.sheet.mv { min-width: 0; }
 .lot .bid span { color: var(--muted); font-size: 12px; text-align: right; }
 .fv { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 13px; }
 .fv > span:first-child { color: var(--muted); }
-.fv b { font: 500 14px/1 var(--f-mono); font-variant-numeric: tabular-nums; color: var(--ink); margin-left: 6px; }
+.fvp { display: inline-block; font: 500 13px/1 var(--f-mono); font-variant-numeric: tabular-nums; padding: 4px 7px; margin-left: 6px; border-radius: 2px;
+  color: var(--ink); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+.fvp.good, .fvg-ask.good { color: var(--up); background: color-mix(in srgb, var(--up) 15%, transparent); }
+.fvp.bad, .fvg-ask.bad { color: var(--down); background: color-mix(in srgb, var(--down) 15%, transparent); }
+.car-box .fvp { margin-left: 0; font-size: 15px; padding: 5px 8px; }
+.fvg { position: relative; height: 10px; margin: 14px 0 6px; background: var(--line); border-radius: 5px; }
+.fvg-band { position: absolute; top: 0; bottom: 0; border-radius: 5px; background: color-mix(in srgb, var(--muted) 35%, transparent); }
+.fvg-fair { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--ink); }
+.fvg-ask { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 2px solid var(--surface);
+  background: var(--muted); }
+.fvg-ask.good { background: var(--up); } .fvg-ask.bad { background: var(--down); }
+.fvg-l { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.fvg-l b { color: var(--ink); font-weight: 600; }
 .fv em, .fvc em { font-style: normal; font-weight: 600; font-size: 12px; white-space: nowrap; }
 .fv-adj { color: var(--muted); font-size: 12px; text-align: right; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; min-height: 21px; }
@@ -593,6 +636,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       </details>
       <a href="#family-hypercars-and-limited-series" data-nav="family-hypercars-and-limited-series">Hypercars</a>
       <a href="#auctions" data-nav="auctions">Auctions</a>
+      <a href="#value" data-nav="value">Value my car</a>
       <a href="#news" data-nav="news">News</a>
     </nav>
     <div class="search" role="search">
@@ -632,9 +676,25 @@ const FRESH = { cache: "no-cache" };
     return `<span class="${dn ? "down" : "up"} num">${dn ? "▼" : "▲"} ${a.toFixed(a < 1 ? 2 : 1)}%${words ? (dn ? " lower" : " higher") : ""}</span>`;
   };
   // An ask against the car's fair value: within 5% either way is in line.
-  const fvVs = pct => pct == null ? "" : Math.abs(pct) < 5 ? '<em class="flat">In line</em>'
-    : `<em class="${pct < 0 ? "up" : "down"}">${Math.round(Math.abs(pct))}% ${pct < 0 ? "below" : "above"}</em>`;
-  const fvLine = (f, vs = true) => !f ? "" : `<div class="fv"><span>Fair value<b>${short(f.value)}</b></span>${vs ? fvVs(f.ask_pct) : `<span class="flat">${short(f.low)} to ${short(f.high)}</span>`}</div>`;
+  // Green when the ask (or the bid) is under the fair value, red when over it, grey within 5% either way.
+  const fvPct = (f, price) => f && price ? (price / f.value - 1) * 100 : null;
+  const fvCls = pct => pct == null || Math.abs(pct) < 5 ? "" : pct < 0 ? "good" : "bad";
+  const fvVs = (pct, who = "") => pct == null ? "" : Math.abs(pct) < 5 ? `<em class="flat">${who ? who + " in line" : "In line"}</em>`
+    : `<em class="${pct < 0 ? "up" : "down"}">${who ? who + " " : ""}${Math.round(Math.abs(pct))}% ${pct < 0 ? "below" : "above"}</em>`;
+  const fvLine = (f, price, who = "") => {
+    if (!f) return "";
+    const pct = fvPct(f, price);
+    return `<div class="fv"><span>Fair value<span class="fvp ${fvCls(pct)}">${short(f.value)}</span></span>${pct != null ? fvVs(pct, who) : `<span class="flat">${short(f.low)} to ${short(f.high)}</span>`}</div>`;
+  };
+  // Where the ask sits against the fair range: the band is the range, the line the fair value, the dot the ask
+  function fvGauge(f, price) {
+    const lo = Math.min(f.low, price || Infinity) * 0.92, hi = Math.max(f.high, price || 0) * 1.08;
+    const at = v => ((v - lo) / (hi - lo) * 100).toFixed(1) + "%";
+    return `<div class="fvg" role="img" aria-label="Fair range ${short(f.low)} to ${short(f.high)}${price ? ", price " + short(price) : ""}">
+      <div class="fvg-band" style="left:${at(f.low)};width:calc(${at(f.high)} - ${at(f.low)})"></div><div class="fvg-fair" style="left:${at(f.value)}"></div>
+      ${price ? `<div class="fvg-ask ${fvCls(fvPct(f, price))}" style="left:${at(price)}"></div>` : ""}</div>
+      <div class="fvg-l"><span>${short(f.low)}</span><span>Fair <b>${short(f.value)}</b></span><span>${short(f.high)}</span></div>`;
+  }
   const fvAdj = f => (f.adjustments || []).filter(a => Math.abs(a[1]) >= 0.5).map(([k, v]) => `${esc(k)} ${v > 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}%`).join(" · ");
   // Until a week of prices exists the "7 days" change runs from the first day we have.
   const weekLabel = () => {
@@ -718,20 +778,28 @@ const FRESH = { cache: "no-cache" };
   const familyName = f => f;
 
   // Market Movers: the biggest gainer and decliner by asking price, and the most active model.
-  function moverCard(kind, m, since) {
+  function moverCard(kind, m, since, basis = "ask") {
+    const sold = basis === "sold";
     if (!m) {
-      const msg = kind === "gainer" ? "No model's asking prices rose" : kind === "decliner" ? "No model's asking prices fell" : "No listings added or removed";
+      const what = sold ? "sale prices" : "asking prices";
+      const msg = kind === "gainer" ? `No model's ${what} rose` : kind === "decliner" ? `No model's ${what} fell` : sold ? "No sales" : "No listings added or removed";
       return `<div class="mover"><div class="ph none"></div><div class="mb"><div class="eyebrow">${{ gainer: "Biggest gainer", decliner: "Biggest decline", active: "Most active" }[kind]}</div><p class="why" style="margin:0">${msg} since ${dateLong(since)}.</p></div></div>`;
     }
     const label = { gainer: "Biggest gainer", decliner: "Biggest decline", active: "Most active" }[kind];
-    const body = kind === "active"
+    const body = kind === "active" && sold
+      ? `<div class="big num">${m.total}</div><div class="why">sold at auction since ${dateLong(since)}</div>
+         <div class="split"><span>Median sold <b>${short(m.median)}</b></span><span>Total <b>${short(m.dollar)}</b></span></div>`
+      : kind === "active"
       ? `<div class="big num">${m.total}</div><div class="why">cars changed hands or hit the market since ${dateLong(since)}</div>
          <div class="split"><span>New <b>${m.new}</b></span><span>Gone <b>${m.removed}</b></span><span>Sold at auction <b>${m.sold}</b></span></div>`
-      : `<div class="big">${chg(m.change)}</div><div class="why">Median ask by model year, this week against the week of ${dateLong(since)}. ${m.cars_now} cars now, ${m.cars_last} a week earlier.</div>
-         ${m.median_last ? `<div class="split"><span>Median now <b>${short(m.median)}</b></span><span>Week earlier <b>${short(m.median_last)}</b></span></div>` : ""}`;
+      : sold
+      ? `<div class="big">${chg(m.change)}</div><div class="why">${m.sales} sales since ${dateLong(since)}, ${m.sales_last} in the period before.</div>
+         <div class="split"><span>Median sold now <b>${short(m.median)}</b></span><span>Before <b>${short(m.median_last)}</b></span></div>`
+      : `<div class="big">${chg(m.change)}</div><div class="why">Median ask by model year, against ${dateLong(since)}. ${m.cars_now} cars now, ${m.cars_last} then.</div>
+         ${m.median_last ? `<div class="split"><span>Median now <b>${short(m.median)}</b></span><span>${dateLong(since)} <b>${short(m.median_last)}</b></span></div>` : ""}`;
     return `<a class="mover" href="${modelLink(m.id)}">${photo(m.image, m.name, `<span class="chip" style="background:var(--surface)">${label}</span>`)}
       <div class="mb"><h3>${esc(m.name)}</h3>${body}
-      <div class="meta"><span>${m.median ? "Median ask <b class=\"num\">" + money(m.median) + "</b>" : ""}</span><span>${plural(m.listings || 0, "listing")}</span></div></div></a>`;
+      <div class="meta"><span>${m.median && !sold ? "Median ask <b class=\"num\">" + money(m.median) + "</b>" : ""}</span><span>${plural(m.listings || 0, "listing")}</span></div></div></a>`;
   }
 
   // One photo per car, loaded from the source's own CDN. No referrer is sent (some CDNs refuse
@@ -851,7 +919,7 @@ const FRESH = { cache: "no-cache" };
         <div class="house">${esc(l.dealer_name || l.marketplace || "")}${l.location ? ", " + esc(l.location) : ""}</div>
         ${l.country ? `<div class="country">${esc(l.country)}</div>` : ""}
         <div class="bid"><div><div class="eyebrow">Asking</div><b>${money(l.price_usd)}</b></div><span>${l.first_seen ? "Listed " + dateLong(l.first_seen) : ""}<br>${esc(l.marketplace || "")}</span></div>
-        ${fvLine(l.fair)}
+        ${fvLine(l.fair, l.price_usd)}
       </div></a>`;
   }
 
@@ -879,7 +947,7 @@ const FRESH = { cache: "no-cache" };
       <div class="house">${esc(l.auction_house)}${!l.sale && l.location ? ", " + esc(l.location) : ""}${l.lot_number ? ", lot " + esc(l.lot_number) : ""}</div>
       ${l.mileage_mi ? `<div class="specs">${miles(l.mileage_mi)}</div>` : ""}
       <div class="bid"><div><div class="eyebrow">${label}</div><b>${value}</b></div><span>${when}${est}${vs}</span></div>
-      ${done ? "" : fvLine(l.fair, false)}
+      ${done ? "" : fvLine(l.fair, l.status === "live" ? l.price_usd : null, l.status === "live" ? "Bid" : "")}
       </div></a>`;
   }
 
@@ -903,9 +971,8 @@ const FRESH = { cache: "no-cache" };
     if (mm.since && !mm.all.length && !mm.active) mm.since = null;
     const live = D.auctions.live;
     const ix = D.index;
-    const ixLast = ix.length ? ix[ix.length - 1][1] : null;
-    const ixChange = ix.length > 1 ? (ixLast / ix[0][1] - 1) * 100 : null;
-    const ix30 = ix.length > 30 ? (ixLast / ix[ix.length - 31][1] - 1) * 100 : null;
+    const mc = D.market_change || {};
+    const heroPct = v => v == null ? "n/a" : (v < 0 ? "▼ " : "▲ ") + Math.abs(v).toFixed(1) + "%";
 
     app.innerHTML = `
     <section class="hero">
@@ -914,8 +981,8 @@ const FRESH = { cache: "no-cache" };
         <div class="eyebrow"><span class="dot"></span>As of ${dateLong(D.as_of)}, ${esc(D.region)}</div>
         <h1>Rosso<br><span>Market</span></h1>
         <div class="hero-index">
-          <div><b>${ixLast ? ixLast.toFixed(1) : "n/a"}</b><small>Ask index, 90 days ago = 100</small></div>
-          <div><b>${ix30 == null ? "n/a" : (ix30 < 0 ? "▼ " : "▲ ") + Math.abs(ix30).toFixed(1) + "%"}</b><small>Last 30 days</small></div>
+          <div><b>${heroPct(mc["90d"])}</b><small>Market, last 90 days</small></div>
+          <div><b>${heroPct(mc["12m"])}</b><small>Last 12 months</small></div>
           <div><b>${b.tracked_listings.toLocaleString("en-US")}</b><small>Ferraris tracked today</small></div>
         </div>
       </div>
@@ -941,10 +1008,9 @@ const FRESH = { cache: "no-cache" };
     </div></section>
 
     <section class="block" id="movers"><div class="wrap">
-      <div class="sec-head"><div><div class="eyebrow">Market Movers</div><h2>This week's movers</h2></div></div>
-      ${mm.since ? `<div class="movers">${moverCard("gainer", mm.gainer, mm.since)}${moverCard("decliner", mm.decliner, mm.since)}${moverCard("active", mm.active, mm.since)}</div>
-        ${topMoves(mm.all)}`
-        : '<div class="empty">Movers appear once there is a week of asking prices to compare.</div>'}
+      <div class="sec-head"><div><div class="eyebrow">Market Movers</div><h2 id="mv-title">This month's movers</h2></div>
+        <div class="seg" role="group" aria-label="Period" id="mv-seg">${MV_PERIODS.map(([k, l]) => `<button type="button" data-p="${k}">${l}</button>`).join("")}</div></div>
+      <div id="mv-body"></div>
     </div></section>
 
     <section class="block" id="auctions-sec"><div class="wrap">
@@ -961,8 +1027,28 @@ const FRESH = { cache: "no-cache" };
     <section class="block" id="news-sec"><div class="wrap">
       <div class="sec-head"><div><div class="eyebrow">Latest News</div><h2>Ferrari headlines</h2></div>${D.news.length ? '<a class="link-more" href="#news">All news →</a>' : ""}</div>
       ${newsList(D.news.slice(0, 4))}
-    </div></section>`;
+    </div></section>
+    ${coverageSection()}`;
 
+    let mvP = "30d";
+    try { mvP = localStorage.getItem("rm-movers") || "30d"; } catch (e) {}
+    const showMovers = k => {
+      if (!(D.pulse || {})[k]) k = "30d";
+      mvP = k;
+      try { localStorage.setItem("rm-movers", k); } catch (e) {}
+      document.getElementById("mv-title").textContent = { "30d": "This month's movers", "90d": "Movers, last 90 days", "12m": "Movers, last 12 months" }[k];
+      document.querySelectorAll("#mv-seg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.p === k));
+      const p = (D.pulse || {})[k] || (k === "30d" ? mm : null);
+      const body = document.getElementById("mv-body");
+      if (!p || !p.since || (!p.all.length && !p.active)) {
+        body.innerHTML = `<div class="empty">${k === "30d" ? "Movers appear once there are asking prices to compare." : "Too few sales to compare yet."}</div>`;
+        return;
+      }
+      body.innerHTML = `<div class="movers">${moverCard("gainer", p.gainer, p.since, p.basis)}${moverCard("decliner", p.decliner, p.since, p.basis)}${moverCard("active", p.active, p.since, p.basis)}</div>${topMoves(p.all, p.basis)}`;
+      wireRows();
+    };
+    document.querySelectorAll("#mv-seg button").forEach(b => b.addEventListener("click", () => showMovers(b.dataset.p)));
+    showMovers(mvP);
     app.querySelectorAll("[data-jump]").forEach(btn => btn.addEventListener("click", () => {
       document.getElementById(btn.dataset.jump)?.scrollIntoView({ behavior: "smooth", block: "start" });
     }));
@@ -972,14 +1058,33 @@ const FRESH = { cache: "no-cache" };
   }
 
   // The week's top movers: five gainers and five declines, or ten of one kind when every model moved the same way.
-  function topMoves(all) {
+  // The whole market in one place: how many cars and models, and every source read each day
+  function coverageSection() {
+    const c = D.coverage;
+    if (!c || !c.sources || !c.sources.length) return "";
+    const row = c.sources.map(n => `<span>${esc(n)}</span>`).join("");
+    return `<section class="block cover-sec"><div class="wrap">
+      <h2>Every Ferrari, every sale, one place</h2>
+      <p>Dealer listings, auction results and fair values for the US market, and hypercars worldwide, refreshed every day.</p>
+      <div class="cover-stats">
+        <div><b>${c.cars.toLocaleString("en-US")}</b><span>Ferraris tracked</span></div>
+        <div><b>${c.models}</b><span>Models tracked</span></div>
+        <div><b>${c.sources.length}</b><span>Sources tracked</span></div>
+      </div>
+      <div class="eyebrow cover-eb">Tracking the whole Ferrari market</div></div>
+      <div class="marquee" aria-label="Sources: ${esc(c.sources.join(", "))}"><div class="marquee-track" aria-hidden="true">${row}${row.replace(/<span>/g, '<span class="dup">')}</div></div>
+    </section>`;
+  }
+  const MV_PERIODS = [["30d", "30 days"], ["90d", "90 days"], ["12m", "12 months"]];
+  function topMoves(all, basis = "ask") {
     const up = all.filter(x => x.change > 0).sort((a, b) => b.change - a.change);
     const dn = all.filter(x => x.change < 0).sort((a, b) => a.change - b.change);
     const lists = up.length && dn.length ? [["Top gainers", up.slice(0, 5)], ["Top declines", dn.slice(0, 5)]]
       : up.length ? [["Top gainers", up.slice(0, 10)]] : dn.length ? [["Top declines", dn.slice(0, 10)]] : [];
     if (!lists.length) return "";
-    const table = (title, rows) => `<div><h3 class="mv-h">${title}</h3><div class="tbl-wrap"><table class="sheet mv"><thead><tr><th class="p">Pos</th><th>Model</th><th class="r">Cars now</th><th class="r">Median ask</th><th class="r">Change</th></tr></thead><tbody>
-      ${rows.map((x, i) => `<tr class="click" data-href="${modelLink(x.id)}"><td class="p">P${i + 1}</td><td class="name"><a href="${modelLink(x.id)}">${esc(x.name)}</a></td><td class="r num">${x.cars_now}</td><td class="r num">${money(x.median)}</td><td class="r">${chg(x.change)}</td></tr>`).join("")}</tbody></table></div></div>`;
+    const sold = basis === "sold";
+    const table = (title, rows) => `<div><h3 class="mv-h">${title}</h3><div class="tbl-wrap"><table class="sheet mv"><thead><tr><th class="p">Pos</th><th>Model</th><th class="r">${sold ? "Sales" : "Cars now"}</th><th class="r">${sold ? "Median sold" : "Median ask"}</th><th class="r">Change</th></tr></thead><tbody>
+      ${rows.map((x, i) => `<tr class="click" data-href="${modelLink(x.id)}"><td class="p">P${i + 1}</td><td class="name"><a href="${modelLink(x.id)}">${esc(x.name)}</a></td><td class="r num">${sold ? x.sales : x.cars_now}</td><td class="r num">${money(x.median)}</td><td class="r">${chg(x.change)}</td></tr>`).join("")}</tbody></table></div></div>`;
     return `<div class="top-moves${lists.length === 1 ? " one" : ""}">${lists.map(([t, r]) => table(t, r)).join("")}</div>`;
   }
 
@@ -1010,7 +1115,7 @@ const FRESH = { cache: "no-cache" };
       [a.change_yoy != null ? chg(a.change_yoy) : "n/a", "Median sold vs a year earlier"], [a.sell_through_12m != null ? a.sell_through_12m + "%" : "n/a", "Sell through, 12 months"]);
     if (a.last_sold) kpis.push([money(a.last_sold.price), "Last sale, " + dateLong(a.last_sold.day)]);
     app.innerHTML = pageHead(`<a href="#family-${slug(m.family)}">${esc(m.family)}</a>`, esc(m.name),
-      `Auction results for the Ferrari ${esc(m.name)} from every house we track, with asking prices from dealers ${m.family === "Hypercars and limited series" ? "anywhere in the world, since so few exist that the world is one market for them" : "in the US"} as they come in.${m.gearbox_listings ? ` Both gearboxes together: see <a href="#model-${id}--6-speed">${esc(m.name)} 6-Speed</a> or <a href="#model-${id}--f1">${esc(m.name)} F1</a> on its own.` : ""}`, kpis)
+      `Auction results for the Ferrari ${esc(m.name)} from every auction we track, with asking prices from dealers ${m.family === "Hypercars and limited series" ? "anywhere in the world, since so few exist that the world is one market for them" : "in the US"} as they come in.${m.gearbox_listings ? ` Both gearboxes together: see <a href="#model-${id}--6-speed">${esc(m.name)} 6-Speed</a> or <a href="#model-${id}--f1">${esc(m.name)} F1</a> on its own.` : ""}`, kpis)
       + `<section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Sales and asking prices</div><h2>Market</h2></div></div>
          <div id="m-auc"><p class="flat">Loading results</p></div></div></section>
          <section class="block" id="m-up-sec" hidden><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Coming up</div><h2>Live and upcoming lots</h2></div></div><div class="lots" id="m-up"></div></div></section>
@@ -1081,7 +1186,7 @@ const FRESH = { cache: "no-cache" };
     if ((detail.upcoming || []).length) { document.getElementById("m-up-sec").hidden = false; document.getElementById("m-up").innerHTML = detail.upcoming.map(lotCard).join(""); }
     const listTable = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Car</th><th class="r">Mileage</th><th>Colour</th><th>Seller</th><th class="r">Days listed</th><th class="r">Asking</th><th class="r">Fair value</th><th class="r">Ask vs fair</th></tr></thead><tbody>
       ${items.map(l => `<tr><td class="thumb">${photo(l.image, "")}</td><td class="name"><a ${carLink(l)}>${esc(l.title)}</a>${l.certified ? ' <span class="chip sold">Approved</span>' : ""}</td>
-      <td class="r num">${miles(l.mileage_mi)}</td><td>${esc(l.exterior_color || "")}</td><td>${esc(l.dealer_name || "")}${l.location ? `<div class="flat" style="font-size:12px">${esc(l.location)}</div>` : ""}</td><td class="r num">${daysListed(l) ?? ""}</td><td class="r num">${money(l.price_usd)}</td><td class="r num">${l.fair ? money(l.fair.value) : ""}</td><td class="r fvc">${l.fair ? fvVs(l.fair.ask_pct) : ""}</td></tr>`).join("")}
+      <td class="r num">${miles(l.mileage_mi)}</td><td>${esc(l.exterior_color || "")}</td><td>${esc(l.dealer_name || "")}${l.location ? `<div class="flat" style="font-size:12px">${esc(l.location)}</div>` : ""}</td><td class="r num">${daysListed(l) ?? ""}</td><td class="r num">${money(l.price_usd)}</td><td class="r num">${l.fair ? `<span class="fvp ${fvCls(l.fair.ask_pct)}">${short(l.fair.value)}</span>` : ""}</td><td class="r fvc">${l.fair ? fvVs(l.fair.ask_pct) : ""}</td></tr>`).join("")}
       </tbody></table></div>`;
     const mList = document.getElementById("m-list");
     if (detail.listings.length) {
@@ -1502,7 +1607,7 @@ const FRESH = { cache: "no-cache" };
     el.innerHTML = `<div class="locs">${bars("For sale now, by state", states, ck.status === "for_sale" ? STATE_NAMES[ck.state] : null)}
       ${abroad.length ? bars("For sale now, outside the US", abroad, ck.status === "for_sale" ? ck.country : null) : ""}
       ${bars(`Sold at auction ${rangeWords(cut)}, by country`, count(sold.map(p => p[8])), ck.status === "sold" ? ck.country : null)}
-      ${bars(`Sold at auction ${rangeWords(cut)}, by house`, count(sold.map(p => p[6])), ck.status === "sold" ? ck.house : null)}</div>`;
+      ${bars(`Sold at auction ${rangeWords(cut)}, by auction`, count(sold.map(p => p[6])), ck.status === "sold" ? ck.house : null)}</div>`;
   }
   const STATE_NAMES = { AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa", KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland", MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi", MO: "Missouri", MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey", NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio", OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont", VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming", DC: "Washington DC" };
 
@@ -1712,6 +1817,7 @@ const FRESH = { cache: "no-cache" };
     const ext = c.url ? `<a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener">${c.status === "for_sale" ? "Contact seller on" : "View lot on"} ${esc(c.where || "source")} ↗</a>` : "";
     const ask = c.market && c.market.median_ask;
     const fv = c.fair_value;
+    const fvPrice = c.status === "for_sale" || c.status === "live" ? c.price : null;
     const vsAsk = ask && c.price && c.status !== "upcoming" ? chg((c.price / ask - 1) * 100) : "";
     app.innerHTML = `<div class="page-head" style="padding-block:24px 0;border-bottom:0"><div class="wrap">
         <div class="crumbs"><a href="#overview">Overview</a> / ${m.family ? `<a href="#family-${slug(m.family)}">${esc(m.family)}</a> / ` : ""}<a href="#model-${esc(c.model.id)}">${esc(c.model.name)}</a></div>
@@ -1725,12 +1831,12 @@ const FRESH = { cache: "no-cache" };
           <span class="status ${c.status}">${STATUS[c.status] || c.status}</span>
           <div><div class="eyebrow">${esc(c.price_label || "")}</div><div class="big">${priceTxt}</div>${vsAsk ? `<div style="font-size:13px;margin-top:4px">${vsAsk} vs median ask</div>` : ""}</div>
           ${c.no_reserve ? '<span class="chip" style="justify-self:start">No reserve</span>' : ""}${c.certified ? '<span class="chip sold" style="justify-self:start">Ferrari Approved</span>' : ""}
-          <div class="row"><span>${c.status === "for_sale" || c.status === "off_market" ? "Seller" : "Auction house"}</span><span>${esc(c.seller || "")}</span></div>
+          <div class="row"><span>${c.status === "for_sale" || c.status === "off_market" ? "Seller" : "Auction"}</span><span>${esc(c.seller || "")}</span></div>
           ${c.sale ? `<div class="row"><span>Sale</span><span>${saleLink(c)}</span></div>` : ""}
           ${c.country ? `<div class="row"><span>Country</span><span>${esc(c.country)}</span></div>` : ""}
-          ${fv ? `<div class="row"><span>Fair value</span><span class="num"><b>${money(fv.value)}</b></span></div>
-          <div class="row"><span>Fair range</span><span class="num">${short(fv.low)} to ${short(fv.high)}</span></div>
-          ${fv.ask_pct != null ? `<div class="row fvc"><span>Ask vs fair value</span>${fvVs(fv.ask_pct)}</div>` : ""}
+          ${fv ? `<div class="row"><span>Fair value</span><span class="fvp ${fvCls(fvPct(fv, fvPrice))}">${money(fv.value)}</span></div>
+          ${fvGauge(fv, fvPrice)}
+          ${fvPrice ? `<div class="row fvc"><span>${c.status === "live" ? "Bid" : "Ask"} vs fair value</span>${fvVs(fvPct(fv, fvPrice))}</div>` : ""}
           ${fvAdj(fv) ? `<div class="fv-adj">${fvAdj(fv)}</div>` : ""}` : ""}
           ${ask ? `<div class="row"><span>Median ask, ${esc(c.model.name)}</span><span class="num">${money(ask)}</span></div>` : ""}
           ${(m.auction || {}).median_sold_12m ? `<div class="row"><span>Median sold, 12 months</span><span class="num">${money(m.auction.median_sold_12m)}</span></div>` : ""}
@@ -1809,8 +1915,8 @@ const FRESH = { cache: "no-cache" };
           <span class="auc-count" id="auc-count"></span></div>
         <div class="tabs" role="tablist">${tabs.map(([k, l, arr], i) => `<button type="button" role="tab" id="tab-${k}" aria-selected="${i === 0}" data-tab="${k}">${l} (${arr.length})</button>`).join("")}</div>
         <div id="tab-body"></div></div></section>
-        <section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">By house</div><h2>Where Ferraris are selling</h2></div></div>
-        <div class="tbl-wrap"><table class="sheet"><thead><tr><th>Auction house</th><th class="r">Live now</th><th class="r">Results, 30 days</th></tr></thead><tbody>
+        <section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">By auction</div><h2>Where Ferraris are selling</h2></div></div>
+        <div class="tbl-wrap"><table class="sheet"><thead><tr><th>Auction</th><th class="r">Live now</th><th class="r">Results, 30 days</th></tr></thead><tbody>
         ${houses.map(([h, v]) => `<tr><td class="name">${esc(h)}</td><td class="r num">${v.live}</td><td class="r num">${v.results_30d}</td></tr>`).join("")}</tbody></table></div></div></section>`;
     // search: a model's exact name shows only that model, anything else matches words in the lot title
     const norm = x => (x || "").toLowerCase().replace(/ferrari/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
@@ -1848,6 +1954,95 @@ const FRESH = { cache: "no-cache" };
   }
   const daysAgo = n => { const d = new Date(D.as_of + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() - n); return d.toISOString().slice(0, 10); };
 
+  // Value my car: the fair value fit, priced in the browser from the coefficients in data/valuer.json
+  let VALUER = null;
+  async function viewValue() {
+    app.innerHTML = '<div class="wrap loading">Loading</div>';
+    if (!VALUER) { try { VALUER = await (await fetch("data/valuer.json", FRESH)).json(); } catch (e) { VALUER = null; } }
+    if (location.hash !== "#value") return;
+    if (!VALUER || !VALUER.models.length) { app.innerHTML = pageHead("Value my car", "Value my car", "") + '<section class="block"><div class="wrap"><div class="empty">Valuations are not available right now.</div></div></section>'; return; }
+    const V = VALUER, ms = V.models, byM = Object.fromEntries(ms.map(m => [m.id, m]));
+    const fams = [...new Set(ms.map(m => m.family || "Other"))];
+    let st = {};
+    try { st = JSON.parse(localStorage.getItem("rm-value") || "{}"); } catch (e) {}
+    if (!byM[st.model]) st = { model: (byM["f8-tributo"] || ms[0]).id };
+    const colourOpts = [...Object.entries(V.labels).map(([k, l]) => [k, l]), ["other", "Other colour"], ["unsure", "Not sure"]];
+    app.innerHTML = pageHead("Value my car", "Value my car", "What your Ferrari would sell for today, from its model, year, mileage, colour and gearbox.") + `
+      <section class="block"><div class="wrap val">
+        <form class="val-form" id="val-form" onsubmit="return false">
+          <label><span>Model</span><select name="model">${fams.map(f => `<optgroup label="${esc(f)}">${ms.filter(m => (m.family || "Other") === f).map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join("")}</optgroup>`).join("")}</select></label>
+          <div class="two"><label><span>Year</span><select name="year"></select></label>
+          <label><span>Mileage</span><input type="number" name="miles" min="0" max="250000" step="100" inputmode="numeric" placeholder="e.g. 8,000"></label></div>
+          <label><span>Exterior colour</span><select name="colour">${colourOpts.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join("")}</select></label>
+          <label id="val-gear" hidden><span>Gearbox</span><select name="gear"><option value="f1">F1</option><option value="manual">Factory six speed manual</option></select></label>
+          <label class="check"><input type="checkbox" name="special"> Special order paint (Tailor Made, paint to sample)</label>
+          <label class="check"><input type="checkbox" name="edition"> Special edition (anniversary, one off, limited series)</label>
+        </form>
+        <div><div class="val-out" id="val-out"></div><div class="val-like" id="val-like"></div></div>
+      </div></section>`;
+    const f = document.getElementById("val-form");
+    const setYears = (m, keep) => {
+      const ys = []; for (let y = m.years[1]; y >= m.years[0]; y--) ys.push(y);
+      f.year.innerHTML = ys.map(y => `<option>${y}</option>`).join("");
+      f.year.value = keep && ys.includes(+keep) ? keep : Math.round(m.ym);
+      if (!f.year.value) f.year.value = ys[0];
+    };
+    f.model.value = st.model; setYears(byM[st.model], st.year);
+    if (st.miles != null) f.miles.value = st.miles;
+    if (st.colour) f.colour.value = st.colour;
+    if (st.gear) f.gear.value = st.gear;
+    f.special.checked = !!st.special; f.edition.checked = !!st.edition;
+    let likeFor = null;
+    const draw = async () => {
+      const m = byM[f.model.value];
+      document.getElementById("val-gear").hidden = m.manual == null;
+      const miles = f.miles.value === "" ? null : Math.max(0, Math.min(250000, +f.miles.value));
+      const year = +f.year.value, gear = m.manual != null ? f.gear.value : null;
+      st = { model: m.id, year, miles, colour: f.colour.value, gear, special: f.special.checked, edition: f.edition.checked };
+      try { localStorage.setItem("rm-value", JSON.stringify(st)); } catch (e) {}
+      const mi = miles == null ? m.mm : miles;
+      const parts = [];
+      const add = (label, x) => { if (x) parts.push([label, x]); return x; };
+      let lv = m.c + m.by * (year - m.ym) / 5;
+      lv += add("Mileage", m.bm * (Math.log1p(mi / 1000) - Math.log1p(m.mm / 1000)));
+      const col = st.colour === "unsure" ? V.unsure : st.colour === "other" ? 0 : (V.colours[st.colour] || 0);
+      lv += add("Colour", col);
+      if (gear === "manual") lv += add("Manual gearbox", m.manual);
+      if (st.special) lv += add("Special order paint", V.special);
+      if (st.edition) lv += add("Special edition", V.edition);
+      const r = x => Math.round(x / 1000) * 1000;
+      const val = r(Math.exp(lv)), lo = r(Math.exp(lv - 1.2816 * m.sigma)), hi = r(Math.exp(lv + 1.2816 * m.sigma));
+      const mm = byId[m.id] || {}, a = mm.auction || {};
+      document.getElementById("val-out").innerHTML = `
+        <div class="eyebrow">Estimated value, ${year} ${esc(m.name)}</div>
+        <div class="big">${money(val)}</div>
+        <div class="rng">Likely range ${money(lo)} to ${money(hi)}</div>
+        ${fvGauge({ value: val, low: lo, high: hi }, null)}
+        ${miles == null ? `<div class="row"><span>Mileage</span><span>Typical for the model, ${miles_(m.mm)}</span></div>` : ""}
+        ${parts.map(([k, x]) => `<div class="row"><span>${esc(k)}</span>${chg((Math.exp(x) - 1) * 100)}</div>`).join("")}
+        ${a.median_sold_12m ? `<div class="row"><span>Median sold, 12 months</span><span class="num">${money(a.median_sold_12m)}</span></div>` : ""}
+        ${mm.median ? `<div class="row"><span>Median ask now</span><span class="num">${money(mm.median)}</span></div>` : ""}
+        <a class="link-more" href="${modelLink(m.id)}">All ${esc(m.name)} prices →</a>`;
+      // the cars for sale most like this one: same gearbox, nearest in year and mileage
+      if (likeFor !== m.id + year + mi + gear) {
+        likeFor = m.id + year + mi + gear;
+        const key = likeFor;
+        const d = modelCache[m.id] || await loadModel(m.id);
+        if (key !== likeFor || location.hash !== "#value") return;
+        const near = ((d || {}).listings || []).filter(l => !gear || (l.gearbox || "f1") === gear)
+          .map(l => [Math.abs((l.year || year) - year) * 4 + Math.abs(Math.log1p((l.mileage_mi ?? mi) / 1000) - Math.log1p(mi / 1000)) * 3, l])
+          .sort((x, y) => x[0] - y[0]).slice(0, 4).map(x => x[1]);
+        document.getElementById("val-like").innerHTML = near.length ? `<h3>Similar cars for sale</h3><div class="lots">${near.map(listingCard).join("")}</div>` : "";
+      }
+    };
+    const miles_ = n => Math.round(n).toLocaleString("en-US") + " mi";
+    f.model.addEventListener("change", () => { setYears(byM[f.model.value]); draw(); });
+    f.addEventListener("input", e => { if (e.target.name !== "model") draw(); });
+    f.addEventListener("change", e => { if (e.target.name !== "model") draw(); });
+    window.scrollTo(0, 0);
+    draw();
+  }
+
   function viewNews() {
     app.innerHTML = pageHead("News", "News", "Ferrari headlines from the outlets we follow. Every story links to the original.")
       + `<section class="block"><div class="wrap">${newsList(D.news)}</div></section>`;
@@ -1871,7 +2066,7 @@ const FRESH = { cache: "no-cache" };
         <h3>Colour premiums</h3>
         <p>Each model page shows what every exterior colour is worth against red. Sites name paint their own way, so every name is first put in a family: Rosso Corsa, Rosso Scuderia and plain Red are all red, Grigio Silverstone is grey. Paint Ferrari makes outside its standard range, which Ferrari Approved lists only as "Extra Sample", is still a colour: such a car takes its colour from another site that lists the same VIN, and what the one off paint adds is measured separately, so it is not credited to the colour. A special order car no site names a colour for is left out. Year and mileage move price far more than paint, and one colour's cars may simply be newer, so we fit each model's prices to year, mileage and colour together and read off what the colour alone adds. The range shown is 90% sure. A colour needs at least three cars in the model, and red at least three, before it is shown. The figure for every model compares cars only within the same model and years, never a 296 against a Roma.</p>
         <h3>Auction results</h3>
-        <p>Houses report prices differently. Bring a Trailer, Cars &amp; Bids, Sotheby's Motorsport and duPont Registry Live show the winning bid. RM Sotheby's and Mecum include the buyer's premium. Prices in pounds, euros or francs are converted to US dollars at the day's rate. A result far outside the model's asking range is kept on its model page but left out of the headline insights, because it is more often a data error than a real sale.</p>
+        <p>Auction sites report prices differently. Bring a Trailer, Cars &amp; Bids, Sotheby's Motorsport and duPont Registry Live show the winning bid. RM Sotheby's and Mecum include the buyer's premium. Prices in pounds, euros or francs are converted to US dollars at the day's rate. A result far outside the model's asking range is kept on its model page but left out of the headline insights, because it is more often a data error than a real sale.</p>
         <h3>What these numbers are not</h3>
         <p>Asking prices are what sellers hope to get. They are not appraisals or offers, and individual cars vary with mileage, history and specification.</p>
       </div></div></section>`;
@@ -1909,7 +2104,7 @@ const FRESH = { cache: "no-cache" };
     const h = D.health || [];
     document.getElementById("foot").innerHTML = `<div>
       <a class="logo" href="#overview"><span class="logo-mark" aria-hidden="true">RM</span><span class="logo-word">Rosso <span>Market</span></span></a>
-      <nav aria-label="Footer"><a href="#overview">Overview</a><a href="#auctions">Auctions</a><a href="#news">News</a><a href="#methodology">Methodology</a><a href="#privacy">Privacy</a></nav>
+      <nav aria-label="Footer"><a href="#overview">Overview</a><a href="#auctions">Auctions</a><a href="#value">Value my car</a><a href="#news">News</a><a href="#methodology">Methodology</a><a href="#privacy">Privacy</a></nav>
       <p style="margin-top:18px;max-width:60ch">Rosso Market is independent and is not affiliated with or endorsed by Ferrari S.p.A. Prices are asking prices and auction results gathered from public sources and licensed data feeds. They can contain errors and are not an offer or a valuation.</p>
       <p>Data as of ${dateLong(D.as_of)}.</p></div>
       <div><div class="eyebrow" style="margin-bottom:10px">Data sources, last run</div><div class="health">
@@ -1991,6 +2186,7 @@ const FRESH = { cache: "no-cache" };
     if (h.startsWith("family-")) return viewFamily(h.slice(7));
     if (h === "auctions") return viewAuctions();
     if (h === "news") return viewNews();
+    if (h === "value") return viewValue();
     if (h === "methodology") return viewMethodology();
     if (h === "privacy") return viewPrivacy();
     notFound();

@@ -351,7 +351,7 @@ def build(con, day: date, gb: Optional[dict] = None, skip=frozenset()) -> dict:
     """{"cars": {listing vehicle key or lot uid: fair value}, "models": {model id: accuracy}}"""
     rows = dataset(con, day, gb, skip)
     if not rows:
-        return {"cars": {}, "models": {}}
+        return {"cars": {}, "lots": {}, "models": {}, "fit": None}
     fit = Fit(rows)
     miss = backtest(rows)
     models = {}
@@ -405,3 +405,40 @@ def upcoming(con, day: date, gb: Optional[dict] = None) -> list[dict]:
                     "paint": paint, "family": colors.family(paint) if paint else None,
                     "special": int(bool(paint) and colors.special(paint)), "gear": gear, **title_flags(r["title"])})
     return out
+
+
+def valuer(fit: Fit, models: dict, day: date) -> dict:
+    """What Value my car needs to price a car in the browser, for each model whose fair values are shown.
+
+    ln value = c + year * (year - year_mid) / 5 + miles * (ln(1 + mi/1000) - ln(1 + miles_mid/1000))
+               + colour + special paint + special edition + manual"""
+    fam_n = Counter(p["family"] for p in fit.rows if p["family"])
+    colours = {colors.BASELINE: 0.0}
+    for f in fit.fams:
+        colours[f] = round(fit.coef("fam", f), 5)
+    tot = sum(fam_n[f] for f in colours) or 1
+    unsure = round(sum(colours[f] * fam_n[f] for f in colours) / tot, 5)
+    years = defaultdict(list)
+    for p in fit.rows:
+        years[p["model"]].append(p["year"])
+    out = []
+    for m, info in models.items():
+        if not info.get("shown"):
+            continue
+        tm = taxonomy.BY_ID.get(m)
+        ym, mm = fit.year_mid[m], fit.miles_mid.get(m) or fit.miles_all
+        base = {"model": m, "year": ym, "miles": mm, "family": colors.BASELINE, "special": 0, "sold": 1, "months": 0.0,
+                "house": "mix", "gear": "f1" if m in taxonomy.DUAL_GEARBOX else None, "project": 0, "edition": 0}
+        row = {"id": m, "name": tm.name if tm else m, "family": tm.family if tm else None,
+               "c": round(fit._predict_log(fit.beta, base), 5),
+               "ym": ym, "by": round(fit.coef("g", "year") + fit.coef("year", m), 5),
+               "mm": round(mm), "bm": round(fit.coef("g", "miles") + fit.coef("miles", m), 5),
+               "sigma": round(fit.sigma.get(m, 0.2), 4), "years": [min(years[m]), max(years[m])],
+               "sold": info["sold"], "miss_pct": info["miss_pct"]}
+        if m in taxonomy.DUAL_GEARBOX:
+            row["manual"] = round(fit.coef("g", "manual") + fit.coef("manual", m), 5)
+        out.append(row)
+    out.sort(key=lambda r: r["name"])
+    return {"as_of": day.isoformat(), "colours": colours, "unsure": unsure,
+            "labels": {f: colors.LABELS[f] for f in colours},
+            "special": round(fit.coef("g", "special"), 5), "edition": round(fit.coef("g", "edition"), 5), "models": out}

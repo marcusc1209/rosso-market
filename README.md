@@ -303,6 +303,19 @@ November 2026 that is 35 models and about 1,380 of the 1,750 cars for sale. The 
 is 19%, against 27% for a plain model median. An ask over 2.5 times, or under 0.4 times, the fair value is
 most likely another car or a placeholder price, so it shows none.
 
+## Market movers and Value my car
+
+The overview's movers switch between 30 days, 90 days and 12 months (`pipeline/pulse.py`). 30 days compares
+asking prices model year by model year against the snapshot a month back (our first snapshot while there is
+less than a month). 90 days and 12 months compare auction sales in the period with the period before, each
+sale set against the fair value fit with the passing of time taken out, so a move is in what the same car
+sells for. The hero shows the same comparison over the whole market, and its chart is that adjusted price
+month by month over two years.
+
+Value my car (`#value`) prices a car in the browser from `site/data/valuer.json`, the fair value fit's
+coefficients for each model whose fair values are shown: model, year, mileage, colour, gearbox, special order
+paint and special editions.
+
 ## Market panel on model pages
 
 Each model page has one market panel, like classic.com's price tracker: a time range (1, 3 or 5 years, or all),
