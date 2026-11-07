@@ -165,6 +165,12 @@ def parse_autotrader(html: str) -> tuple[dict, dict, Optional[int]]:
     return _object_after(f, "inventory") or {}, _object_after(f, "owners") or {}, int(total.group(1)) if total else None
 
 
+def _snippet(text: str) -> str:
+    """What came back instead of data: its title, or its first words."""
+    t = re.search(r"<title>([^<]{0,100})", text or "", re.I)
+    return t.group(1).strip() if t else re.sub(r"\s+", " ", (text or "")[:160])
+
+
 def _at_photo(src: str, w: int, h: int) -> str:
     return re.sub(r"^https://images\.autotrader\.com/(?!scaler/)", f"https://images.autotrader.com/scaler/{w}/{h}/", src)
 
@@ -217,12 +223,19 @@ class AutoTrader(_Marketplace):
         browser. If both are refused the run stops there: a refusal is not worked around."""
         if not self.use_browser:
             try:
-                data = self.ctx.fetcher.get_json(url)
+                # ask for JSON, as the site's own pages do: without it the feed may answer with a page
+                r = self.ctx.fetcher.get(url, headers={"Accept": "application/json, text/plain, */*"})
+                try:
+                    data = r.json()
+                except ValueError:
+                    data = None
+                    self.log.info("plain request answered %s %s, not the feed: %r", r.status_code,
+                                  r.headers.get("content-type"), _snippet(r.text))
                 if isinstance(data, dict) and "listings" in data:
                     return data
-                self.log.info("plain request returned no listings feed, switching to the browser")
             except Exception as e:
-                self.log.info("plain request refused (%s), switching to the browser", e)
+                self.log.info("plain request refused (%s)", e)
+            self.log.info("switching to the browser")
             self.use_browser = True
         time.sleep(float(self.cfg.get("browser_pause_seconds", 3)))
         try:

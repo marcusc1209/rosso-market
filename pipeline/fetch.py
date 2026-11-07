@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import random
+import re
 import time
 from pathlib import Path
 from typing import Callable, Optional
@@ -256,7 +257,13 @@ class Browser:
         if result["status"] in (401, 403) or _is_challenge(result["body"]):
             raise Blocked(f"{api_url} answered {result['status']} inside the browser")
         self.fetcher._archive(api_url, result["body"], "json")
-        return json.loads(result["body"])
+        try:
+            return json.loads(result["body"])
+        except ValueError:
+            body = result["body"] or ""
+            title = re.search(r"<title>([^<]{0,100})", body, re.I)
+            raise ValueError(f"answered {result['status']} with a page, not data: "
+                             f"{title.group(1).strip() if title else body[:160]!r}") from None
 
     def capture_requests(self, url: str, contains: str, wait_ms: int = 5000) -> list[str]:
         """Open url and return the URLs of requests the page makes that contain `contains`.

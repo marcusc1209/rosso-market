@@ -102,8 +102,9 @@ def test_autotrader_feed_plain_then_browser_and_stops_when_refused():
     asked = []
 
     class F:
-        def get_json(self, url):
+        def get(self, url, headers=None):
             asked.append("plain")
+            assert "application/json" in headers["Accept"]
             raise RuntimeError("403")
 
     class B:
