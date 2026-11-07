@@ -95,9 +95,11 @@ sources:
 
   # Marketplaces. robots.txt allows general crawlers on these search pages (checked 2026-11-01).
   # They run on the Mac like Ferrari Approved, since big marketplaces refuse data center addresses.
-  autotrader_us:                   # back on 2026-11-07, reading the listings feed the site's own pages use
-    adapter: autotrader            # (/rest/lsc/listing, not disallowed by robots.txt). The search pages answer
-    enabled: true                  # automated readers with "page unavailable". If the feed is refused too, the run stops.
+  autotrader_us:                   # off again 2026-11-07. The listings feed its own pages use (/rest/lsc/listing,
+    adapter: autotrader            # not disallowed by robots.txt) answers a person's browser with data, but plain
+    enabled: false                 # requests and the Mac's browser with "Autotrader - page unavailable" (Akamai),
+                                   # like its search pages. A bot block, so not worked around. The reader is kept.
+                                   # MarketCheck (marketcheck, paid key) carries AutoTrader inventory under licence.
     runner: home
     page_size: 100
     max_pages: 40
