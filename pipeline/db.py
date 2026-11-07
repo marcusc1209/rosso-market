@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from .records import Normalized, LISTING, AUCTION
@@ -132,6 +132,17 @@ def mark_missing(con, source: str, day: date, after_runs: int = 2) -> int:
     d = day.isoformat()
     con.execute("UPDATE sightings SET missed_runs = missed_runs + 1 WHERE source=? AND removed_on IS NULL AND last_seen < ?", (source, d))
     cur = con.execute("UPDATE sightings SET removed_on=? WHERE source=? AND removed_on IS NULL AND missed_runs >= ?", (d, source, after_runs))
+    return cur.rowcount
+
+
+def mark_ended(con, source: str, day: date) -> int:
+    """Called only after `source` ran successfully. A live lot whose auction ended more than a day ago and that
+    its feed no longer lists ended without a sale (reserve not met): several sites pull those listings and only
+    ever publish the cars that sold. It keeps its last bid as the high bid. If a sale is published later, the
+    next run sets it to sold."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+    cur = con.execute("""UPDATE lots SET status='unsold' WHERE source=? AND status='live' AND ends_at IS NOT NULL
+                         AND ends_at < ? AND last_seen < ?""", (source, cutoff, day.isoformat()))
     return cur.rowcount
 
 

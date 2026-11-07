@@ -946,14 +946,16 @@ const FRESH = { cache: "no-cache" };
     if (l.ending_soon) chips.push('<span class="chip hot">Ending soon</span>');
     if (l.no_reserve) chips.push('<span class="chip">No reserve</span>');
     if (l.status === "sold") chips.push('<span class="chip sold">Sold</span>');
-    if (l.status === "unsold") chips.push('<span class="chip unsold">Not sold</span>');
+    if (l.status === "unsold") chips.push('<span class="chip unsold" title="Reserve not met">RNM</span>');
     if (l.status === "upcoming") chips.push('<span class="chip">Upcoming</span>');
     if (l.gearbox === "manual") chips.push('<span class="chip gear">Manual</span>');
     let label, value;
     if (l.status === "live") { label = "Current bid"; value = money(l.price_usd); }
     else if (l.status === "upcoming") { label = "Estimate"; value = l.estimate_low_usd ? `${short(l.estimate_low_usd)} to ${short(l.estimate_high_usd)}` : "On request"; }
     else if (l.status === "sold") { label = "Sold for"; value = money(l.price_usd); }
-    else { label = "High bid"; value = money(l.price_usd); }
+    else if (l.price_usd) { label = "High bid"; value = money(l.price_usd); }
+    else if (l.estimate_low_usd) { label = "Estimate"; value = `${short(l.estimate_low_usd)} to ${short(l.estimate_high_usd)}`; }
+    else { label = "High bid"; value = "Not published"; }
     const est = l.status === "live" && l.estimate_low_usd ? ` Est. ${short(l.estimate_low_usd)} to ${short(l.estimate_high_usd)}` : "";
     const done = l.status === "sold" || l.status === "unsold";
     const when = !l.ends_at ? "" : done ? dateLong(l.ends_at.slice(0, 10)) : "Ends " + endET(l.ends_at);
@@ -1212,7 +1214,7 @@ const FRESH = { cache: "no-cache" };
     } else mList.innerHTML = '<div class="empty">No cars listed right now.</div>';
     const resTable = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Lot</th><th>Sale</th><th>Country</th><th>Closed</th><th class="r">Mileage</th><th>Result</th><th class="r">Price</th></tr></thead><tbody>
       ${items.map(r => `<tr><td class="thumb">${photo(r.image, "")}</td><td class="name"><a ${carLink(r)}>${esc(r.title)}</a></td><td>${saleLink(r) || esc(r.auction_house)}<div class="flat" style="font-size:12px">${esc(r.auction_house)}</div></td><td>${esc(countryOf(r))}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td><td class="r num">${miles(r.mileage_mi)}</td>
-      <td><span class="chip ${r.status}">${r.status === "sold" ? "Sold" : "Not sold"}</span></td><td class="r num">${money(r.price_usd)}</td></tr>`).join("")}</tbody></table></div>`;
+      <td><span class="chip ${r.status}"${r.status === "sold" ? "" : ' title="Reserve not met"'}>${r.status === "sold" ? "Sold" : "RNM"}</span></td><td class="r num">${money(r.price_usd)}</td></tr>`).join("")}</tbody></table></div>`;
     const mRes = document.getElementById("m-res");
     if (detail.results.length) switchable(mRes, detail.results, lotCard, resTable);
     else mRes.innerHTML = '<div class="empty">No auction results recorded yet.</div>';
@@ -1582,7 +1584,7 @@ const FRESH = { cache: "no-cache" };
     render(); onWidth(cv, render); hoverTips(el.querySelector(".chart-box")); wireRows();
   }
 
-  // Volume: auction sales and cars not sold, month by month.
+  // Volume: auction sales and cars that did not meet their reserve (RNM), month by month.
   function volumeChart(el, pts, cut, last, car = null) {
     const lots = pts.filter(p => (p[2] === "s" || p[2] === "u") && p[0] >= cut);
     if (!lots.length) { el.innerHTML = '<div class="empty">No auction results in this range.</div>'; return; }
@@ -1590,7 +1592,7 @@ const FRESH = { cache: "no-cache" };
     const months = []; for (let d = new Date(first.slice(0, 7) + "-01T00:00:00Z"); d.toISOString().slice(0, 7) <= last.slice(0, 7); d.setUTCMonth(d.getUTCMonth() + 1)) months.push(d.toISOString().slice(0, 7));
     const per = months.map(mo => { const a = lots.filter(p => p[0].startsWith(mo)); const s = a.filter(p => p[2] === "s"); return [mo, s.length, a.length - s.length, s.reduce((t, p) => t + p[1], 0)]; });
     const tot = per.reduce((t, r) => t + r[1], 0), unsold = per.reduce((t, r) => t + r[2], 0);
-    el.innerHTML = `<div class="legend" style="margin-bottom:10px"><span><i class="bar-s"></i>Sold (${tot})</span><span><i class="bar-u"></i>Not sold (${unsold})</span>${tot + unsold ? `<span class="flat">Sell through ${Math.round(tot / (tot + unsold) * 100)}%</span>` : ""}</div><div class="chart-box"><div class="cv"></div></div>`;
+    el.innerHTML = `<div class="legend" style="margin-bottom:10px"><span><i class="bar-s"></i>Sold (${tot})</span><span><i class="bar-u"></i>RNM (${unsold})</span>${tot + unsold ? `<span class="flat">Sell through ${Math.round(tot / (tot + unsold) * 100)}%</span>` : ""}</div><div class="chart-box"><div class="cv"></div></div>`;
     const cv = el.querySelector(".cv"), T = 14, B = 34;
     const render = () => {
       const { W, H, L, R } = chartSize(cv);
@@ -1601,7 +1603,7 @@ const FRESH = { cache: "no-cache" };
       const bars = per.map(([mo, s, u, sum], i) => { const x = L + i * bw + bw * 0.14, w = Math.max(2, bw * 0.72);
         const lab = new Date(mo + "-15T12:00:00Z").toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
         const mine = car && car.sold && car.date && car.date.startsWith(mo);
-        return `<g class="bar${mine ? " me" : ""}" data-tip="${tipText(lab + (mine ? ", this car's sale" : ""), [`${s} sold`, u ? `${u} not sold` : "", sum ? `${money(sum)} in sales` : ""])}">${mine ? `<rect x="${(x - 3).toFixed(1)}" y="${(y(s + u) - 3).toFixed(1)}" width="${(w + 6).toFixed(1)}" height="${(y(0) - y(s + u) + 3).toFixed(1)}" class="me-outline"/>` : ""}${s ? `<rect x="${x.toFixed(1)}" y="${y(s).toFixed(1)}" width="${w.toFixed(1)}" height="${(y(0) - y(s)).toFixed(1)}" fill="var(--rosso)" fill-opacity=".85"/>` : ""}${u ? `<rect x="${(x + .75).toFixed(1)}" y="${(y(s + u) + .75).toFixed(1)}" width="${(w - 1.5).toFixed(1)}" height="${Math.max(0, y(s) - y(s + u) - 1.5).toFixed(1)}" fill="var(--surface)" stroke="var(--rosso)" stroke-width="1.5"/>` : ""}<rect x="${(L + i * bw).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${H - T - B}" fill="transparent"/></g>`
+        return `<g class="bar${mine ? " me" : ""}" data-tip="${tipText(lab + (mine ? ", this car's sale" : ""), [`${s} sold`, u ? `${u} RNM` : "", sum ? `${money(sum)} in sales` : ""])}">${mine ? `<rect x="${(x - 3).toFixed(1)}" y="${(y(s + u) - 3).toFixed(1)}" width="${(w + 6).toFixed(1)}" height="${(y(0) - y(s + u) + 3).toFixed(1)}" class="me-outline"/>` : ""}${s ? `<rect x="${x.toFixed(1)}" y="${y(s).toFixed(1)}" width="${w.toFixed(1)}" height="${(y(0) - y(s)).toFixed(1)}" fill="var(--rosso)" fill-opacity=".85"/>` : ""}${u ? `<rect x="${(x + .75).toFixed(1)}" y="${(y(s + u) + .75).toFixed(1)}" width="${(w - 1.5).toFixed(1)}" height="${Math.max(0, y(s) - y(s + u) - 1.5).toFixed(1)}" fill="var(--surface)" stroke="var(--rosso)" stroke-width="1.5"/>` : ""}<rect x="${(L + i * bw).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${H - T - B}" fill="transparent"/></g>`
           + (i % every === 0 ? `<text class="axis" x="${(x + w / 2).toFixed(1)}" y="${H - 10}" text-anchor="middle">${new Date(mo + "-15T12:00:00Z").toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}${mo.endsWith("-01") || i === 0 ? " " + mo.slice(2, 4) : ""}</text>` : ""); }).join("");
       cv.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Auction results by month">${grid}${bars}</svg>`;
     };
@@ -1683,7 +1685,7 @@ const FRESH = { cache: "no-cache" };
   function closePhotos() { lb().hidden = true; document.body.style.overflow = ""; }
 
   // ------------------------------------------------------------ car page
-  const STATUS = { for_sale: "For sale", live: "Live auction", upcoming: "Upcoming auction", sold: "Sold", unsold: "Not sold", off_market: "Off market" };
+  const STATUS = { for_sale: "For sale", live: "Live auction", upcoming: "Upcoming auction", sold: "Sold", unsold: "RNM", off_market: "Off market" };
   // Colour premiums: each colour family's price against an otherwise identical red car of the same model,
   // with its 90% range. c comes from the model file (pipeline/colors.py).
   const SWATCH = { red: "#c4161c", black: "#111316", white: "#f4f4f2", grey: "#6e7378", silver: "#c3c7cb", blue: "#1f4fa3",
@@ -1830,7 +1832,7 @@ const FRESH = { cache: "no-cache" };
     const ph = c.photos || [];
     const gal = !ph.length ? '<div class="gallery none">No photos for this car</div>'
       : `<div class="gallery${ph.length < 3 ? " one" : ""}">${ph.slice(0, ph.length < 3 ? 1 : 5).map((u, i) => `<button type="button" data-p="${i}" aria-label="Open photo ${i + 1}"><img src="${esc(u)}" alt="${i ? "" : esc(c.title)}" ${i ? 'loading="lazy"' : ""} referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">${i === Math.min(4, ph.length - 1) && ph.length > 1 ? `<span class="count">${ph.length} photos</span>` : ""}${i === 0 && ph.length > 1 ? `<span class="count m">${ph.length} photos</span>` : ""}</button>`).join("")}</div>`;
-    const priceTxt = c.status === "upcoming" && c.estimate ? `${short(c.estimate[0])} to ${short(c.estimate[1])}` : c.price ? money(c.price) : "Not published";
+    const priceTxt = (c.status === "upcoming" || (c.status === "unsold" && !c.price)) && c.estimate ? `${short(c.estimate[0])} to ${short(c.estimate[1])}` : c.price ? money(c.price) : "Not published";
     const when = c.status === "live" || c.status === "upcoming" ? (c.ends_at ? "Ends " + endET(c.ends_at) : "") : c.date ? dateLong(c.date) : "";
     const ext = c.url ? `<a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener">${c.status === "for_sale" ? "Contact seller on" : "View lot on"} ${esc(c.where || "source")} ↗</a>` : "";
     const ask = c.market && c.market.median_ask;
@@ -1960,7 +1962,7 @@ const FRESH = { cache: "no-cache" };
       const body = document.getElementById("tab-body");
       const table = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Lot</th><th>Sale</th><th>Country</th><th>${k === "results" ? "Closed" : "Ends"}</th><th>Result</th><th class="r">Price</th><th class="r">vs median ask</th></tr></thead><tbody>
           ${items.map(r => `<tr><td class="thumb">${photo(r.image, "")}</td><td class="name"><a ${carLink(r)}>${esc(r.title)}</a></td><td>${saleLink(r) || esc(r.auction_house)}<div class="flat" style="font-size:12px">${esc(r.auction_house)}</div></td><td>${esc(countryOf(r))}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td>
-          <td>${r.status === "sold" || r.status === "unsold" ? `<span class="chip ${r.status}">${r.status === "sold" ? "Sold" : "Not sold"}</span>` : `<span class="chip">${r.status === "live" ? "Live" : "Upcoming"}</span>`}</td>
+          <td>${r.status === "sold" || r.status === "unsold" ? `<span class="chip ${r.status}"${r.status === "sold" ? "" : ' title="Reserve not met"'}>${r.status === "sold" ? "Sold" : "RNM"}</span>` : `<span class="chip">${r.status === "live" ? "Live" : "Upcoming"}</span>`}</td>
           <td class="r num">${r.status === "upcoming" ? (r.estimate_low_usd ? short(r.estimate_low_usd) + " to " + short(r.estimate_high_usd) : "") : money(r.price_usd)}</td><td class="r">${r.status === "sold" ? chg(r.vs_ask_pct) : ""}</td></tr>`).join("")}</tbody></table></div>`;
       if (!arr.length) body.innerHTML = `<div class="empty">${q.trim() ? `No ${k === "results" ? "results" : k} lots for ${esc(q.trim())}.` : "Nothing here right now."}</div>`;
       else switchable(body, arr, lotCard, table);

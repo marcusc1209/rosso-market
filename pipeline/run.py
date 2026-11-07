@@ -113,6 +113,9 @@ def run_source(con, name, source, ctx, day: date, fx: dict, cfg: dict) -> dict:
     if report["state"] == "ok":
         removed = db.mark_missing(con, name, day, int(cfg["settings"].get("removal_after_missed_runs", 2)))
         report["removed"] = removed
+        rnm = db.mark_ended(con, name, day)
+        if rnm:
+            log.info("%s: %d ended lots no longer listed, recorded as reserve not met", name, rnm)
     else:
         con.execute("UPDATE runs SET status=? WHERE id=?", (report["state"], run_id))
     con.commit()

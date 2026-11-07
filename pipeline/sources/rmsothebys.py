@@ -6,7 +6,8 @@ Verified 2026-10-31 in a real browser:
   -> {"items": [...], "pager": {"totalItems", "totalPages", ...}}
 
 Item fields used: publicName (the title), value ("£668,750 GBP", "Sold", "Sale Agreed",
-"$1,200,000 USD"), valueType ("Sold", "Asking", ""), preSaleEstimate, link, header
+"$1,200,000 USD"), valueType ("Sold", "Asking", "Not Sold", ""): "Not Sold" is a reserve not met, with the
+estimate in value (checked 2026-11-07), preSaleEstimate, link, header
 (auction name), location, countryCode, lot, sold, isStillForSale.
 
 Results carry no sale date, but every lot link names its auction
@@ -53,7 +54,10 @@ def map_item(x: dict, source: str, offer_status: str) -> RawRecord | None:
     sealed = "SEALED" in str(x.get("header") or "").upper() or "sealed." in link or "/inventory/" in link
     if private or sealed:
         return None                # private sales and sealed bids publish no hammer price
-    if offer_status == "Results":
+    if offer_status == "Results" and vtype == "not sold":
+        # reserve not met: RM shows the estimate where the price would be and no high bid
+        status, price = "unsold", None
+    elif offer_status == "Results":
         if price is None:
             return None            # result withheld: only the estimate is published
         if "sold" in vtype or (x.get("sold") and price):
@@ -66,7 +70,7 @@ def map_item(x: dict, source: str, offer_status: str) -> RawRecord | None:
         status = "upcoming"
     est_lo = est_hi = None
     # upcoming lots put the estimate in `value` ("$1,800,000 - $2,000,000 USD", "€520,000 - €620,000 EUR")
-    est = str(x.get("preSaleEstimate") or "") or (value if status == "upcoming" else "")
+    est = str(x.get("preSaleEstimate") or "") or (value if status in ("upcoming", "unsold") else "")
     nums = re.findall(r"\d[\d,\.]*", est)
     if len(nums) >= 2:
         _, cur_est = parse_price(est)

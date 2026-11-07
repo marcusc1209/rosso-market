@@ -278,6 +278,21 @@ token its own script makes), Autolist (its results are CarGurus inventory) and
 Exotic Car Trader (about 20 live Ferraris), carsforsale.com (Cloudflare challenge). eBay Motors has an official free API that
 needs the owner's developer keys.
 
+## Reserve not met (RNM)
+
+A lot that closes without selling is stored as `unsold` and shown as RNM (reserve not met), with its high bid
+where the site publishes one:
+
+- Bring a Trailer, Cars & Bids and PCARMARKET list them in their results with the high bid.
+- Bonhams, Gooding, Mecum and Broad Arrow list them as not sold, without a bid.
+- RM Sotheby's marks them "Not Sold" and shows the estimate in place of a price (stored as the estimate).
+- Sotheby's Motorsport and duPont Registry Live only publish cars that sold: a lot that misses its reserve is
+  pulled from the site. After a successful run, a live lot whose auction ended more than a day ago and that the
+  feed no longer lists is recorded as RNM at its last bid (`db.mark_ended`). If a sale shows up later, the next
+  run sets it to sold.
+
+RNM results count in sell through and appear as open dots on the market chart, never as sale prices.
+
 ## Manual and F1
 
 The F355, 360, F430, 575M, 599 and 612 were sold with a factory six speed manual or the F1 gearbox, and their

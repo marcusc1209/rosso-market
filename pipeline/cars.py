@@ -176,8 +176,10 @@ def _page(key: str, g: dict, prices: dict, comps: dict, stats: dict, today: str)
         ph = _photos(raw, r["image_url"])
         st = r["status"]
         house = r["auction_house"] or r["source"]
-        label = {"sold": "Sold at ", "unsold": "Not sold at ", "live": "Live at ", "upcoming": "Coming up at "}.get(st, "Offered at ") + house
+        label = {"sold": "Sold at ", "unsold": "Reserve not met at ", "live": "Live at ", "upcoming": "Coming up at "}.get(st, "Offered at ") + house
         plabel = {"sold": "Sold for", "unsold": "High bid", "live": "Current bid", "upcoming": "Estimate"}.get(st, "Price")
+        if st == "unsold" and not r["price_usd"] and r["estimate_low_usd"]:
+            plabel = "Estimate"           # reserve not met with no high bid published (RM Sotheby's)
         d = (r["ends_at"] or "")[:10] or r["first_seen"]
         sl = sales.describe(r)
         events.append({
@@ -272,7 +274,7 @@ def _merge_listings(events: list[dict]) -> list[dict]:
     return out
 
 
-STATUS_WORD = {"for_sale": "For sale", "off_market": "No longer listed", "sold": "Sold", "unsold": "Not sold",
+STATUS_WORD = {"for_sale": "For sale", "off_market": "No longer listed", "sold": "Sold", "unsold": "RNM",
                "live": "Live auction", "upcoming": "Upcoming auction"}
 
 
