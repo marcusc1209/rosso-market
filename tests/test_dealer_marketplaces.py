@@ -86,11 +86,47 @@ def test_autotrader_switches_to_browser_when_page_has_no_listings():
             return _page(body)
 
     src = AutoTrader.__new__(AutoTrader)
-    src.name, src.cfg, src.log = "autotrader_us", {"browser_pause_seconds": 0}, logging.getLogger("t")
+    src.name, src.cfg, src.log = "autotrader_us", {"browser_pause_seconds": 0, "feed": False}, logging.getLogger("t")
     src.ctx = SimpleNamespace(fetcher=F(), browser=B(), run_date=date(2026, 11, 1))
     out = list(src.fetch())
     assert [r.vin for r in out] == ["ZFF79ALA2K0245448"]
     assert [k for k, _ in asked] == ["plain", "browser"]
+
+
+def test_autotrader_feed_plain_then_browser_and_stops_when_refused():
+    import logging
+    from types import SimpleNamespace
+    from pipeline.sources.dealer_marketplaces import AutoTrader
+    feed = {"listings": [AT_LISTING], "owners": list(OWNERS.values()) if isinstance(OWNERS, dict) else OWNERS,
+            "totalResultCount": 1}
+    asked = []
+
+    class F:
+        def get_json(self, url):
+            asked.append("plain")
+            raise RuntimeError("403")
+
+    class B:
+        def __init__(self, data):
+            self.data = data
+
+        def json_in_page(self, page, url):
+            asked.append("browser")
+            assert "/rest/lsc/listing" in url and "makeCode=FER" in url
+            if self.data is None:
+                raise RuntimeError("refused")
+            return self.data
+
+    src = AutoTrader.__new__(AutoTrader)
+    src.name, src.cfg, src.log = "autotrader_us", {"browser_pause_seconds": 0}, logging.getLogger("t")
+    src.ctx = SimpleNamespace(fetcher=F(), browser=B(feed), run_date=date(2026, 11, 7))
+    src.use_browser = False
+    out = list(src.fetch())
+    assert [r.vin for r in out] == ["ZFF79ALA2K0245448"] and asked == ["plain", "browser"]
+    asked.clear()
+    src.ctx = SimpleNamespace(fetcher=F(), browser=B(None), run_date=date(2026, 11, 7))
+    src.use_browser = False
+    assert list(src.fetch()) == [] and asked == ["plain", "browser"]
 
 
 def test_listing_dates_are_read_once_and_remembered(tmp_path):
