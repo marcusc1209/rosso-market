@@ -200,21 +200,21 @@ def is_ferrari(title: str, make: Optional[str] = None) -> bool:
 # Things that show up in Ferrari searches but are not cars.
 NON_CAR = re.compile(
     r"\b(wheels?|rims?|seats?|brochure|poster|sign|model car|scale model|diecast|die cast|1 ?[:x] ?(8|12|18|43)|"
-    r"go ?kart|pedal car|engine only|transmission only|gearbox|tool kit|toolkit|luggage|helmet|watch|"
+    r"go ?kart|pedal car|engine only|transmission only|(?<!gated )(?<!manual )(?<!speed )gearbox|tool kit|toolkit|luggage|helmet|watch|"
     r"memorabilia|steering wheel|hardtop only|parts|literature|replica|tribute|re ?creation|kit car|simulator|bumper|"
     r"junior|childs?|children|kids?|ride on|ride in|neon|lighted|illuminated|clock|artwork|painting|sculpture|book|jacket|chair|desk|"
     r"engine stand|display engine|continuation|evocation|recreation|powered|arcade|game|table|display model|"
-    r"half scale|scale|manuals?|passports?|booklets?|accessories|headlights?|taillights?|tail lights?|lights|exhaust|"
+    r"half scale|scale|(?<!speed )(?<!gated )(?<!factory )manuals?|passports?|booklets?|accessories|headlights?|taillights?|tail lights?|lights|exhaust|"
     r"mirrors?|badges?|emblems?|key fob|keys|tool roll|car cover|luggage set|wheel set|brake kit|"
     r"engine(?! out| no\b| number)|engines|shell|body shell|style body|body panels|wall art|intake|plenum|manifolds?|windshield|"
-    r"chronograph|perpetual calendar|glass hardtop|helmets|motorcycle|flight box|speedform|amalgam|model$)\b"
+    r"chronograph|perpetual calendar|glass hardtop|helmets|motorcycle|flight box|speedform|amalgam|model$|(?<!carbon )body$|body (?:and |& )?chassis)\b"
 )
 
 
 OTHER_MAKES = ("abarth", "fiat", "lancia", "alfa romeo", "maserati", "lamborghini", "porsche", "ford", "chevrolet",
                "pontiac", "toyota", "mercedes", "bmw", "jaguar", "shelby", "de tomaso", "iso", "bizzarrini", "lego")
 _OTHER = re.compile(r"\b(" + "|".join(OTHER_MAKES) + r")\b")
-_TRACK = re.compile(r"\b(challenge(?! stradale)|xx programme|corse clienti|gt3|gte|gt2 pro|competizione gt|333 sp|"
+_TRACK = re.compile(r"\b(challenge(?! stradale)|xx programme|corse clienti|gt3|(?<!250 )(?<!330 )(?<!250 gt )gte|gt2 pro|competizione gt|333 sp|"
                     r"f1 car|formula 1|f2004|f2003|f2002|f2001|race car|racecar|599 ?xx|xx evo|fxx|312 t\d?|312 b\d?|126 c\d?|"
                     r"641|642|643|f92a|f93a|412 t\d|f310( b)?|f300|f399|f2005|248 f1|f2007|f2008|f60|f138|f14 t)\b")
 
