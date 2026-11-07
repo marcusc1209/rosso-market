@@ -173,7 +173,15 @@ def main(argv=None):
         except Exception as e:                               # the stored tabs are used instead
             log.info("tracker sheet not read: %s", e)
     cfg["_tracker"] = tracker.load(a.config)
-    if os.environ.get("FM_HISTORY"):
+    hist = (cfg.get("settings") or {}).get("history_import")
+    if os.environ.get("FM_HISTORY") and hist:
+        # one off import of older auction results, only for the sources settings.history_import names
+        for name, over in hist.items():
+            scfg = (cfg.get("sources") or {}).get(name)
+            if scfg is not None:
+                scfg.update(over or {})
+                log.info("history import: %s %s", name, over)
+    elif os.environ.get("FM_HISTORY"):
         # one off import of older auction results: deeper paging on every results feed
         for scfg in (cfg.get("sources") or {}).values():
             for k in ("result_pages", "sold_pages"):

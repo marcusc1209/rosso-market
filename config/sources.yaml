@@ -20,6 +20,10 @@ settings:
   max_retries: 3
   timeout_seconds: 30
   removal_after_missed_runs: 2     # a listing counts as gone after its source misses it on 2 successful runs
+  history_import:                  # a run started with history=true reads these sources this deep, once (Nov 2026)
+    bringatrailer: {result_pages: 220}   # ~7,000 Ferrari results, 36 a page, back to 2014
+    carsandbids: {scrolls: 80}           # past auctions load as the Ferrari search page scrolls
+    mecum: {lookback_days: 4000}         # about 11 years of lots
   min_model_confidence: 0.5
   # The owner's CarGurus price tracker (pipeline/tracker.py). Its tabs are stored in config/tracker. When the
   # sheet is shared as "anyone with the link can view", each run reads the latest tabs from it.
@@ -116,6 +120,9 @@ sources:
     start_urls: [https://www.cars.com/shopping/ferrari/]
 
   # ============================================================ auctions
+
+  # A run started with history=true reads deeper on the sources listed in settings.history_import (once),
+  # then later runs go back to their usual newest pages. Results already stored are skipped.
 
   bringatrailer:                   # verified. Live lots from the auctions page, results from BaT's results endpoint (~7,000 Ferrari)
     adapter: bringatrailer
