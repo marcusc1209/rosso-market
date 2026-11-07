@@ -146,6 +146,46 @@ def mark_ended(con, source: str, day: date) -> int:
     return cur.rowcount
 
 
+# how far each source is trusted on what a car is: Ferrari Approved is the factory's own record, a dealer's own
+# site next, marketplaces last (they often shorten a model's name)
+MODEL_TRUST = {"ferrari_approved": 3, "dealer_sites": 2}
+
+
+def resolve_model(cands: list[tuple[str, str]]) -> str:
+    """One model for a car its listings disagree on. cands: [(model id, source)].
+    1. A name that is the other's plus more ("812 Competizione A" against "812 Competizione", "Portofino M"
+       against "Portofino") wins: marketplaces dropping the last word is the usual mistake.
+    2. Then the most trusted source (MODEL_TRUST). 3. Then the most listings."""
+    from . import taxonomy
+    ids = {m for m, _ in cands if m}
+    if len(ids) <= 1:
+        return next(iter(ids), None)
+    name = lambda m: (taxonomy.BY_ID[m].name if m in taxonomy.BY_ID else m).lower()
+    specific = {m for m in ids if any(o != m and name(m).startswith(name(o) + " ") for o in ids)}
+    general = {o for o in ids for m in specific if name(m).startswith(name(o) + " ")}
+    pool = (ids - general) if specific else ids
+    return max(pool, key=lambda m: (max(MODEL_TRUST.get(src, 1) for mm, src in cands if mm == m),
+                                    sum(1 for mm, _ in cands if mm == m), m))
+
+
+def reconcile_models(con) -> int:
+    """Give every listing of one car (same vehicle key) the same model, by resolve_model, so the car sits on one
+    model's page whichever listing supplies its price that day."""
+    rows = con.execute("""SELECT vehicle_key, model_id, source FROM sightings WHERE vehicle_key IN (
+                            SELECT vehicle_key FROM sightings WHERE model_id IS NOT NULL
+                            GROUP BY vehicle_key HAVING COUNT(DISTINCT model_id) > 1)""").fetchall()
+    cars: dict[str, list] = {}
+    for r in rows:
+        cars.setdefault(r["vehicle_key"], []).append((r["model_id"], r["source"]))
+    n = 0
+    for key, cands in cars.items():
+        m = resolve_model(cands)
+        if m:
+            n += con.execute("UPDATE sightings SET model_id=? WHERE vehicle_key=? AND model_id IS NOT ?", (m, key, m)).rowcount
+    con.commit()
+    return n
+
+
 def build_daily_asks(con, day: date):
     """Deduplicated snapshot: one asking price per physical car that is still for sale."""
     d = day.isoformat()
@@ -165,8 +205,8 @@ def build_daily_asks(con, day: date):
             self.raw = type("R", (), {"source": r["source"]})
 
     for key, rs in groups.items():
-        # a car seen with two different model ids (rare parse disagreement): use the most common
-        model = max({r["model_id"] for r in rs}, key=lambda m: sum(1 for r in rs if r["model_id"] == m))
+        # a car its listings disagree on (reconcile_models has usually settled it already)
+        model = resolve_model([(r["model_id"], r["source"]) for r in rs])
         price = representative_price([_S(r) for r in rs])
         con.execute("INSERT INTO daily_asks VALUES (?,?,?,?,?,?)",
                     (d, key, model, price, len(rs), int(any(r["certified"] for r in rs))))

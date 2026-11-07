@@ -135,6 +135,9 @@ def run_day(con, cfg, day: date, sources, fx, where: str = "all") -> list[dict]:
             classic_com.run(con, cfg, Path(cfg["settings"].get("raw_dir", "data/raw")) / day.isoformat(), day)
         except Exception as e:                      # listing dates are a nicety: never fail the run
             log.warning("CLASSIC.COM listing dates skipped: %s", e)
+    fixed = db.reconcile_models(con)
+    if fixed:
+        log.info("%d listings given the model their car's other listings agree on", fixed)
     n = db.build_daily_asks(con, day)
     log.info("%s: %d tracked cars in snapshot", day, n)
     return reports

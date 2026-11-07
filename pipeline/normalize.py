@@ -136,13 +136,20 @@ def vin_check_digit_ok(vin: str) -> bool:
     return vin[8] == ("X" if check == 10 else str(check))
 
 
+def placeholder_vin(vin: str) -> bool:
+    """A stand in some sites put in the VIN field ("00000000000000000", "NA", "11111111111111111"), which would
+    merge every car that carries it into one."""
+    v = (vin or "").upper().strip()
+    return len(v) != 17 or not re.fullmatch(r"[A-HJ-NPR-Z0-9]{17}", v) or "000000" in v or len(set(v)) <= 3
+
+
 def extract_vin(*texts) -> Tuple[Optional[str], bool]:
     for t in texts:
         if not t:
             continue
         for m in _VIN.finditer(str(t).upper()):
             vin = m.group(1)
-            if vin.startswith("ZFF") or vin.startswith("ZSG"):   # Ferrari WMIs
+            if (vin.startswith("ZFF") or vin.startswith("ZSG")) and not placeholder_vin(vin):   # Ferrari WMIs
                 return vin, vin_check_digit_ok(vin)
     return None, False
 
@@ -297,10 +304,11 @@ def normalize(raw: RawRecord, fx: dict, min_confidence: float = 0.5) -> Normaliz
         flags.append(f"no FX rate for {cur}")
 
     miles = parse_mileage(raw.mileage, raw.mileage_unit) if raw.mileage is not None else mileage_from_title(raw.title)
-    vin, vin_ok = (raw.vin.upper(), True) if raw.vin and len(raw.vin) == 17 else extract_vin(raw.vin, raw.title, raw.extra.get("description"))
+    own = raw.vin if raw.vin and not (len(raw.vin) == 17 and placeholder_vin(raw.vin)) else None
+    vin, vin_ok = (own.upper(), True) if own and len(own) == 17 else extract_vin(own, raw.title, raw.extra.get("description"))
     if vin and raw.vin:
         vin_ok = vin_check_digit_ok(vin) or not vin.startswith("ZFF")
-    chassis = None if vin else (raw.vin if raw.vin and len(raw.vin) < 17 else extract_chassis(raw.title, raw.extra.get("description")))
+    chassis = None if vin else (own if own and len(own) < 17 else extract_chassis(raw.title, raw.extra.get("description")))
 
     m = match.model
     return Normalized(

@@ -33,3 +33,25 @@ def test_live_lot_pulled_after_its_end_is_recorded_as_rnm():
     n = db.mark_ended(con, "somo", date(2026, 11, 7))
     st = {r["uid"]: (r["status"], r["price_usd"]) for r in con.execute("SELECT uid, status, price_usd FROM lots")}
     assert n == 1 and st["somo:a"] == ("unsold", 410000) and st["somo:b"][0] == "live" and st["somo:c"][0] == "live"
+
+
+def test_one_model_per_car_when_sites_disagree():
+    assert db.resolve_model([("812-competizione", "dupont_registry"), ("812-competizione-a", "ferrari_approved")]) == "812-competizione-a"
+    assert db.resolve_model([("812-competizione-a", "dupont_registry"), ("812-competizione", "ferrari_approved")]) == "812-competizione-a"
+    assert db.resolve_model([("portofino", "dupont_registry"), ("portofino-m", "classiccars")]) == "portofino-m"
+    assert db.resolve_model([("f8-tributo", "dupont_registry"), ("f8-spider", "ferrari_approved")]) == "f8-spider"
+    assert db.resolve_model([("f8-tributo", "dupont_registry"), ("f8-tributo", "classiccars"), ("f8-spider", "x")]) == "f8-tributo"
+    con = sqlite3.connect(":memory:")
+    con.row_factory = sqlite3.Row
+    con.executescript(db.SCHEMA) if hasattr(db, "SCHEMA") else db.init(con)
+    con.execute("INSERT INTO sightings (uid, source, vehicle_key, model_id, title) VALUES "
+                "('a', 'dupont_registry', 'vin:Z1', '812-competizione', '2023 Ferrari 812 Competizione'),"
+                "('b', 'ferrari_approved', 'vin:Z1', '812-competizione-a', '2023 Ferrari 812 Competizione A')")
+    assert db.reconcile_models(con) == 1
+    assert {r[0] for r in con.execute("SELECT model_id FROM sightings")} == {"812-competizione-a"}
+
+
+def test_placeholder_vins_do_not_merge_cars():
+    from pipeline.normalize import placeholder_vin
+    assert placeholder_vin("00000000000000000") and placeholder_vin("11111111111111111") and placeholder_vin("ZFF00000000019145")
+    assert not placeholder_vin("ZFF04TMA1P0298661") and not placeholder_vin("ZFF68NHA0D0191486")
