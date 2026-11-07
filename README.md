@@ -298,7 +298,7 @@ auction today (`pipeline/fairvalue.py`).
                   + special order paint
                   + manual (F355, 360, F430, 575M, 599, 612)
                   + auction effect at the model's usual mix of auctions
-                  + 0.75 x how far the model's latest sales (up to six, last six months) landed from the fit
+                  + 0.75 x n/(n+2) x how far the model's latest n sales (up to six, last six months) landed from the fit
                   + 0.75 x how far the car's own last auction sale landed from the fit, when it has one
 
 One regression on log price runs over every model at once, from three years of auction sales and today's asks.
@@ -326,7 +326,10 @@ sale set against the fair value fit with the passing of time taken out, so a mov
 sells for. The hero shows the same comparison over the whole market, and its chart is that adjusted price
 month by month over two years.
 
-Value my car (`#value`) prices a car in the browser from `site/data/valuer.json`, the fair value fit's
+Value my car (`#value`) offers every model with sales or asks, not only those whose fair values pass the
+test: the others are marked limited data, with a range widened to their held out miss (capped at about half to
+twice the estimate). Only names that cover cars too different to price together (a held out sale off by more
+than double, like the 250) are left out. It prices a car in the browser from `site/data/valuer.json`, the fair value fit's
 coefficients for each model whose fair values are shown: model, year, mileage, the model's own colour effects,
 gearbox, special order paint and the model's recent sales.
 

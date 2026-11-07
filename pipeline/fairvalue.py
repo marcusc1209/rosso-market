@@ -53,9 +53,11 @@ RECENT_N = 6               # at most its six latest
 # off at every weight tried (sales of the last four months: 15.7% median miss at 0, 16.4% at 0.25, 17.3% at 0.5),
 # so the ask term is computed but carries no weight.
 W_ASK = 0.0
-W_RECENT = 0.75
+W_RECENT = 0.75            # times n / (n + 2) for n recent sales, so two or three unusual sales move a model less
 W_OWN = 0.75
 NO_VALUE = {"classic-other"}          # a catch all bucket of unrelated cars
+VALUER_MAX_MISS = 1.0      # Value my car also offers models short of the fair value test, marked limited, unless a
+                           # held out sale was typically off by more than this (the name covers cars too different to price)
 FAR = 2.5                  # an ask over 2.5 times (or under 1/2.5 of) the fair value is most likely another car or a placeholder price
 
 _FINISH_RX = re.compile(r"(?:finished|refinished|painted|repainted|wears|wearing|presented)\s+(?:in\s+)?"
@@ -373,9 +375,10 @@ class Anchors:
         self.ask_n = {m: len(v) for m, v in gaps.items()}
 
     def recent(self, model: str, at: float = 0.0) -> tuple[float, int]:
-        """(median miss, sales) of the model's latest sales before `at` months ago."""
+        """(median miss, sales) of the model's latest sales before `at` months ago, shrunk by n / (n + 2)."""
         xs = sorted((mo, r) for mo, r in self.sales.get(model, []) if at < mo <= at + RECENT_DAYS / 30.44)[:RECENT_N]
-        return (median(r for _, r in xs), len(xs)) if len(xs) >= 2 else (0.0, 0)
+        n = len(xs)
+        return (median(r for _, r in xs) * n / (n + 2), n) if n >= 2 else (0.0, 0)
 
     def own_sale(self, key, at: float = 0.0) -> Optional[tuple[float, float]]:
         """(miss, months ago) of the car's latest earlier sale."""
@@ -406,9 +409,9 @@ def components(rows: list[dict], lam: float = LAMBDA, folds: int = FOLDS, seed: 
             if ("level", p["model"]) not in f.ix:
                 continue
             e0 = math.log(p["price"]) - f._predict_log(f.beta, p)
-            rec, _ = an.recent(p["model"], p["months"])
+            rec, rn = an.recent(p["model"], p["months"])
             own = an.own_sale(p.get("key"), p["months"])
-            out.append({"model": p["model"], "months": p["months"], "e0": e0, "recent": rec,
+            out.append({"model": p["model"], "months": p["months"], "e0": e0, "recent": rec, "recent_n": rn,
                         "own": own[0] if own else 0.0, "ask": an.ask.get(p["model"], 0.0) if p["months"] <= 4 else 0.0})
     return out
 
@@ -506,6 +509,18 @@ def upcoming(con, day: date, gb: Optional[dict] = None) -> list[dict]:
     return out
 
 
+def _valuer_sigma(sigma: float, miss_pct, tested: bool) -> float:
+    """A limited model's range is widened to what its held out sales show (a median miss m is about
+    0.6745 standard deviations of log price), and to at least 0.3 when there is hardly anything to test. It is
+    capped at 0.5 (about half to twice the estimate): with two or three sales the test itself is mostly noise."""
+    if tested:
+        return sigma
+    s = max(sigma, 0.3)
+    if miss_pct is not None:
+        s = max(s, math.log1p(miss_pct / 100) / 0.6745)
+    return min(s, 0.5)
+
+
 def valuer(fit: Fit, models: dict, day: date, anchors: "Optional[Anchors]" = None) -> dict:
     """What Value my car needs to price a car in the browser, for each model whose fair values are shown.
 
@@ -518,9 +533,12 @@ def valuer(fit: Fit, models: dict, day: date, anchors: "Optional[Anchors]" = Non
         if p["family"]:
             fam_n[p["model"]][p["family"]] += 1
     out = []
+    asks = Counter(p["model"] for p in fit.rows if not p["sold"])
     for m, info in models.items():
-        if not info.get("shown"):
+        miss = info.get("miss_pct")
+        if m in NO_VALUE or not (info["sold"] or asks[m] >= 3) or (miss is not None and miss > VALUER_MAX_MISS * 100):
             continue
+        tested = bool(info.get("shown"))
         tm = taxonomy.BY_ID.get(m)
         ym, mm = fit.year_mid[m], fit.miles_mid.get(m) or fit.miles_all
         base = {"model": m, "year": ym, "miles": mm, "family": colors.BASELINE, "special": 0, "sold": 1, "months": 0.0,
@@ -536,7 +554,8 @@ def valuer(fit: Fit, models: dict, day: date, anchors: "Optional[Anchors]" = Non
                "recent": round(W_RECENT * rec, 5) if rn else 0.0,
                "ym": ym, "by": round(fit.coef("g", "year") + fit.coef("year", m), 5),
                "mm": round(mm), "bm": round(fit.coef("g", "miles") + fit.coef("miles", m), 5),
-               "sigma": round(fit.sigma.get(m, 0.2), 4), "years": [min(years[m]), max(years[m])],
+               "sigma": round(_valuer_sigma(fit.sigma.get(m, 0.2), miss, tested), 4), "years": [min(years[m]), max(years[m])],
+               "tested": tested, "asks": asks[m],
                "colours": cols, "colour_n": {f: n[f] for f in cols if n[f]},
                "unsure": round(sum(cols[f] * n[f] for f in cols) / tot, 5) if tot else 0.0,
                "sold": info["sold"], "miss_pct": info["miss_pct"]}

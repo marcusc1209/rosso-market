@@ -166,6 +166,24 @@ section.block { padding-block: 56px; border-bottom: 1px solid var(--line); scrol
 .val-form label > span { color: var(--muted); letter-spacing: .06em; text-transform: uppercase; font-size: 12px; }
 .val-form select, .val-form input[type=number] { font: 500 16px var(--f-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); padding: 10px 12px; border-radius: 0; width: 100%; }
 .val-form [hidden] { display: none; }
+.vfield { display: grid; gap: 6px; font-size: 13px; font-weight: 500; }
+.vfield > .vlab { color: var(--muted); letter-spacing: .06em; text-transform: uppercase; font-size: 12px; }
+.mpick { position: relative; }
+.mpick-btn { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: left;
+  font: 500 16px var(--f-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); padding: 10px 12px; cursor: pointer; }
+.mpick-btn::after { content: ""; width: 7px; height: 7px; border: solid var(--muted); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg) translateY(-2px); flex: none; }
+.mpick-btn[aria-expanded="true"] { border-color: var(--ink); }
+.mpick-pop { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px); background: var(--surface); border: 1px solid var(--ink);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .14); display: grid; grid-template-rows: auto minmax(0, 1fr); max-height: min(62vh, 480px); }
+.mpick-pop input { font: 400 15px var(--f-body); color: var(--ink); background: var(--surface); border: 0; border-bottom: 1px solid var(--line); padding: 11px 12px; width: 100%; outline: none; }
+.mpick-list { overflow-y: auto; overscroll-behavior: contain; padding: 4px 0 8px; }
+.mpick-list h5 { margin: 10px 12px 4px; font: 600 11px var(--f-body); color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.mpick-list button { display: flex; width: 100%; justify-content: space-between; gap: 10px; align-items: baseline; text-align: left; border: 0; background: none;
+  font: 400 15px var(--f-body); color: var(--ink); padding: 8px 12px 8px 22px; cursor: pointer; }
+.mpick-list button:hover, .mpick-list button.on { background: color-mix(in srgb, var(--muted) 12%, transparent); }
+.mpick-list button[aria-selected="true"] { font-weight: 600; box-shadow: inset 3px 0 0 var(--rosso); }
+.mpick-list button small, .val-out .lim { font-size: 11px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.mpick-none { padding: 12px; color: var(--muted); font-size: 14px; }
 .val-form .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .val-form .check { display: flex; gap: 10px; align-items: center; font-weight: 400; font-size: 14px; }
 .val-form .check input { width: 18px; height: 18px; accent-color: var(--rosso); }
@@ -1962,7 +1980,15 @@ const FRESH = { cache: "no-cache" };
     if (location.hash !== "#value") return;
     if (!VALUER || !VALUER.models.length) { app.innerHTML = pageHead("Value my car", "Value my car", "") + '<section class="block"><div class="wrap"><div class="empty">Valuations are not available right now.</div></div></section>'; return; }
     const V = VALUER, ms = V.models, byM = Object.fromEntries(ms.map(m => [m.id, m]));
-    const fams = [...new Set(ms.map(m => m.family || "Other"))];
+    // grouped and ordered as in the Models menu
+    const seen = new Set(), groups = [];
+    for (const fam of D.families) {
+      const list = fam.models.map(id => byM[id]).filter(Boolean);
+      list.forEach(m => seen.add(m.id));
+      if (list.length) groups.push([fam.name, list]);
+    }
+    const rest = ms.filter(m => !seen.has(m.id));
+    if (rest.length) groups.push(["Other", rest]);
     let st = {};
     try { st = JSON.parse(localStorage.getItem("rm-value") || "{}"); } catch (e) {}
     if (!byM[st.model]) st = { model: (byM["f8-tributo"] || ms[0]).id };
@@ -1970,7 +1996,12 @@ const FRESH = { cache: "no-cache" };
     app.innerHTML = pageHead("Value my car", "Value my car", "What your Ferrari would sell for today, from its model, year, mileage, colour and gearbox.") + `
       <section class="block"><div class="wrap val">
         <form class="val-form" id="val-form" onsubmit="return false">
-          <label><span>Model</span><select name="model">${fams.map(f => `<optgroup label="${esc(f)}">${ms.filter(m => (m.family || "Other") === f).map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join("")}</optgroup>`).join("")}</select></label>
+          <div class="vfield"><span class="vlab" id="mpick-l">Model</span><div class="mpick" id="mpick">
+            <button type="button" class="mpick-btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="mpick-l mpick-name"><span id="mpick-name"></span></button>
+            <div class="mpick-pop" hidden><input type="search" placeholder="Search models" aria-label="Search models" autocomplete="off" spellcheck="false">
+              <div class="mpick-list" role="listbox" aria-labelledby="mpick-l">${groups.map(([fam, list]) => `<div class="mpick-g"><h5>${esc(fam)}</h5>${list.map(m =>
+                `<button type="button" role="option" data-id="${m.id}" data-q="${esc((m.name + " " + fam).toLowerCase())}"><span>${esc(m.name)}</span>${m.tested ? "" : "<small>Limited data</small>"}</button>`).join("")}</div>`).join("")}
+              <div class="mpick-none" hidden>No model matches.</div></div></div></div><input type="hidden" name="model"></div>
           <div class="two"><label><span>Year</span><select name="year"></select></label>
           <label><span>Mileage</span><input type="number" name="miles" min="0" max="250000" step="100" inputmode="numeric" placeholder="e.g. 8,000"></label></div>
           <label><span>Exterior colour</span><select name="colour">${colourOpts.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join("")}</select></label>
@@ -2012,7 +2043,7 @@ const FRESH = { cache: "no-cache" };
       const val = r(Math.exp(lv)), lo = r(Math.exp(lv - 1.2816 * m.sigma)), hi = r(Math.exp(lv + 1.2816 * m.sigma));
       const mm = byId[m.id] || {}, a = mm.auction || {};
       document.getElementById("val-out").innerHTML = `
-        <div class="eyebrow">Estimated value, ${year} ${esc(m.name)}</div>
+        <div class="eyebrow">Estimated value, ${year} ${esc(m.name)}${m.tested ? "" : ` <span class="lim">· Limited data, ${plural(m.sold, "auction sale")}${m.asks ? ", " + plural(m.asks, "car") + " for sale" : ""}</span>`}</div>
         <div class="big">${money(val)}</div>
         <div class="rng">Likely range ${money(lo)} to ${money(hi)}</div>
         ${fvGauge({ value: val, low: lo, high: hi }, null)}
@@ -2034,9 +2065,47 @@ const FRESH = { cache: "no-cache" };
       }
     };
     const miles_ = n => Math.round(n).toLocaleString("en-US") + " mi";
-    f.model.addEventListener("change", () => { setYears(byM[f.model.value]); draw(); });
-    f.addEventListener("input", e => { if (e.target.name !== "model") draw(); });
-    f.addEventListener("change", e => { if (e.target.name !== "model") draw(); });
+    // the model picker: a list of our own, so a long list never opens partly off screen
+    const pk = document.getElementById("mpick"), pbtn = pk.querySelector(".mpick-btn"), pop = pk.querySelector(".mpick-pop"),
+      pq = pop.querySelector("input"), plist = pop.querySelector(".mpick-list"), opts = [...plist.querySelectorAll("[role=option]")];
+    const showName = () => { document.getElementById("mpick-name").textContent = byM[f.model.value].name;
+      opts.forEach(o => o.setAttribute("aria-selected", o.dataset.id === f.model.value)); };
+    const visible = () => opts.filter(o => !o.hidden);
+    const mark = o => { opts.forEach(x => x.classList.toggle("on", x === o)); if (o) o.scrollIntoView({ block: "nearest" }); };
+    const filter = () => {
+      const q = pq.value.trim().toLowerCase();
+      opts.forEach(o => o.hidden = !!q && !q.split(/\s+/).every(w => o.dataset.q.includes(w)));
+      plist.querySelectorAll(".mpick-g").forEach(g => g.hidden = ![...g.querySelectorAll("[role=option]")].some(o => !o.hidden));
+      plist.querySelector(".mpick-none").hidden = visible().length > 0;
+      mark(q ? visible()[0] : null);
+    };
+    const close = (focus) => { pop.hidden = true; pbtn.setAttribute("aria-expanded", "false"); if (focus) pbtn.focus(); };
+    const open = () => {
+      // keep the whole list on screen: bring the picker up if there is little room under it, then fit the list to the room left
+      const head = (document.querySelector(".site-head") || {}).offsetHeight || 0;
+      let r = pbtn.getBoundingClientRect();
+      if (innerHeight - r.bottom < 340) { window.scrollBy(0, r.top - head - 12); r = pbtn.getBoundingClientRect(); }
+      pop.style.maxHeight = Math.max(220, Math.min(480, innerHeight - r.bottom - 14)) + "px";
+      pop.hidden = false; pbtn.setAttribute("aria-expanded", "true"); pq.value = ""; filter();
+      const cur = opts.find(o => o.dataset.id === f.model.value);
+      plist.scrollTop = cur ? Math.max(0, cur.offsetTop - plist.clientHeight / 3) : 0;
+      pq.focus({ preventScroll: true });
+    };
+    const pick = id => { f.model.value = id; showName(); setYears(byM[id]); close(true); draw(); };
+    pbtn.addEventListener("click", () => pop.hidden ? open() : close(false));
+    pq.addEventListener("input", filter);
+    pop.addEventListener("click", e => { const o = e.target.closest("[role=option]"); if (o) pick(o.dataset.id); });
+    pop.addEventListener("keydown", e => {
+      const v = visible(), at = v.indexOf(plist.querySelector(".on"));
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); mark(v[Math.max(0, Math.min(v.length - 1, at + (e.key === "ArrowDown" ? 1 : -1)))] || v[0]); }
+      else if (e.key === "Enter") { e.preventDefault(); const o = v[at] || v[0]; if (o) pick(o.dataset.id); }
+      else if (e.key === "Escape") { e.preventDefault(); close(true); }
+    });
+    const outside = e => { if (!document.body.contains(pk)) return document.removeEventListener("click", outside); if (!pop.hidden && !pk.contains(e.target)) close(false); };
+    document.addEventListener("click", outside);
+    showName();
+    f.addEventListener("input", e => { if (!e.target.closest(".mpick")) draw(); });
+    f.addEventListener("change", e => { if (!e.target.closest(".mpick")) draw(); });
     window.scrollTo(0, 0);
     draw();
   }
