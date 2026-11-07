@@ -285,6 +285,11 @@ table.sheet.mv { min-width: 0; }
 .lot .bid { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
 .lot .bid b { font: 500 20px/1 var(--f-mono); font-variant-numeric: tabular-nums; }
 .lot .bid span { color: var(--muted); font-size: 12px; text-align: right; }
+.fv { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 13px; }
+.fv > span:first-child { color: var(--muted); }
+.fv b { font: 500 14px/1 var(--f-mono); font-variant-numeric: tabular-nums; color: var(--ink); margin-left: 6px; }
+.fv em, .fvc em { font-style: normal; font-weight: 600; font-size: 12px; white-space: nowrap; }
+.fv-adj { color: var(--muted); font-size: 12px; text-align: right; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; min-height: 21px; }
 .chip { font: 600 10px/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; padding: 5px 7px; border: 1px solid var(--line); color: var(--muted); }
 .chip.hot { border-color: var(--rosso); color: var(--rosso); }
@@ -626,6 +631,11 @@ const FRESH = { cache: "no-cache" };
     const dn = c < 0, a = Math.abs(c);
     return `<span class="${dn ? "down" : "up"} num">${dn ? "▼" : "▲"} ${a.toFixed(a < 1 ? 2 : 1)}%${words ? (dn ? " lower" : " higher") : ""}</span>`;
   };
+  // An ask against the car's fair value: within 5% either way is in line.
+  const fvVs = pct => pct == null ? "" : Math.abs(pct) < 5 ? '<em class="flat">In line</em>'
+    : `<em class="${pct < 0 ? "up" : "down"}">${Math.round(Math.abs(pct))}% ${pct < 0 ? "below" : "above"}</em>`;
+  const fvLine = (f, vs = true) => !f ? "" : `<div class="fv"><span>Fair value<b>${short(f.value)}</b></span>${vs ? fvVs(f.ask_pct) : `<span class="flat">${short(f.low)} to ${short(f.high)}</span>`}</div>`;
+  const fvAdj = f => (f.adjustments || []).filter(a => Math.abs(a[1]) >= 0.5).map(([k, v]) => `${esc(k)} ${v > 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}%`).join(" · ");
   // Until a week of prices exists the "7 days" change runs from the first day we have.
   const weekLabel = () => {
     const since = (D.models.find(m => m.change_7d_since) || {}).change_7d_since;
@@ -808,6 +818,7 @@ const FRESH = { cache: "no-cache" };
     ["oldest", "Longest on the market", by(l => l.first_seen)],
     ["miles-asc", "Lowest mileage", by(l => l.mileage_mi)],
     ["miles-desc", "Highest mileage", by(l => l.mileage_mi, -1)],
+    ["value", "Most below fair value", by(l => l.fair ? l.fair.ask_pct : null)],
   ];
   const daysListed = l => l.first_seen ? Math.max(0, Math.round((Date.parse(D.as_of) - Date.parse(l.first_seen)) / 864e5)) : null;
 
@@ -840,6 +851,7 @@ const FRESH = { cache: "no-cache" };
         <div class="house">${esc(l.dealer_name || l.marketplace || "")}${l.location ? ", " + esc(l.location) : ""}</div>
         ${l.country ? `<div class="country">${esc(l.country)}</div>` : ""}
         <div class="bid"><div><div class="eyebrow">Asking</div><b>${money(l.price_usd)}</b></div><span>${l.first_seen ? "Listed " + dateLong(l.first_seen) : ""}<br>${esc(l.marketplace || "")}</span></div>
+        ${fvLine(l.fair)}
       </div></a>`;
   }
 
@@ -867,6 +879,7 @@ const FRESH = { cache: "no-cache" };
       <div class="house">${esc(l.auction_house)}${!l.sale && l.location ? ", " + esc(l.location) : ""}${l.lot_number ? ", lot " + esc(l.lot_number) : ""}</div>
       ${l.mileage_mi ? `<div class="specs">${miles(l.mileage_mi)}</div>` : ""}
       <div class="bid"><div><div class="eyebrow">${label}</div><b>${value}</b></div><span>${when}${est}${vs}</span></div>
+      ${done ? "" : fvLine(l.fair, false)}
       </div></a>`;
   }
 
@@ -1066,9 +1079,9 @@ const FRESH = { cache: "no-cache" };
   function modelBody(m, detail) {
     marketPanel(document.getElementById("m-auc"), detail, m);
     if ((detail.upcoming || []).length) { document.getElementById("m-up-sec").hidden = false; document.getElementById("m-up").innerHTML = detail.upcoming.map(lotCard).join(""); }
-    const listTable = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Car</th><th class="r">Mileage</th><th>Colour</th><th>Seller</th><th class="r">Days listed</th><th class="r">Asking</th></tr></thead><tbody>
+    const listTable = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Car</th><th class="r">Mileage</th><th>Colour</th><th>Seller</th><th class="r">Days listed</th><th class="r">Asking</th><th class="r">Fair value</th><th class="r">Ask vs fair</th></tr></thead><tbody>
       ${items.map(l => `<tr><td class="thumb">${photo(l.image, "")}</td><td class="name"><a ${carLink(l)}>${esc(l.title)}</a>${l.certified ? ' <span class="chip sold">Approved</span>' : ""}</td>
-      <td class="r num">${miles(l.mileage_mi)}</td><td>${esc(l.exterior_color || "")}</td><td>${esc(l.dealer_name || "")}${l.location ? `<div class="flat" style="font-size:12px">${esc(l.location)}</div>` : ""}</td><td class="r num">${daysListed(l) ?? ""}</td><td class="r num">${money(l.price_usd)}</td></tr>`).join("")}
+      <td class="r num">${miles(l.mileage_mi)}</td><td>${esc(l.exterior_color || "")}</td><td>${esc(l.dealer_name || "")}${l.location ? `<div class="flat" style="font-size:12px">${esc(l.location)}</div>` : ""}</td><td class="r num">${daysListed(l) ?? ""}</td><td class="r num">${money(l.price_usd)}</td><td class="r num">${l.fair ? money(l.fair.value) : ""}</td><td class="r fvc">${l.fair ? fvVs(l.fair.ask_pct) : ""}</td></tr>`).join("")}
       </tbody></table></div>`;
     const mList = document.getElementById("m-list");
     if (detail.listings.length) {
@@ -1698,6 +1711,7 @@ const FRESH = { cache: "no-cache" };
     const when = c.status === "live" || c.status === "upcoming" ? (c.ends_at ? "Ends " + endET(c.ends_at) : "") : c.date ? dateLong(c.date) : "";
     const ext = c.url ? `<a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener">${c.status === "for_sale" ? "Contact seller on" : "View lot on"} ${esc(c.where || "source")} ↗</a>` : "";
     const ask = c.market && c.market.median_ask;
+    const fv = c.fair_value;
     const vsAsk = ask && c.price && c.status !== "upcoming" ? chg((c.price / ask - 1) * 100) : "";
     app.innerHTML = `<div class="page-head" style="padding-block:24px 0;border-bottom:0"><div class="wrap">
         <div class="crumbs"><a href="#overview">Overview</a> / ${m.family ? `<a href="#family-${slug(m.family)}">${esc(m.family)}</a> / ` : ""}<a href="#model-${esc(c.model.id)}">${esc(c.model.name)}</a></div>
@@ -1714,6 +1728,10 @@ const FRESH = { cache: "no-cache" };
           <div class="row"><span>${c.status === "for_sale" || c.status === "off_market" ? "Seller" : "Auction house"}</span><span>${esc(c.seller || "")}</span></div>
           ${c.sale ? `<div class="row"><span>Sale</span><span>${saleLink(c)}</span></div>` : ""}
           ${c.country ? `<div class="row"><span>Country</span><span>${esc(c.country)}</span></div>` : ""}
+          ${fv ? `<div class="row"><span>Fair value</span><span class="num"><b>${money(fv.value)}</b></span></div>
+          <div class="row"><span>Fair range</span><span class="num">${short(fv.low)} to ${short(fv.high)}</span></div>
+          ${fv.ask_pct != null ? `<div class="row fvc"><span>Ask vs fair value</span>${fvVs(fv.ask_pct)}</div>` : ""}
+          ${fvAdj(fv) ? `<div class="fv-adj">${fvAdj(fv)}</div>` : ""}` : ""}
           ${ask ? `<div class="row"><span>Median ask, ${esc(c.model.name)}</span><span class="num">${money(ask)}</span></div>` : ""}
           ${(m.auction || {}).median_sold_12m ? `<div class="row"><span>Median sold, 12 months</span><span class="num">${money(m.auction.median_sold_12m)}</span></div>` : ""}
           ${ext}

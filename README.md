@@ -286,6 +286,23 @@ listings or lots says so. A conversion, or a car whose listings never mention th
 owner knows a car's gearbox and its listings stay silent, it goes in `config/gearbox.yaml` by VIN or chassis
 number (`ZFFEW58A350141572: manual`), which wins over the listings on every page.
 
+## Fair value
+
+Every car for sale, and every lot coming up at auction, carries a fair value: what a car of its model, year,
+mileage, colour and gearbox should sell for today (`pipeline/fairvalue.py`). One regression on log price runs
+over every model at once, from the last three years of auction sales and today's asks: a level per model,
+year, mileage, months since the sale and asking against sold (each with a market wide slope and a per model
+adjustment pulled toward it), colour family against red, special order, the auction house, project cars and
+special editions from the title, and the factory manual for the models sold with both gearboxes. Auction lots
+with no colour or mileage field get them from the catalogue text. Cars far off the fit are dropped and it is
+run again. The range is the 80% band of how far that model's sales land from the fit.
+
+Each model's sales are valued in turn by a fit that never saw them (five folds). A model's fair values are
+shown only when it has at least 6 sales in three years and that held out median miss is 20% or less. In
+November 2026 that is 35 models and about 1,380 of the 1,750 cars for sale. The overall held out median miss
+is 19%, against 27% for a plain model median. An ask over 2.5 times, or under 0.4 times, the fair value is
+most likely another car or a placeholder price, so it shows none.
+
 ## Market panel on model pages
 
 Each model page has one market panel, like classic.com's price tracker: a time range (1, 3 or 5 years, or all),

@@ -8,7 +8,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from . import analytics as A
-from . import cars, clean, colors, mileage, sales, taxonomy, weekly
+from . import cars, clean, colors, fairvalue, mileage, sales, taxonomy, weekly
 
 
 def _takes(content_dir: Path) -> list[dict]:
@@ -302,9 +302,11 @@ def model_detail(con, model_id: str, day: date, idx=None, paint=None, extra=None
       FROM daily_asks a JOIN sightings s ON s.vehicle_key = a.vehicle_key AND s.removed_on IS NULL
       WHERE a.day=? AND a.model_id=? GROUP BY a.vehicle_key ORDER BY a.price_usd""", (day.isoformat(), model_id)).fetchall()
     cities = extra.get("cities") or {}
+    fair = extra.get("fair") or {}
     listings = [dict(r, car=idx.listing(r["vehicle_key"]) if idx else None,
                      country=sales.listing_country(r["country"], r["location"]),
-                     state=us_state(r["location"], cities), gearbox=listing_gearbox(gb, r["vehicle_key"])) for r in rows]
+                     state=us_state(r["location"], cities), gearbox=listing_gearbox(gb, r["vehicle_key"]),
+                     fair=fair.get(r["vehicle_key"])) for r in rows]
     skip = clean.implausible_lots(con)
     lots = [r for r in con.execute("""SELECT uid, vehicle_key, title, url, auction_house, status, price_usd, ends_at, mileage_mi, image_url AS image,
                                  source, country, location, raw FROM lots
@@ -315,7 +317,8 @@ def model_detail(con, model_id: str, day: date, idx=None, paint=None, extra=None
                               WHERE model_id=? AND status IN ('live','upcoming') AND last_seen >= ? ORDER BY ends_at""",
                            (model_id, (day - timedelta(days=1)).isoformat())).fetchall()
     lot_out = lambda r: {k: r[k] for k in r.keys() if k not in ("uid", "raw", "source", "country", "vehicle_key")} | A.sale_fields(r) \
-        | {"car": car(r["uid"]), "gearbox": lot_gearbox(gb, r)}
+        | {"car": car(r["uid"]), "gearbox": lot_gearbox(gb, r)} \
+        | ({"fair": (extra.get("fair_lots") or {})[r["uid"]]} if r["uid"] in (extra.get("fair_lots") or {}) else {})
 
     # Market chart, like classic.com: every dated auction result (sold, or not sold at its high bid),
     # every car for sale now (at the day it was first listed) and cars that left the market (last ask).
@@ -371,10 +374,23 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
     payload = build(con, day, cfg, health)
     # one page per car, and every card on the site points at it
     pages, idx = cars.build(con, day, A.model_stats(con, day))
+    gb = gearboxes(con)
+    # what each car for sale (and each lot coming up) should sell for (pipeline/fairvalue.py)
+    fv = fairvalue.build(con, day, gb, clean.implausible_lots(con))
+    for vk, v in fv["cars"].items():
+        cid = idx.listing(vk)
+        if cid in pages and pages[cid].get("status") == "for_sale":
+            pages[cid]["fair_value"] = v
+    for uid, v in fv["lots"].items():
+        cid = idx.lot(uid)
+        if cid in pages and pages[cid].get("status") in ("live", "upcoming"):
+            pages[cid]["fair_value"] = v
     cars.write(pages, site_dir)
     for key in ("live", "upcoming", "results"):
         for l in payload["auctions"][key]:
             l["car"] = idx.lot(l["uid"])
+            if key != "results" and l["uid"] in fv["lots"]:
+                l["fair"] = fv["lots"][l["uid"]]
     for i in payload["insights"]:
         if i.get("uid"):
             i["car"] = idx.lot(i["uid"])
@@ -384,7 +400,6 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
     for mid, block in paint["models"].items():
         colors.add_selling_times(block, times["models"].get(mid, {}))
     payload["colors"] = paint["market"]
-    gb = gearboxes(con)
     # cars for sale by gearbox, for the Models menu's 6-Speed and F1 entries
     for m in payload["models"]:
         if m["id"] in taxonomy.DUAL_GEARBOX:
@@ -396,7 +411,7 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
     out.write_text(json.dumps(payload, separators=(",", ":"), default=str), encoding="utf-8")
     since = (con.execute("SELECT MIN(day) FROM daily_asks").fetchone() or [None])[0]
     shared = {"cities": city_states(con), "sold": sold_points(con, clean.implausible_lots(con), gb), "gearbox": gb,
-              "tracker": cfg.get("_tracker") or {}, "since": since}
+              "tracker": cfg.get("_tracker") or {}, "since": since, "fair": fv["cars"], "fair_lots": fv["lots"]}
     brief = {m["id"]: {"id": m["id"], "name": m["name"], "listings": m.get("listings") or 0, "median": m.get("median"),
                        "sold_12m": (m.get("auction") or {}).get("sold_12m") or 0,
                        "median_sold_12m": (m.get("auction") or {}).get("median_sold_12m")} for m in payload["models"]}
