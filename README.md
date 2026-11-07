@@ -288,20 +288,34 @@ number (`ZFFEW58A350141572: manual`), which wins over the listings on every page
 
 ## Fair value
 
-Every car for sale, and every lot coming up at auction, carries a fair value: what a car of its model, year,
-mileage, colour and gearbox should sell for today (`pipeline/fairvalue.py`). One regression on log price runs
-over every model at once, from the last three years of auction sales and today's asks: a level per model,
-year, mileage, months since the sale and asking against sold (each with a market wide slope and a per model
-adjustment pulled toward it), colour family against red, special order, the auction house, project cars and
-special editions from the title, and the factory manual for the models sold with both gearboxes. Auction lots
-with no colour or mileage field get them from the catalogue text. Cars far off the fit are dropped and it is
-run again. The range is the 80% band of how far that model's sales land from the fit.
+Every car for sale, and every lot coming up at auction, carries a fair value: what it should sell for at
+auction today (`pipeline/fairvalue.py`).
+
+    ln fair value = model level
+                  + year slope    x (year, from the model's median year) / 5
+                  + mileage slope x ln(1 + miles/1000), from the model's typical mileage
+                  + the model's own colour effect against red
+                  + special order paint
+                  + manual (F355, 360, F430, 575M, 599, 612)
+                  + auction effect at the model's usual mix of auctions
+                  + 0.75 x how far the model's latest sales (up to six, last six months) landed from the fit
+                  + 0.75 x how far the car's own last auction sale landed from the fit, when it has one
+
+One regression on log price runs over every model at once, from three years of auction sales and today's asks.
+Year, mileage and the trend over time have a market wide slope and a per model adjustment pulled toward it, and
+each model's colour effects are pulled toward the market wide ones until it has the cars to say otherwise.
+Asking or sold, months since the sale and project cars are in the fit but not in a fair value (it is a sale,
+today, of a usable car). Auction lots with no colour or mileage field get them from the catalogue text. Cars far
+off the fit are dropped and it is run again. The range is the 80% band of how far that model's sales land from it.
+
+The model's current median ask was tested as a term too: on sales of the last four months it made fair values
+further off at every weight (15.7% median miss without it, 16.4% at 0.25, 17.3% at 0.5), so it carries no weight
+and is shown beside the fair value instead.
 
 Each model's sales are valued in turn by a fit that never saw them (five folds). A model's fair values are
 shown only when it has at least 6 sales in three years and that held out median miss is 20% or less. In
-November 2026 that is 35 models and about 1,380 of the 1,750 cars for sale. The overall held out median miss
-is 19%, against 27% for a plain model median. An ask over 2.5 times, or under 0.4 times, the fair value is
-most likely another car or a placeholder price, so it shows none.
+November 2026 that is 35 models and about 1,430 of the 1,750 cars for sale. An ask over 2.5 times, or under 0.4
+times, the fair value is most likely another car or a placeholder price, so it shows none.
 
 ## Market movers and Value my car
 
@@ -313,8 +327,8 @@ sells for. The hero shows the same comparison over the whole market, and its cha
 month by month over two years.
 
 Value my car (`#value`) prices a car in the browser from `site/data/valuer.json`, the fair value fit's
-coefficients for each model whose fair values are shown: model, year, mileage, colour, gearbox, special order
-paint and special editions.
+coefficients for each model whose fair values are shown: model, year, mileage, the model's own colour effects,
+gearbox, special order paint and the model's recent sales.
 
 ## Market panel on model pages
 

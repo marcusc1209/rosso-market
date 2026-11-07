@@ -431,7 +431,7 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
         payload["market_change"] = {k: payload["pulse"][k].get("market") for k in pulse.PERIODS}
     # the models a car can be valued for, for Value my car (pipeline/fairvalue.py)
     if fv.get("fit") is not None:
-        (data_dir / "valuer.json").write_text(json.dumps(fairvalue.valuer(fv["fit"], fv["models"], day),
+        (data_dir / "valuer.json").write_text(json.dumps(fairvalue.valuer(fv["fit"], fv["models"], day, fv.get("anchors")),
                                                          separators=(",", ":"), default=str), encoding="utf-8")
     # cars for sale by gearbox, for the Models menu's 6-Speed and F1 entries
     for m in payload["models"]:

@@ -1966,7 +1966,7 @@ const FRESH = { cache: "no-cache" };
     let st = {};
     try { st = JSON.parse(localStorage.getItem("rm-value") || "{}"); } catch (e) {}
     if (!byM[st.model]) st = { model: (byM["f8-tributo"] || ms[0]).id };
-    const colourOpts = [...Object.entries(V.labels).map(([k, l]) => [k, l]), ["other", "Other colour"], ["unsure", "Not sure"]];
+    const colourOpts = [...Object.entries(V.labels), ["other", "Other colour"], ["unsure", "Not sure"]];
     app.innerHTML = pageHead("Value my car", "Value my car", "What your Ferrari would sell for today, from its model, year, mileage, colour and gearbox.") + `
       <section class="block"><div class="wrap val">
         <form class="val-form" id="val-form" onsubmit="return false">
@@ -1976,7 +1976,6 @@ const FRESH = { cache: "no-cache" };
           <label><span>Exterior colour</span><select name="colour">${colourOpts.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join("")}</select></label>
           <label id="val-gear" hidden><span>Gearbox</span><select name="gear"><option value="f1">F1</option><option value="manual">Factory six speed manual</option></select></label>
           <label class="check"><input type="checkbox" name="special"> Special order paint (Tailor Made, paint to sample)</label>
-          <label class="check"><input type="checkbox" name="edition"> Special edition (anniversary, one off, limited series)</label>
         </form>
         <div><div class="val-out" id="val-out"></div><div class="val-like" id="val-like"></div></div>
       </div></section>`;
@@ -1991,25 +1990,24 @@ const FRESH = { cache: "no-cache" };
     if (st.miles != null) f.miles.value = st.miles;
     if (st.colour) f.colour.value = st.colour;
     if (st.gear) f.gear.value = st.gear;
-    f.special.checked = !!st.special; f.edition.checked = !!st.edition;
+    f.special.checked = !!st.special;
     let likeFor = null;
     const draw = async () => {
       const m = byM[f.model.value];
       document.getElementById("val-gear").hidden = m.manual == null;
       const miles = f.miles.value === "" ? null : Math.max(0, Math.min(250000, +f.miles.value));
       const year = +f.year.value, gear = m.manual != null ? f.gear.value : null;
-      st = { model: m.id, year, miles, colour: f.colour.value, gear, special: f.special.checked, edition: f.edition.checked };
+      st = { model: m.id, year, miles, colour: f.colour.value, gear, special: f.special.checked };
       try { localStorage.setItem("rm-value", JSON.stringify(st)); } catch (e) {}
       const mi = miles == null ? m.mm : miles;
       const parts = [];
       const add = (label, x) => { if (x) parts.push([label, x]); return x; };
-      let lv = m.c + m.by * (year - m.ym) / 5;
+      let lv = m.c + m.by * (year - m.ym) / 5 + add("Recent sales", m.recent);
       lv += add("Mileage", m.bm * (Math.log1p(mi / 1000) - Math.log1p(m.mm / 1000)));
-      const col = st.colour === "unsure" ? V.unsure : st.colour === "other" ? 0 : (V.colours[st.colour] || 0);
+      const col = st.colour === "unsure" ? m.unsure : st.colour === "other" ? 0 : (m.colours[st.colour] || 0);
       lv += add("Colour", col);
       if (gear === "manual") lv += add("Manual gearbox", m.manual);
       if (st.special) lv += add("Special order paint", V.special);
-      if (st.edition) lv += add("Special edition", V.edition);
       const r = x => Math.round(x / 1000) * 1000;
       const val = r(Math.exp(lv)), lo = r(Math.exp(lv - 1.2816 * m.sigma)), hi = r(Math.exp(lv + 1.2816 * m.sigma));
       const mm = byId[m.id] || {}, a = mm.auction || {};

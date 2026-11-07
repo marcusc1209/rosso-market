@@ -16,7 +16,7 @@ def test_sales_change_sees_a_price_rise_not_a_mix_change():
         p = 400000 * lift * math.exp(-0.1 * math.log1p(miles / 1000) + rnd.gauss(0, 0.03))
         rows.append({"kind": "lot", "id": str(i), "key": None, "model": "f8-tributo", "year": 2021, "miles": miles, "paint": "red",
                      "family": "red", "special": 0, "price": p, "sold": 1, "months": days / 30.44, "house": "bringatrailer",
-                     "gear": None, "project": 0, "edition": 0})
+                     "gear": None, "project": 0})
     fit = F.Fit(rows)
     out = pulse.sales_change(fit, date(2026, 11, 6), "90d", {}, {})
     assert out["basis"] == "sold"

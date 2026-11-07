@@ -44,7 +44,17 @@ MAX_MISS = 0.20            # held out median miss above which a model's fair val
 MAX_MILES = 250_000
 Z80 = 1.2816
 LAMBDA = 2.0               # pull of each model's slopes toward the market wide slope
+COLOUR_LAMBDA = 10.0       # pull of each model's own colour effects toward the market wide ones
 FOLDS = 5
+RECENT_DAYS = 180          # a model's recent sales: those of the last six months
+RECENT_N = 6               # at most its six latest
+# How far each Anchors term moves a fair value, set from held out sales (Nov 2026): the latest sales and the car's
+# own last sale make fair values closer to what cars then sold for. The model's current asks made them further
+# off at every weight tried (sales of the last four months: 15.7% median miss at 0, 16.4% at 0.25, 17.3% at 0.5),
+# so the ask term is computed but carries no weight.
+W_ASK = 0.0
+W_RECENT = 0.75
+W_OWN = 0.75
 NO_VALUE = {"classic-other"}          # a catch all bucket of unrelated cars
 FAR = 2.5                  # an ask over 2.5 times (or under 1/2.5 of) the fair value is most likely another car or a placeholder price
 
@@ -55,13 +65,11 @@ _SHOWS_RX = re.compile(r"\b(?:shows|indicates|displays)\s+(?:just\s+|only\s+|rou
 
 
 _PROJECT = re.compile(r"\b(project|salvage|fire[- ]damaged|flood|rolling chassis|barn find|non[- ]running|needs work)\b", re.I)
-_EDITION = re.compile(r"\b(anniversary|tailor[- ]made|one[- ]off|special edition|vetroresina|limited edition|\bfuori serie)\b", re.I)
 
 
 def title_flags(title: str) -> dict:
-    """A project car sells far below a usable one, a special edition far above."""
-    t = title or ""
-    return {"project": int(bool(_PROJECT.search(t))), "edition": int(bool(_EDITION.search(t)))}
+    """A project car sells far below a usable one."""
+    return {"project": int(bool(_PROJECT.search(title or "")))}
 
 
 def _text(raw: dict) -> str:
@@ -227,8 +235,10 @@ class Fit:
     def _build_cols(self):
         cols = [("level", m) for m in self.models]
         self.slopes = ("year", "miles", "months", "ask")
-        cols += [("g", s) for s in self.slopes] + [("g", "miles_unknown"), ("g", "special"), ("g", "project"), ("g", "edition")]
+        cols += [("g", s) for s in self.slopes] + [("g", "miles_unknown"), ("g", "special"), ("g", "project")]
         cols += [("fam", f) for f in self.fams] + [("g", "colour_unknown")]
+        # each model's own colour effects, pulled toward the market wide ones until it has the cars to say otherwise
+        cols += [("famm", (m, f)) for m in self.models for f in self.fams]
         cols += [("g", "manual")] + [("manual", m) for m in self.dual]
         cols += [("house", h) for h in self.houses]
         cols += [(s, m) for s in self.slopes for m in self.models]
@@ -238,6 +248,8 @@ class Fit:
         for i, (a, b) in enumerate(cols):
             if a in self.slopes or a == "manual":
                 pen[i] = self.lam
+            elif a == "famm":
+                pen[i] = COLOUR_LAMBDA
             elif a in ("fam", "g", "house"):
                 pen[i] = 0.5                     # a light pull, so a rare colour does not swing wildly
         self.pen = pen
@@ -257,11 +269,11 @@ class Fit:
             f[("g", "miles_unknown")] = 1.0
         if p["special"]:
             f[("g", "special")] = 1.0
-        for k in ("project", "edition"):
-            if p.get(k):
-                f[("g", k)] = 1.0
+        if p.get("project"):
+            f[("g", "project")] = 1.0
         if p["family"] in self.fams:
             f[("fam", p["family"])] = 1.0
+            f[("famm", (m, p["family"]))] = 1.0
         elif not p["family"] and not p["special"]:
             f[("g", "colour_unknown")] = 1.0
         if p.get("house") in self.houses:
@@ -294,7 +306,7 @@ class Fit:
         j = self.ix.get((kind, name))
         return float(self.beta[j]) if j is not None else 0.0
 
-    def value(self, car: dict) -> Optional[dict]:
+    def value(self, car: dict, anchors: "Optional[Anchors]" = None) -> Optional[dict]:
         """Fair value of a car today: {value, low, high, adjustments [[label, pct]]}."""
         m = car["model"]
         if ("level", m) not in self.ix:
@@ -318,8 +330,57 @@ class Fit:
         if car.get("gear") == "manual":
             d = self._predict_log(self.beta, dict(base, gear="manual")) - self._predict_log(self.beta, base)
             parts.append(["Manual gearbox", round((math.exp(d) - 1) * 100, 1)])
+        if anchors:
+            a = anchors.ask.get(m)
+            if a is not None and W_ASK:
+                lv += W_ASK * a
+                parts.append(["Median ask now", round((math.exp(W_ASK * a) - 1) * 100, 1)])
+            r, n = anchors.recent(m)
+            if n:
+                lv += W_RECENT * r
+                parts.append(["Recent sales", round((math.exp(W_RECENT * r) - 1) * 100, 1)])
+            o = anchors.own_sale(car.get("key"))
+            if o:
+                lv += W_OWN * o[0]
+                parts.append(["This car's last sale", round((math.exp(W_OWN * o[0]) - 1) * 100, 1)])
         return {"value": _round(math.exp(lv)), "low": _round(math.exp(lv - Z80 * s)), "high": _round(math.exp(lv + Z80 * s)),
                 "adjustments": parts}
+
+
+class Anchors:
+    """What the regression alone misses, read from the latest market:
+
+    ask     the model's asks today against what its cars sell for, beyond the gap every model's asks show
+            (asks are usually above sales): a model whose asks sit unusually high or low moves with them
+    recent  the median miss of the model's latest sales (up to six, last six months): momentum the long
+            trend has not caught up with
+    own     the car's own last auction sale (matched by VIN or chassis), carried to today by the fit
+    Each is a log price difference. A fair value adds W_ASK, W_RECENT and W_OWN times them."""
+
+    def __init__(self, fit: "Fit"):
+        self.sales, self.own, gaps = defaultdict(list), defaultdict(list), defaultdict(list)
+        for p in fit.rows:
+            if p["sold"]:
+                r = math.log(p["price"]) - fit._predict_log(fit.beta, p)
+                self.sales[p["model"]].append((p["months"], r))
+                if str(p.get("key") or "").startswith(("vin:", "chassis:")):
+                    self.own[p["key"]].append((p["months"], r))
+            else:
+                gaps[p["model"]].append(math.log(p["price"]) - fit._predict_log(fit.beta, dict(p, sold=1, house="mix")))
+        allg = [g for v in gaps.values() for g in v]
+        mid = median(allg) if allg else 0.0
+        self.ask = {m: median(v) - mid for m, v in gaps.items() if len(v) >= 3}
+        self.ask_n = {m: len(v) for m, v in gaps.items()}
+
+    def recent(self, model: str, at: float = 0.0) -> tuple[float, int]:
+        """(median miss, sales) of the model's latest sales before `at` months ago."""
+        xs = sorted((mo, r) for mo, r in self.sales.get(model, []) if at < mo <= at + RECENT_DAYS / 30.44)[:RECENT_N]
+        return (median(r for _, r in xs), len(xs)) if len(xs) >= 2 else (0.0, 0)
+
+    def own_sale(self, key, at: float = 0.0) -> Optional[tuple[float, float]]:
+        """(miss, months ago) of the car's latest earlier sale."""
+        xs = sorted((mo, r) for mo, r in self.own.get(key or "", []) if mo > at + 0.01)
+        return (xs[0][1], xs[0][0]) if xs else None
 
 
 def _round(x: float) -> int:
@@ -327,8 +388,45 @@ def _round(x: float) -> int:
     return int(round(x / step) * step)
 
 
+def components(rows: list[dict], lam: float = LAMBDA, folds: int = FOLDS, seed: int = 7) -> list[dict]:
+    """Each sale valued by a fit that did not see it: its miss from the regression alone, and the ask,
+    recent sales and own sale terms as they stood at the time of the sale (the ask term only for sales of
+    the last four months, since asks are known only for today)."""
+    rng = np.random.default_rng(seed)
+    sold_ix = [i for i, p in enumerate(rows) if p["sold"]]
+    fold = {i: int(f) for i, f in zip(sold_ix, rng.integers(0, folds, len(sold_ix)))}
+    out = []
+    for k in range(folds):
+        test = [i for i in sold_ix if fold[i] == k]
+        train = [p for i, p in enumerate(rows) if fold.get(i, -1) != k]
+        f = Fit(train, lam)
+        an = Anchors(f)
+        for i in test:
+            p = rows[i]
+            if ("level", p["model"]) not in f.ix:
+                continue
+            e0 = math.log(p["price"]) - f._predict_log(f.beta, p)
+            rec, _ = an.recent(p["model"], p["months"])
+            own = an.own_sale(p.get("key"), p["months"])
+            out.append({"model": p["model"], "months": p["months"], "e0": e0, "recent": rec,
+                        "own": own[0] if own else 0.0, "ask": an.ask.get(p["model"], 0.0) if p["months"] <= 4 else 0.0})
+    return out
+
+
+def misses(comp: list[dict], w_ask=W_ASK, w_recent=W_RECENT, w_own=W_OWN) -> dict:
+    """model -> [|log miss|, ...] of the full fair value."""
+    out = defaultdict(list)
+    for c in comp:
+        out[c["model"]].append(abs(c["e0"] - w_ask * c["ask"] - w_recent * c["recent"] - w_own * c["own"]))
+    return out
+
+
 def backtest(rows: list[dict], lam: float = LAMBDA, folds: int = FOLDS, seed: int = 7) -> dict:
     """Held out miss of each sale, valued by a fit that did not see it: model -> [|ln miss|, ...]."""
+    return misses(components(rows, lam, folds, seed))
+
+
+def _backtest_regression_only(rows: list[dict], lam: float = LAMBDA, folds: int = FOLDS, seed: int = 7) -> dict:
     rng = np.random.default_rng(seed)
     sold_ix = [i for i, p in enumerate(rows) if p["sold"]]
     fold = {i: int(f) for i, f in zip(sold_ix, rng.integers(0, folds, len(sold_ix)))}
@@ -353,6 +451,7 @@ def build(con, day: date, gb: Optional[dict] = None, skip=frozenset()) -> dict:
     if not rows:
         return {"cars": {}, "lots": {}, "models": {}, "fit": None}
     fit = Fit(rows)
+    anchors = Anchors(fit)
     miss = backtest(rows)
     models = {}
     for m in fit.models:
@@ -364,19 +463,19 @@ def build(con, day: date, gb: Optional[dict] = None, skip=frozenset()) -> dict:
     for p in rows:
         if p["kind"] != "ask" or not models.get(p["model"], {}).get("shown"):
             continue
-        v = fit.value(p)
+        v = fit.value(p, anchors)
         if v and 1 / FAR <= p["price"] / v["value"] <= FAR:
             v["ask_pct"] = round((p["price"] / v["value"] - 1) * 100, 1)
             out[p["key"]] = v
     lots = {}
     for p in upcoming(con, day, gb):
         if models.get(p["model"], {}).get("shown"):
-            v = fit.value(p)
+            v = fit.value(p, anchors)
             if v:
                 lots[p["id"]] = v
     log.info("fair value: %d cars for sale valued, %d of %d models shown, %d outliers left out",
              len(out), sum(m["shown"] for m in models.values()), len(models), fit.dropped)
-    return {"cars": out, "lots": lots, "models": models, "fit": fit}
+    return {"cars": out, "lots": lots, "models": models, "fit": fit, "anchors": anchors}
 
 
 def upcoming(con, day: date, gb: Optional[dict] = None) -> list[dict]:
@@ -407,20 +506,17 @@ def upcoming(con, day: date, gb: Optional[dict] = None) -> list[dict]:
     return out
 
 
-def valuer(fit: Fit, models: dict, day: date) -> dict:
+def valuer(fit: Fit, models: dict, day: date, anchors: "Optional[Anchors]" = None) -> dict:
     """What Value my car needs to price a car in the browser, for each model whose fair values are shown.
 
-    ln value = c + year * (year - year_mid) / 5 + miles * (ln(1 + mi/1000) - ln(1 + miles_mid/1000))
-               + colour + special paint + special edition + manual"""
-    fam_n = Counter(p["family"] for p in fit.rows if p["family"])
-    colours = {colors.BASELINE: 0.0}
-    for f in fit.fams:
-        colours[f] = round(fit.coef("fam", f), 5)
-    tot = sum(fam_n[f] for f in colours) or 1
-    unsure = round(sum(colours[f] * fam_n[f] for f in colours) / tot, 5)
-    years = defaultdict(list)
+    ln value = c + recent + year * (year - year_mid) / 5 + miles * (ln(1 + mi/1000) - ln(1 + miles_mid/1000))
+               + colours[colour] + special paint + manual
+    colours are the model's own effects against red, "unsure" their average over the model's cars."""
+    years, fam_n = defaultdict(list), defaultdict(Counter)
     for p in fit.rows:
         years[p["model"]].append(p["year"])
+        if p["family"]:
+            fam_n[p["model"]][p["family"]] += 1
     out = []
     for m, info in models.items():
         if not info.get("shown"):
@@ -428,17 +524,25 @@ def valuer(fit: Fit, models: dict, day: date) -> dict:
         tm = taxonomy.BY_ID.get(m)
         ym, mm = fit.year_mid[m], fit.miles_mid.get(m) or fit.miles_all
         base = {"model": m, "year": ym, "miles": mm, "family": colors.BASELINE, "special": 0, "sold": 1, "months": 0.0,
-                "house": "mix", "gear": "f1" if m in taxonomy.DUAL_GEARBOX else None, "project": 0, "edition": 0}
+                "house": "mix", "gear": "f1" if m in taxonomy.DUAL_GEARBOX else None, "project": 0}
+        cols = {colors.BASELINE: 0.0}
+        for f in fit.fams:
+            cols[f] = round(fit.coef("fam", f) + fit.coef("famm", (m, f)), 5)
+        n = fam_n.get(m) or Counter()
+        tot = sum(n[f] for f in cols)
+        rec, rn = anchors.recent(m) if anchors else (0.0, 0)
         row = {"id": m, "name": tm.name if tm else m, "family": tm.family if tm else None,
                "c": round(fit._predict_log(fit.beta, base), 5),
+               "recent": round(W_RECENT * rec, 5) if rn else 0.0,
                "ym": ym, "by": round(fit.coef("g", "year") + fit.coef("year", m), 5),
                "mm": round(mm), "bm": round(fit.coef("g", "miles") + fit.coef("miles", m), 5),
                "sigma": round(fit.sigma.get(m, 0.2), 4), "years": [min(years[m]), max(years[m])],
+               "colours": cols, "colour_n": {f: n[f] for f in cols if n[f]},
+               "unsure": round(sum(cols[f] * n[f] for f in cols) / tot, 5) if tot else 0.0,
                "sold": info["sold"], "miss_pct": info["miss_pct"]}
         if m in taxonomy.DUAL_GEARBOX:
             row["manual"] = round(fit.coef("g", "manual") + fit.coef("manual", m), 5)
         out.append(row)
     out.sort(key=lambda r: r["name"])
-    return {"as_of": day.isoformat(), "colours": colours, "unsure": unsure,
-            "labels": {f: colors.LABELS[f] for f in colours},
-            "special": round(fit.coef("g", "special"), 5), "edition": round(fit.coef("g", "edition"), 5), "models": out}
+    return {"as_of": day.isoformat(), "labels": {f: colors.LABELS[f] for f in [colors.BASELINE] + fit.fams},
+            "special": round(fit.coef("g", "special"), 5), "models": out}
