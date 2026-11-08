@@ -28,3 +28,12 @@ def test_deliberate_rejects_do_not_degrade_a_source():
     con.execute("INSERT INTO runs VALUES (2, 'ba', 'ok', 26, 10, NULL)")
     con.executemany("INSERT INTO rejects VALUES (2, 'ba', ?, 't', 'unknown model')", [(str(i),) for i in range(16)])
     assert health.check(con, "ba", 2)["state"] == "degraded"
+
+
+def test_812_competizione_names_with_misspellings_and_short_forms():
+    mid = lambda t, y: T.resolve(t, y).model.id
+    assert mid("2022 Ferrari 812 Competitzione", 2022) == "812-competizione"
+    assert mid("2022 Ferrari 812 Comp", 2022) == "812-competizione"
+    assert mid("2023 Ferrari 812 Comp A", 2023) == "812-competizione-a"
+    assert mid("2023 Ferrari 812 Competizione Aperta", 2023) == "812-competizione-a"
+    assert mid("2018 Ferrari 812 Superfast Competition Package", 2018) == "812-superfast"
