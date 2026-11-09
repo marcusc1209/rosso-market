@@ -100,6 +100,7 @@ def build(con, day: date, fit, stats: dict, covers: dict) -> dict:
 # days against the WINDOW days that ended `days` ago.
 MOVE_PERIODS = {"90d": (90, 90), "1y": (365, 180), "3y": (1095, 365), "5y": (1825, 365)}   # key: (days, window)
 MOVE_MIN = 3                                                                                  # sales on each side
+ALL_DAYS = 365 * 30                                                                           # how far back All reads
 
 
 def model_moves(con, day: date, fit, gb: dict, skip, gear_of=None) -> dict:
@@ -118,7 +119,7 @@ def model_moves(con, day: date, fit, gb: dict, skip, gear_of=None) -> dict:
                 out.setdefault(key, {})["30d"] = {"change": c, "since": base, "basis": "ask"}
     if fit is None:
         return out
-    longest = max(d + w for d, w in MOVE_PERIODS.values())
+    longest = ALL_DAYS          # every sale on record, for All
     rows = [p for p in fairvalue.dataset(con, day, gb, skip, days=longest + 7) if p["sold"] and ("level", p["model"]) in fit.ix]
     adj = []
     for p in rows:
@@ -138,4 +139,15 @@ def model_moves(con, day: date, fit, gb: dict, skip, gear_of=None) -> dict:
                 out.setdefault(key, {})[k] = {"change": round((math.exp(median(now) - median(then)) - 1) * 100, 1),
                                               "since": (day - timedelta(days=days)).isoformat(), "basis": "sold",
                                               "sales": len(now), "sales_then": len(then)}
+        # All: the newest year of sales against the first year on record, when the record spans over two years
+        oldest = max(a[0] for a in xs)
+        if oldest > 730:
+            now = [a[3] for a in xs if a[0] <= 365]
+            then = [a[3] for a in xs if a[0] >= oldest - 365]
+            if len(then) < MOVE_MIN:      # a thin first year: the earliest five sales, all over two years old
+                then = [a[3] for a in sorted(xs, key=lambda a: -a[0])[:5] if a[0] > 730]
+            if len(now) >= MOVE_MIN and len(then) >= MOVE_MIN:
+                out.setdefault(key, {})["all"] = {"change": round((math.exp(median(now) - median(then)) - 1) * 100, 1),
+                                                  "since": (day - timedelta(days=round(oldest))).isoformat(), "basis": "sold",
+                                                  "sales": len(now), "sales_then": len(then)}
     return out

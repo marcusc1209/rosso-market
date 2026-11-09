@@ -421,7 +421,8 @@ table.sheet.mv { min-width: 0; }
 .mkt-stats div { background: var(--surface); border: 1px solid var(--line); padding: 12px 14px; display: grid; gap: 4px; }
 .mkt-stats span { font-size: 12px; color: var(--muted); }
 .mkt-stats b { font: 500 18px/1.1 var(--f-mono); font-variant-numeric: tabular-nums; }
-.mkt-stats b > span { font: inherit; }
+.mkt-stats b > span { font: inherit; color: var(--ink); }
+.mkt-stats b > span.up { color: var(--up); } .mkt-stats b > span.down { color: var(--down); }
 .mkt-controls { display: flex; justify-content: space-between; gap: 10px 20px; flex-wrap: wrap; margin-bottom: 10px; }
 .seg { display: inline-flex; border: 1px solid var(--line); }
 .seg button { border: 0; background: var(--surface); padding: 6px 11px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--muted); }
@@ -1279,8 +1280,7 @@ const FRESH = { cache: "no-cache" };
       const y = v => T + (1 - (Math.min(Math.max(v, min), max) - min) / (max - min)) * (H - T - B);
       const grid = ticks.map(t => `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text class="axis" x="${L - 8}" y="${y(t) + 4}" text-anchor="end">${short(t)}</text>`).join("");
       const days = (t1 - t0) / 864e5, xt = [];
-      if (days > 500) { const yStep = Math.max(1, Math.ceil(days / 365 / Math.max(1, Math.floor((W - L - R) / 56)))); for (let yr = new Date(t0).getUTCFullYear() + 1; Date.UTC(yr, 0, 1) <= t1; yr += yStep) xt.push([`${yr}-01-01`, yr]); }
-      else { const d0 = new Date(t0), fit = Math.max(1, Math.floor((W - L - R) / 64)), stepM = Math.max(days > 200 ? 2 : 1, Math.ceil(days / 30.4 / fit)); for (let d = new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + 1, 1)); d.getTime() <= t1; d.setUTCMonth(d.getUTCMonth() + stepM)) { const iso = d.toISOString().slice(0, 10); xt.push([iso, d.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" }) + (d.getUTCMonth() === 0 ? " " + d.getUTCFullYear() : "")]); } }
+      xt.push(...monthTicks(t0, t1, W - L - R));
       const xg = xt.map(([d, l]) => `<line class="grid-line" x1="${x(d)}" x2="${x(d)}" y1="${T}" y2="${H - B}"/><text class="axis" x="${x(d)}" y="${H - 10}" text-anchor="middle">${l}</text>`).join("");
       pos = vis.map(p => [x(p[0]), y(p[1])]);
       const order = { a: 0, u: 1, f: 2, s: 3 };
@@ -1353,7 +1353,27 @@ const FRESH = { cache: "no-cache" };
 
   // ------------------------------------------------------------ market panel on a model page
   // Like classic.com's market tracker: one time range, the sale figures for it, and a tab per view.
-  const RANGES = [["30d", "30 days"], ["90d", "90 days"], ["1y", "1 year"], ["3y", "3 years"], ["5y", "5 years"]];
+  const RANGES = [["30d", "30 days"], ["90d", "90 days"], ["1y", "1 year"], ["3y", "3 years"], ["5y", "5 years"], ["all", "All"]];
+  // x axis labels by month at every range: every 1, 2, 3, 6 or 12 months (or 2, 3, 5, 10 years) as room allows, the year on January
+  // and on the first label. Under two months, weekly dates instead.
+  function monthTicks(t0, t1, width) {
+    const out = [], days = (t1 - t0) / 864e5, fit = Math.max(2, Math.floor(width / 70));
+    const fmt = (d, o) => d.toLocaleDateString("en-US", Object.assign({ timeZone: "UTC" }, o));
+    if (days <= 62) {
+      const step = Math.max(7, Math.ceil(days / fit / 7) * 7);
+      for (let t = t0 + 864e5; t <= t1; t += step * 864e5) { const d = new Date(t); out.push([d.toISOString().slice(0, 10), fmt(d, { month: "short", day: "numeric" })]); }
+      return out;
+    }
+    const stepM = [1, 2, 3, 6, 12, 24, 36, 60, 120].find(k => days / 30.44 / k <= fit) || 120;
+    const d0 = new Date(t0);
+    let d = new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + 1, 1));
+    while (stepM > 1 && d.getUTCMonth() % stepM) d.setUTCMonth(d.getUTCMonth() + 1);   // line up on Jan, Apr, Jul, Oct ...
+    for (let first = true; d.getTime() <= t1; d.setUTCMonth(d.getUTCMonth() + stepM), first = false) {
+      const showYear = first || d.getUTCMonth() === 0 || stepM >= 12;
+      out.push([d.toISOString().slice(0, 10), fmt(d, { month: "short" }) + (showYear ? " " + d.getUTCFullYear() : "")]);
+    }
+    return out;
+  }
   const MP_TABS = [["sales", "Sales"], ["mileage", "Mileage"], ["years", "Years"], ["variants", "Variants"], ["volume", "Volume"],
     ["locations", "Locations"], ["listings", "Listings"], ["colours", "Colours"]];
   const cutFor = (range, last) => {
@@ -1419,7 +1439,8 @@ const FRESH = { cache: "no-cache" };
       const ask = (D2.history || []).filter(p => p[1]);
       // how far the market moved over the chosen period (pipeline/pulse.py): asks for 30 days, adjusted sales beyond
       const mv = (D2.moves || {})[st.range], rl = (RANGES.find(r => r[0] === st.range) || [])[1] || "";
-      const mvLabel = !mv ? `Market, ${rl.toLowerCase()}` : mv.basis === "ask" ? (mv.since > cut ? `Asks since ${dateShort(mv.since)}` : `Asks, ${rl.toLowerCase()}`) : `Market, ${rl.toLowerCase()}`;
+      const mvLabel = st.range === "all" ? (mv ? `Market since ${mv.since.slice(0, 4)}` : "Market, all time")
+        : !mv ? `Market, ${rl.toLowerCase()}` : mv.basis === "ask" ? (mv.since > cut ? `Asks since ${dateShort(mv.since)}` : `Asks, ${rl.toLowerCase()}`) : `Market, ${rl.toLowerCase()}`;
       el.querySelector(".mp-stats").innerHTML = [[mvLabel, mv ? chg(mv.change) : "n/a"], ["Average sale", prices.length ? money(sum / prices.length) : "n/a"], ["Sales", prices.length],
         ["Dollar volume", prices.length ? money(sum) : "n/a"], ["Lowest sale", prices.length ? money(prices[0]) : "n/a"],
         ["Top sale", prices.length ? money(prices[prices.length - 1]) : "n/a"], [recent ? "Most recent, " + dateShort(recent[0]) : "Most recent", recent ? money(recent[1]) : "n/a"],
