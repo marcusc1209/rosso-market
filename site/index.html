@@ -421,6 +421,7 @@ table.sheet.mv { min-width: 0; }
 .mkt-stats div { background: var(--surface); border: 1px solid var(--line); padding: 12px 14px; display: grid; gap: 4px; }
 .mkt-stats span { font-size: 12px; color: var(--muted); }
 .mkt-stats b { font: 500 18px/1.1 var(--f-mono); font-variant-numeric: tabular-nums; }
+.mkt-stats b > span { font: inherit; }
 .mkt-controls { display: flex; justify-content: space-between; gap: 10px 20px; flex-wrap: wrap; margin-bottom: 10px; }
 .seg { display: inline-flex; border: 1px solid var(--line); }
 .seg button { border: 0; background: var(--surface); padding: 6px 11px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--muted); }
@@ -1166,7 +1167,7 @@ const FRESH = { cache: "no-cache" };
     return Object.assign({}, detail, { listings: (detail.listings || []).filter(is), results: (detail.results || []).filter(is),
       upcoming: (detail.upcoming || []).filter(is), points, history: [], weekly: {}, gearbox_split: false, fixedGear: gear,
       auction_points: points.filter(p => p[2] === "s" || p[2] === "u").map(p => [p[0], p[1], p[2] === "s" ? 1 : 0]),
-      mileage: gearMileage(detail.mileage, gear) });
+      mileage: gearMileage(detail.mileage, gear), moves: (detail.moves_gear || {})[gear] || {} });
   }
 
   async function viewModelGear(id, gear) {
@@ -1184,8 +1185,14 @@ const FRESH = { cache: "no-cache" };
     const s12 = d.points.filter(p => p[2] === "s" && p[0] >= cut), u12 = d.points.filter(p => p[2] === "u" && p[0] >= cut);
     const asks = d.listings.map(l => l.price_usd).filter(Boolean), days = d.listings.map(daysListed).filter(x => x != null);
     const lastS = d.points.filter(p => p[2] === "s").pop();
-    const kpis = [[asks.length ? money(medianOf(asks)) : "n/a", "Median ask"], [d.listings.length, "For sale now"], [days.length ? Math.round(medianOf(days)) : "n/a", "Median days listed"],
+    // the 12 months before the last 12, for the year on year change of this gearbox's sales
+    const twoAgo = new Date(D.as_of + "T12:00:00Z"); twoAgo.setUTCFullYear(twoAgo.getUTCFullYear() - 2);
+    const sPrev = d.points.filter(p => p[2] === "s" && p[0] >= twoAgo.toISOString().slice(0, 10) && p[0] < cut);
+    const yoy = s12.length && sPrev.length ? (medianOf(s12.map(p => p[1])) / medianOf(sPrev.map(p => p[1])) - 1) * 100 : null;
+    const c7 = (m.gearbox_change_7d || {})[gear];
+    const kpis = [[asks.length ? money(medianOf(asks)) : "n/a", "Median ask"], [c7 != null ? chg(c7) : "n/a", weekLabel()], [d.listings.length, "For sale now"], [days.length ? Math.round(medianOf(days)) : "n/a", "Median days listed"],
       [s12.length ? money(medianOf(s12.map(p => p[1]))) : "n/a", "Median sold, 12 months"], [s12.length, "Sold at auction, 12 months"],
+      [yoy != null ? chg(yoy) : "n/a", "Median sold vs a year earlier"],
       [s12.length + u12.length ? Math.round(s12.length / (s12.length + u12.length) * 100) + "%" : "n/a", "Sell through, 12 months"]];
     if (lastS) kpis.push([money(lastS[1]), "Last sale, " + dateLong(lastS[0])]);
     const other = gear === "manual" ? [`#model-${id}--f1`, `${m.name} F1`] : [`#model-${id}--6-speed`, `${m.name} 6-Speed`];
@@ -1235,12 +1242,12 @@ const FRESH = { cache: "no-cache" };
     const ends = [...points.map(p => p[0]), ...ask.map(p => p[0])].sort();
     const first = ends[0], last = ends[ends.length - 1];
     const span = (Date.parse(last) - Date.parse(first)) / 864e5;
-    let range = opts.range || (span > 3 * 365 ? "3y" : "all");
+    let range = opts.range || "1y";
     const shown = { s: true, u: true, f: true, m: true };
     const have = new Set(points.map(p => p[2]));
     el.innerHTML = `${opts.bare ? "" : '<div class="mkt-stats" id="ms"></div>'}
       <div class="mkt-controls">
-        ${opts.bare ? "" : `<div class="seg" role="group" aria-label="Time range">${[["1y", "1 year"], ["3y", "3 years"], ["5y", "5 years"], ["all", "All"]].map(([k, l]) => `<button type="button" data-r="${k}">${l}</button>`).join("")}</div>`}
+        ${opts.bare ? "" : `<div class="seg" role="group" aria-label="Time range">${RANGES.map(([k, l]) => `<button type="button" data-r="${k}">${l}</button>`).join("")}</div>`}
         <div class="keys" role="group" aria-label="Show">${Object.entries(KINDS).filter(([k]) => have.has(k)).map(([k, [l, c]]) => `<button type="button" data-k="${k}" aria-pressed="true"><i class="k ${c}"></i>${l}</button>`).join("")}${ask.length ? '<button type="button" data-k="m" aria-pressed="true"><i class="line-ask"></i>Median ask</button>' : ""}<span class="legend" style="align-self:center"><span><i class="line-med"></i>Median sold</span></span></div>
       </div>
       <div class="chart-box mkt"><div class="cv"></div><div class="tip" hidden></div></div>`;
@@ -1252,7 +1259,7 @@ const FRESH = { cache: "no-cache" };
     function draw() {
       ({ W, H, L, R, r: rad } = chartSize(cv));
       el.querySelectorAll("[data-r]").forEach(b => b.setAttribute("aria-pressed", b.dataset.r === range));
-      const cut = range === "all" ? "" : (() => { const d = new Date(last + "T12:00:00Z"); d.setUTCFullYear(d.getUTCFullYear() - +range[0]); return d.toISOString().slice(0, 10); })();
+      const cut = cutFor(range, last);
       vis = points.filter(p => p[0] >= cut && shown[p[2]]);
       const av = shown.m ? ask.filter(p => p[0] >= cut) : [];
       const sold = vis.filter(p => p[2] === "s").map(p => p[1]).sort((a, b) => a - b);
@@ -1346,10 +1353,15 @@ const FRESH = { cache: "no-cache" };
 
   // ------------------------------------------------------------ market panel on a model page
   // Like classic.com's market tracker: one time range, the sale figures for it, and a tab per view.
-  const RANGES = [["1y", "1 year"], ["3y", "3 years"], ["5y", "5 years"], ["all", "All"]];
+  const RANGES = [["30d", "30 days"], ["90d", "90 days"], ["1y", "1 year"], ["3y", "3 years"], ["5y", "5 years"]];
   const MP_TABS = [["sales", "Sales"], ["mileage", "Mileage"], ["years", "Years"], ["variants", "Variants"], ["volume", "Volume"],
     ["locations", "Locations"], ["listings", "Listings"], ["colours", "Colours"]];
-  const cutFor = (range, last) => { if (range === "all") return ""; const d = new Date(last + "T12:00:00Z"); d.setUTCFullYear(d.getUTCFullYear() - +range[0]); return d.toISOString().slice(0, 10); };
+  const cutFor = (range, last) => {
+    if (!range || range === "all") return "";
+    const d = new Date(last + "T12:00:00Z"), n = parseInt(range, 10);
+    if (range.endsWith("d")) d.setUTCDate(d.getUTCDate() - n); else d.setUTCFullYear(d.getUTCFullYear() - n);
+    return d.toISOString().slice(0, 10);
+  };
   const yearOf = t => { const m = /^(\d{4})\b/.exec(t || ""); return m ? +m[1] : null; };
   const pYear = p => p[9] || yearOf(p[4]);
   const medianOf = a => { if (!a.length) return null; const q = [...a].sort((x, y) => x - y), h = q.length >> 1; return q.length % 2 ? q[h] : (q[h - 1] + q[h]) / 2; };
@@ -1372,7 +1384,7 @@ const FRESH = { cache: "no-cache" };
     const days = pts.map(p => p[0]).concat((detail.history || []).map(p => p[0])).sort();
     const last = days.length ? days[days.length - 1] : new Date().toISOString().slice(0, 10);
     const span = days.length ? (Date.parse(last) - Date.parse(days[0])) / 864e5 : 0;
-    let st = { range: span > 3 * 365 ? "3y" : "all", tab: "sales", gear: car && detail.gearbox_split && car.gearbox ? car.gearbox : "all" };
+    let st = { range: "1y", tab: "sales", gear: car && detail.gearbox_split && car.gearbox ? car.gearbox : "all" };
     try { const t = localStorage.getItem("rm-mtab"); if (MP_TABS.some(x => x[0] === t)) st.tab = t; } catch (e) {}
     const TABS_HERE = detail.fixedGear ? MP_TABS.filter(t => t[0] !== "listings" && t[0] !== "colours") : MP_TABS;
     if (!TABS_HERE.some(t => t[0] === st.tab)) st.tab = "sales";
@@ -1386,7 +1398,8 @@ const FRESH = { cache: "no-cache" };
       if (st.gear === "all") return detail;
       const g = st.gear === "manual" ? "m" : "f";
       return Object.assign({}, detail, { points: pts.filter(p => p[2] !== "a" && (p[10] || "f") === g),
-        listings: (detail.listings || []).filter(l => (l.gearbox || "f1") === st.gear), history: [], mileage: gearMileage(detail.mileage, st.gear) });
+        listings: (detail.listings || []).filter(l => (l.gearbox || "f1") === st.gear), history: [], mileage: gearMileage(detail.mileage, st.gear),
+        moves: (detail.moves_gear || {})[st.gear] || {} });
     };
     const draw = () => {
       cleanupCharts(body);
@@ -1404,7 +1417,10 @@ const FRESH = { cache: "no-cache" };
       const sum = prices.reduce((a, b) => a + b, 0);
       const recent = sold[sold.length - 1];
       const ask = (D2.history || []).filter(p => p[1]);
-      el.querySelector(".mp-stats").innerHTML = [["Average sale", prices.length ? money(sum / prices.length) : "n/a"], ["Sales", prices.length],
+      // how far the market moved over the chosen period (pipeline/pulse.py): asks for 30 days, adjusted sales beyond
+      const mv = (D2.moves || {})[st.range], rl = (RANGES.find(r => r[0] === st.range) || [])[1] || "";
+      const mvLabel = !mv ? `Market, ${rl.toLowerCase()}` : mv.basis === "ask" ? (mv.since > cut ? `Asks since ${dateShort(mv.since)}` : `Asks, ${rl.toLowerCase()}`) : `Market, ${rl.toLowerCase()}`;
+      el.querySelector(".mp-stats").innerHTML = [[mvLabel, mv ? chg(mv.change) : "n/a"], ["Average sale", prices.length ? money(sum / prices.length) : "n/a"], ["Sales", prices.length],
         ["Dollar volume", prices.length ? money(sum) : "n/a"], ["Lowest sale", prices.length ? money(prices[0]) : "n/a"],
         ["Top sale", prices.length ? money(prices[prices.length - 1]) : "n/a"], [recent ? "Most recent, " + dateShort(recent[0]) : "Most recent", recent ? money(recent[1]) : "n/a"],
         ["Median ask now", st.gear !== "all" || detail.fixedGear ? ((D2.listings || []).length ? money(medianOf(D2.listings.map(l => l.price_usd).filter(Boolean))) : "n/a") : ask.length ? money(ask[ask.length - 1][1]) : "n/a"], ["For sale now", (D2.listings || []).length]]

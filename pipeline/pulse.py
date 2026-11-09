@@ -93,3 +93,49 @@ def build(con, day: date, fit, stats: dict, covers: dict) -> dict:
         for key in PERIODS:
             out[key] = sales_change(fit, day, key, stats, covers)
     return out
+
+
+# The market panel's periods: how far the market moved over each. 30 days is asking prices (model year by model
+# year); the longer ones are auction sales set against the fair value fit with time taken out, the newest WINDOW
+# days against the WINDOW days that ended `days` ago.
+MOVE_PERIODS = {"90d": (90, 90), "1y": (365, 180), "3y": (1095, 365), "5y": (1825, 365)}   # key: (days, window)
+MOVE_MIN = 3                                                                                  # sales on each side
+
+
+def model_moves(con, day: date, fit, gb: dict, skip, gear_of=None) -> dict:
+    """{model id: {period: {"change", "since", "basis", ...}}} and the same for "model id|manual" / "model id|f1"."""
+    from . import fairvalue
+    out: dict = {}
+    # 30 days: asking prices
+    base = A.period_base(con, day, 30)
+    if base:
+        _, plain = A.weekly_change(con, day, base)
+        for mid, c in plain.items():
+            out.setdefault(mid, {})["30d"] = {"change": c, "since": base, "basis": "ask"}
+        if gear_of:
+            _, split = A.weekly_change(con, day, base, key_of=gear_of)
+            for key, c in split.items():
+                out.setdefault(key, {})["30d"] = {"change": c, "since": base, "basis": "ask"}
+    if fit is None:
+        return out
+    longest = max(d + w for d, w in MOVE_PERIODS.values())
+    rows = [p for p in fairvalue.dataset(con, day, gb, skip, days=longest + 7) if p["sold"] and ("level", p["model"]) in fit.ix]
+    adj = []
+    for p in rows:
+        r = math.log(p["price"]) - fit._predict_log(fit.beta, dict(p, months=0.0))
+        ago = p["months"] * 30.44
+        adj.append((ago, p["model"], p.get("gear"), r))
+    groups: dict = {}
+    for a in adj:
+        groups.setdefault(a[1], []).append(a)
+        if a[2]:
+            groups.setdefault(f"{a[1]}|{a[2]}", []).append(a)
+    for key, xs in groups.items():
+        for k, (days, win) in MOVE_PERIODS.items():
+            now = [a[3] for a in xs if a[0] <= win]
+            then = [a[3] for a in xs if days < a[0] <= days + win]
+            if len(now) >= MOVE_MIN and len(then) >= MOVE_MIN:
+                out.setdefault(key, {})[k] = {"change": round((math.exp(median(now) - median(then)) - 1) * 100, 1),
+                                              "since": (day - timedelta(days=days)).isoformat(), "basis": "sold",
+                                              "sales": len(now), "sales_then": len(then)}
+    return out

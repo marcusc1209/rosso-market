@@ -97,6 +97,17 @@ def model_stats(con, day: date) -> dict[str, dict]:
     return stats
 
 
+def period_base(con, day: date, back: int) -> str | None:
+    """The snapshot `back` days ago (or the closest within 3 days before it), else the oldest snapshot we have
+    when tracking is younger than that."""
+    days = [d for d in available_days(con) if d < day.isoformat()]
+    if not days:
+        return None
+    target = _d(day, back)
+    older = [d for d in days if _d(day, back + 3) <= d <= target]
+    return older[-1] if older else (days[0] if days[0] > target else None)
+
+
 def weekly_base(con, day: date) -> str | None:
     """The day the 7 day change compares with: a week ago, else the closest earlier snapshot
     (up to 10 days back), else, while tracking is younger than a week, the oldest day we have."""
@@ -108,16 +119,23 @@ def weekly_base(con, day: date) -> str | None:
     return older[-1] if older else (days[0] if days[0] > week else None)
 
 
-def weekly_change(con, day: date) -> tuple[str | None, dict]:
+def weekly_change(con, day: date, base: str | None = None, key_of=None) -> tuple[str | None, dict]:
     """Each model's change in median asking price since weekly_base, compared model year by
     model year (2023 cars against 2023 cars) like Market Movers, weighted by today's cars.
     Every model with cars on both days gets a figure, however small; a model whose years do
     not overlap falls back to its plain median."""
-    base = weekly_base(con, day)
+    base = base or weekly_base(con, day)
     if not base:
         return None, {}
-    # cars without a known model year still count, as one group of their own
-    year_or_0 = lambda rows: [(k, mid, y or 0, p) for k, mid, y, p in rows]
+    # cars without a known model year still count, as one group of their own. key_of(vehicle key, model id)
+    # can split a model into groups (its gearboxes): None leaves the car out.
+    def year_or_0(rows):
+        out = []
+        for k, mid, y, p in rows:
+            g = key_of(k, mid) if key_of else mid
+            if g:
+                out.append((k, g, y or 0, p))
+        return out
     now = _group(year_or_0(_asks_with_year(con, day.isoformat())))
     then = _group(year_or_0(_asks_with_year(con, base)))
     out = {}

@@ -380,6 +380,7 @@ def model_detail(con, model_id: str, day: date, idx=None, paint=None, extra=None
                                      if model_id in taxonomy.DUAL_GEARBOX else None),
             # cars for sale week by week, with the owner's CarGurus tracker where it covers the model
             "weekly": weekly.series(con, model_id, day, (extra.get("tracker") or {}).get(model_id), extra.get("since")),
+            "moves": extra.get("moves") or {}, "moves_gear": extra.get("moves_gear"),
             # sibling variants side by side: their figures and dated sales
             "variants": [x for v in extra.get("variants", []) for x in
                          (gearbox_variants(con, day, v, (extra.get("sold") or {}).get(v["id"], []), gb) if v["id"] in taxonomy.DUAL_GEARBOX
@@ -433,13 +434,18 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
     if fv.get("fit") is not None:
         (data_dir / "valuer.json").write_text(json.dumps(fairvalue.valuer(fv["fit"], fv["models"], day, fv.get("anchors")),
                                                          separators=(",", ":"), default=str), encoding="utf-8")
-    # cars for sale by gearbox, for the Models menu's 6-Speed and F1 entries
+    # cars for sale by gearbox, for the Models menu's 6-Speed and F1 entries, and each gearbox's 7 day change
+    gear_of = lambda vk, mid: f"{mid}|{listing_gearbox(gb, vk) or 'f1'}" if mid in taxonomy.DUAL_GEARBOX else None
+    _, gear_7d = A.weekly_change(con, day, key_of=gear_of)
     for m in payload["models"]:
         if m["id"] in taxonomy.DUAL_GEARBOX:
             n = {"manual": 0, "f1": 0}
             for (vk,) in con.execute("SELECT vehicle_key FROM daily_asks WHERE day=? AND model_id=?", (day.isoformat(), m["id"])):
                 n[listing_gearbox(gb, vk) or "f1"] += 1
             m["gearbox_listings"] = n
+            m["gearbox_change_7d"] = {g: gear_7d.get(f"{m['id']}|{g}") for g in ("manual", "f1")}
+    # how far each model (and each gearbox) moved over the market panel's periods (pipeline/pulse.py)
+    moves = pulse.model_moves(con, day, fv.get("fit"), gb, clean.implausible_lots(con), gear_of)
     out = data_dir / "site.json"
     out.write_text(json.dumps(payload, separators=(",", ":"), default=str), encoding="utf-8")
     since = (con.execute("SELECT MIN(day) FROM daily_asks").fetchone() or [None])[0]
@@ -449,7 +455,9 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
                        "sold_12m": (m.get("auction") or {}).get("sold_12m") or 0,
                        "median_sold_12m": (m.get("auction") or {}).get("median_sold_12m")} for m in payload["models"]}
     for m in payload["models"]:
-        ext = dict(shared, variants=[brief[v] for v in variant_ids(m["id"], payload["models"]) if v in brief])
+        ext = dict(shared, variants=[brief[v] for v in variant_ids(m["id"], payload["models"]) if v in brief],
+                   moves=moves.get(m["id"], {}),
+                   moves_gear={g: moves.get(f"{m['id']}|{g}", {}) for g in ("manual", "f1")} if m["id"] in taxonomy.DUAL_GEARBOX else None)
         (data_dir / "models" / f"{m['id']}.json").write_text(
             json.dumps(model_detail(con, m["id"], day, idx, paint, ext), separators=(",", ":"), default=str), encoding="utf-8")
     return out

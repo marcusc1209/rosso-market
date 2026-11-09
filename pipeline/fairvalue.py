@@ -108,10 +108,10 @@ def _gear_of(gb: dict, table: str, vk, uid) -> Optional[str]:
     return gb.get(k)
 
 
-def dataset(con, day: date, gb: Optional[dict] = None, skip=frozenset()) -> list[dict]:
-    """One row per car: sales of the last three years and today's asks."""
+def dataset(con, day: date, gb: Optional[dict] = None, skip=frozenset(), days: int = SOLD_DAYS) -> list[dict]:
+    """One row per car: sales of the last three years (or `days`) and today's asks."""
     gb = gb or {}
-    today, since = day.isoformat(), (day - timedelta(days=SOLD_DAYS)).isoformat()
+    today, since = day.isoformat(), (day - timedelta(days=days)).isoformat()
     rows = []
     for r in con.execute("""SELECT uid, source, vehicle_key, model_id, year, title, price_usd, mileage_mi, substr(ends_at,1,10) d, raw FROM lots
                             WHERE status='sold' AND price_usd > 0 AND ends_at IS NOT NULL AND substr(ends_at,1,10) BETWEEN ? AND ?""",

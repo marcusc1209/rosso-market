@@ -332,6 +332,16 @@ shown only when it has at least 6 sales in three years and that held out median 
 November 2026 that is 35 models and about 1,430 of the 1,750 cars for sale. An ask over 2.5 times, or under 0.4
 times, the fair value is most likely another car or a placeholder price, so it shows none.
 
+## Market panel periods
+
+Every model's market panel (and car page) runs over 30 days, 90 days, 1 year, 3 years or 5 years, and opens with
+how far the market moved over that period (`pulse.model_moves`): 30 days from asking prices, model year by model
+year, since the snapshot a month ago (our first snapshot while there is less than a month); the longer periods
+from auction sales set against the fair value fit with time taken out, the newest sales (90 days, 180 days for a
+year, a year beyond) against as many days that ended the period ago, with at least 3 sales on each side. Models
+sold with both gearboxes have the same for each gearbox, and their 6-Speed and F1 pages carry their own 7 day
+change and year on year sale change.
+
 ## Market movers and Value my car
 
 The overview's movers switch between 30 days, 90 days and 12 months (`pipeline/pulse.py`). 30 days compares
