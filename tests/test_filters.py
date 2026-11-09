@@ -37,3 +37,39 @@ def test_812_competizione_names_with_misspellings_and_short_forms():
     assert mid("2023 Ferrari 812 Comp A", 2023) == "812-competizione-a"
     assert mid("2023 Ferrari 812 Competizione Aperta", 2023) == "812-competizione-a"
     assert mid("2018 Ferrari 812 Superfast Competition Package", 2018) == "812-superfast"
+
+
+def _runs_db():
+    import sqlite3
+    con = sqlite3.connect(":memory:")
+    con.row_factory = sqlite3.Row
+    con.execute("CREATE TABLE runs (id INTEGER PRIMARY KEY, source TEXT, status TEXT, fetched INT, accepted INT, error TEXT)")
+    con.execute("CREATE TABLE rejects (run_id INT, source TEXT, source_id TEXT, title TEXT, reason TEXT)")
+    con.execute("CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT, updated TEXT)")
+    return con
+
+
+def test_a_quiet_week_is_not_degraded_for_a_source_that_reads_only_what_changed():
+    con = _runs_db()
+    for i, (f, a) in enumerate([(47, 38), (26, 20), (21, 15), (26, 20)], start=1):
+        con.execute("INSERT INTO runs VALUES (?, 'ba', 'ok', ?, ?, NULL)", (i, f, a))
+        assert health.check(con, "ba", i, {"listed": 372, "read": f, "failed": 0})["state"] == "ok"
+    con.execute("INSERT INTO runs VALUES (9, 'ba', 'ok', 6, 1, NULL)")
+    con.executemany("INSERT INTO rejects VALUES (9, 'ba', ?, 't', 'track only car')", [(str(i),) for i in range(5)])
+    assert health.check(con, "ba", 9, {"listed": 372, "read": 6, "failed": 0})["state"] == "ok"
+    # nothing pending at all is still fine
+    con.execute("INSERT INTO runs VALUES (10, 'ba', 'ok', 0, 0, NULL)")
+    assert health.check(con, "ba", 10, {"listed": 372, "read": 0, "failed": 0})["state"] == "ok"
+
+
+def test_a_shrunk_listing_or_unreadable_pages_still_degrade_it():
+    con = _runs_db()
+    for i in range(1, 5):
+        con.execute("INSERT INTO runs VALUES (?, 'ba', 'ok', 20, 15, NULL)", (i,))
+        health.check(con, "ba", i, {"listed": 372, "read": 20, "failed": 0})
+    con.execute("INSERT INTO runs VALUES (5, 'ba', 'ok', 20, 15, NULL)")
+    assert health.check(con, "ba", 5, {"listed": 90, "read": 20, "failed": 0})["state"] == "degraded"
+    con.execute("INSERT INTO runs VALUES (6, 'ba', 'ok', 20, 5, NULL)")
+    assert health.check(con, "ba", 6, {"listed": 372, "read": 20, "failed": 15})["state"] == "degraded"
+    con.execute("INSERT INTO runs VALUES (7, 'ba', 'ok', 0, 0, NULL)")
+    assert health.check(con, "ba", 7, {"listed": 0, "read": 0, "failed": 0})["state"] == "down"

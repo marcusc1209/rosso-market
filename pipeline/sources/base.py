@@ -40,6 +40,10 @@ class Source:
         self.ctx = ctx
         self.log = logging.getLogger(f"source.{name}")
         self.kind = cfg.get("kind", self.kind)
+        # A source that only reads what changed (finished results are never read again) sets
+        # {"listed": items the site lists, "read": pages read, "failed": pages it could not make sense of},
+        # so its health is judged on what it can see rather than on how much was new (pipeline/health.py).
+        self.coverage: Optional[dict] = None
 
     def fetch(self) -> Iterator[RawRecord]:
         raise NotImplementedError

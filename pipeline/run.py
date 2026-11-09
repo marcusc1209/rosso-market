@@ -109,7 +109,7 @@ def run_source(con, name, source, ctx, day: date, fx: dict, cfg: dict) -> dict:
         log.exception("source %s failed", name)
         con.commit()
         db.finish_run(con, run_id, "error", fetched, accepted, rejected, ctx.fetcher.requests, f"{type(e).__name__}: {e}"[:500])
-    report = H.check(con, name, run_id)
+    report = H.check(con, name, run_id, getattr(source, "coverage", None))
     if report["state"] == "ok":
         removed = db.mark_missing(con, name, day, int(cfg["settings"].get("removal_after_missed_runs", 2)))
         report["removed"] = removed

@@ -286,6 +286,7 @@ class BroadArrow(Source):
         urls.sort(key=lambda u: int((re.search(r"/vehicles/[a-z]+(\d+)", u) or [0, 0])[1]), reverse=True)
         budget = int(self.cfg.get("lot_pages", 80))
         self.log.info("%d Ferrari lot pages in the sitemap, %d auctions dated", len(urls), len(events))
+        self.coverage = {"listed": len(urls), "read": 0, "failed": 0}
         for url in urls:
             code = _LOT.search(url).group(1).lower()
             if con is not None:
@@ -299,6 +300,9 @@ class BroadArrow(Source):
                 break
             budget -= 1
             rec, why = parse_lot(self._get(url), url, events, today, self.name)
+            self.coverage["read"] += 1
+            if rec is None and why.startswith(("no lot header", "unrecognised price row")):
+                self.coverage["failed"] += 1              # a page in a shape the parser does not know
             if rec is None:
                 if con is not None and why.startswith("sold, price"):
                     db.kv_set(con, "ba_skip:" + code, why)
