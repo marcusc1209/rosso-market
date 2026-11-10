@@ -37,7 +37,12 @@ def parse_page(html: str) -> tuple[list[dict], int]:
     m = _ND.search(html)
     if not m:
         raise ValueError("no __NEXT_DATA__ on page (layout changed?)")
-    sr = json.loads(m.group(1))["props"]["pageProps"]["initialState"]["search"]["searchResults"]
+    try:
+        sr = json.loads(m.group(1))["props"]["pageProps"]["initialState"]["search"]["searchResults"] or {}
+    except (KeyError, TypeError, ValueError):
+        # a page in another shape, with no search results (seen 2026-11-10 mid run, after 541 cars): treated
+        # like an empty page, so the reader waits and retries it rather than failing the whole source
+        return [], 0
     ads = [a for a in sr.get("ads") or [] if isinstance(a, dict) and a.get("id")]
     return ads, int((sr.get("pagination") or {}).get("pages") or 1)
 

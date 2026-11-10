@@ -155,3 +155,12 @@ def test_listing_dates_are_read_once_and_remembered(tmp_path):
     recs = [RawRecord(source="dupont_registry", kind=LISTING, source_id="new", url="https://x/new", title="t")]
     out = list(src._with_listing_dates(recs, dupont_listed_on))
     assert out[0].extra["listed_on"] == "2026-08-06" and pages == ["https://x/new"]
+
+
+def test_ferrari_approved_page_without_search_results_is_an_empty_page():
+    from pipeline.sources.ferrari_approved import parse_page
+    html = '<script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"initialState":{"search":{}}}}}</script>'
+    assert parse_page(html) == ([], 0)
+    ok = ('<script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"initialState":{"search":'
+          '{"searchResults":{"ads":[{"id":1}],"pagination":{"pages":3}}}}}}}</script>')
+    assert parse_page(ok) == ([{"id": 1}], 3)
