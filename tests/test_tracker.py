@@ -113,3 +113,9 @@ def test_gearbox_fixes_by_vin():
     assert taxonomy.fixed_gearbox("ZFFEW58A350141572") == "manual"
     assert taxonomy.fixed_gearbox("vin:ZFFEW58A000000000") is None
     assert taxonomy.fixed_gearbox(None) is None
+
+
+def test_new_tracker_tabs_are_matched_by_model_name():
+    from pipeline.tracker import model_for_tab
+    assert model_for_tab("488 Spider") == "488-spider" and model_for_tab("F8 Tributo") == "f8-tributo"
+    assert model_for_tab("F430 Coupe") == "f430" and model_for_tab("Instructions") is None

@@ -36,6 +36,18 @@ TABS = {
     "458 Speciale Aperta": "458-speciale-a", "599 GTO": "599-gto", "F12 TDF": "f12tdf",
     "812 Competizione": "812-competizione", "812 Competizione Aperta": "812-competizione-a",
 }
+
+
+def model_for_tab(name: str):
+    """The site model a tab tracks: the names above first, then any tab named after a model ("488 Spider",
+    "F8 Tributo", "296 GTB"), so a new tab is imported without a code change."""
+    if name in TABS:
+        return TABS[name]
+    from . import taxonomy
+    m = taxonomy.resolve(f"Ferrari {name}", None)
+    return m.model.id if m and getattr(m, "model", None) else None
+
+
 START_YEAR = 2026            # the first check (3/2) was in 2026. Later headers roll the year over in January.
 NP = "NP"
 _HEAD = re.compile(r"^\s*(\d{1,2})/(\d{1,2})\s+Asking Price\s*$", re.I)
@@ -138,7 +150,7 @@ def fetch_sheet(sheet_id: str, gids: dict, out_dir: Path) -> int:
     import httpx
     n = 0
     for tab, gid in gids.items():
-        mid = TABS.get(tab)
+        mid = model_for_tab(tab)
         if not mid:
             continue
         url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
@@ -163,7 +175,7 @@ def main(argv):
         text = Path(f).read_text(encoding="utf-8")
         tabs = split_export(text) if "## Sheet name:" in text else {Path(f).stem: list(csv.reader(io.StringIO(text)))}
         for name, rows in tabs.items():
-            mid = TABS.get(name)
+            mid = model_for_tab(name)
             if not mid:
                 continue
             weeks, cars = parse_rows(rows)
