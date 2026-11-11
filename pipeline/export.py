@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import statistics as st
 import re
+from collections import Counter
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -117,8 +118,9 @@ def build(con, day: date, cfg: dict, health: list[dict]) -> dict:
         "index": [[p["day"], p["index"]] for p in index],
         "insights": ins,
         "auctions": {
-            "live": auc["live"][:60],
-            "upcoming": auc["upcoming"][:30],
+            # every open lot, so the Auctions page and the Models menu count the same cars
+            "live": auc["live"],
+            "upcoming": auc["upcoming"],
             "results": auc["results"][:80],
             "houses": auc["houses"],
         },
@@ -437,12 +439,21 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
     # cars for sale by gearbox, for the Models menu's 6-Speed and F1 entries, and each gearbox's 7 day change
     gear_of = lambda vk, mid: f"{mid}|{listing_gearbox(gb, vk) or 'f1'}" if mid in taxonomy.DUAL_GEARBOX else None
     _, gear_7d = A.weekly_change(con, day, key_of=gear_of)
+    # lots live or coming up at auction, the same ones the Auctions page lists, by model and by gearbox
+    open_lots, open_gear = Counter(), Counter()
+    for r in con.execute("""SELECT uid, vehicle_key, model_id FROM lots WHERE status IN ('live', 'upcoming')
+                            AND last_seen >= ? AND model_id IS NOT NULL""", ((day - timedelta(days=1)).isoformat(),)):
+        open_lots[r["model_id"]] += 1
+        if r["model_id"] in taxonomy.DUAL_GEARBOX:
+            open_gear[(r["model_id"], lot_gearbox(gb, r) or "f1")] += 1
     for m in payload["models"]:
+        m["at_auction"] = open_lots.get(m["id"], 0)
         if m["id"] in taxonomy.DUAL_GEARBOX:
             n = {"manual": 0, "f1": 0}
             for (vk,) in con.execute("SELECT vehicle_key FROM daily_asks WHERE day=? AND model_id=?", (day.isoformat(), m["id"])):
                 n[listing_gearbox(gb, vk) or "f1"] += 1
             m["gearbox_listings"] = n
+            m["gearbox_auction"] = {g: open_gear.get((m["id"], g), 0) for g in ("manual", "f1")}
             m["gearbox_change_7d"] = {g: gear_7d.get(f"{m['id']}|{g}") for g in ("manual", "f1")}
     # how far each model (and each gearbox) moved over the market panel's periods (pipeline/pulse.py)
     moves = pulse.model_moves(con, day, fv.get("fit"), gb, clean.implausible_lots(con), gear_of)

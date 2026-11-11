@@ -2198,12 +2198,18 @@ const FRESH = { cache: "no-cache" };
   }
 
   // ------------------------------------------------------------ chrome
+  // Each model's count is the cars available now: listed for sale plus lots live or coming up at auction.
   function buildMenu() {
+    const cnt = (sale, auc) => {
+      const n = (sale || 0) + (auc || 0);
+      const tip = n ? `${sale || 0} for sale${auc ? `, ${auc} at auction` : ""}` : "None available now";
+      return `<span class="num" title="${tip}">${n || ""}</span>`;
+    };
     document.getElementById("menu-grid").innerHTML = D.families.map(f => `<div><h4>${esc(f.name)}</h4>
       ${f.models.map(id => byId[id]).filter(Boolean).map(m => m.gearbox_listings
-        ? `<div class="mgroup"><a href="${modelLink(m.id)}" class="mg-main"><span>${esc(m.name)}</span><span class="num">${m.listings || (m.auction || {}).sold_12m || ""}</span></a>
-            <div class="mg-sub"><a href="#model-${m.id}--f1"><span>${esc(m.name)}</span><span class="num">${m.gearbox_listings.f1 || ""}</span></a><a href="#model-${m.id}--6-speed"><span>${esc(m.name)} 6-Speed</span><span class="num">${m.gearbox_listings.manual || ""}</span></a></div></div>`
-        : `<a href="${modelLink(m.id)}"><span>${esc(m.name)}</span><span class="num">${m.listings || (m.auction || {}).sold_12m || ""}</span></a>`).join("")}</div>`).join("");
+        ? `<div class="mgroup"><a href="${modelLink(m.id)}" class="mg-main"><span>${esc(m.name)}</span>${cnt(m.listings, m.at_auction)}</a>
+            <div class="mg-sub"><a href="#model-${m.id}--f1"><span>${esc(m.name)}</span>${cnt(m.gearbox_listings.f1, (m.gearbox_auction || {}).f1)}</a><a href="#model-${m.id}--6-speed"><span>${esc(m.name)} 6-Speed</span>${cnt(m.gearbox_listings.manual, (m.gearbox_auction || {}).manual)}</a></div></div>`
+        : `<a href="${modelLink(m.id)}"><span>${esc(m.name)}</span>${cnt(m.listings, m.at_auction)}</a>`).join("")}</div>`).join("");
   }
 
   function buildFooter() {
