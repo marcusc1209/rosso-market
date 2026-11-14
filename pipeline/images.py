@@ -26,6 +26,15 @@ from urllib.parse import quote
 _IMG_EXT = re.compile(r"\.(jpe?g|png|webp|avif|gif)(\?|$)", re.I)
 _IMG_KEY = re.compile(r"image|photo|thumb|picture|crop|hero|media", re.I)
 _NOT_PHOTO = re.compile(r"logo|icon|flag|avatar|sprite|placeholder|\.svg", re.I)
+# a stand in picture a seller shows before the real photos are up
+_PLACEHOLDER = re.compile(r"placeholder|no[-_ ]?(?:image|photo|picture)|(?:image|photo)s?[-_ ]?(?:not[-_ ]?available|coming[-_ ]?soon|unavailable)|"
+                          r"coming[-_ ]?soon|awaiting[-_ ]?(?:image|photo)|default[-_ ]?(?:vehicle|car|image)|stock[-_ ]?photo|missing[-_ ]?image|"
+                          r"/blank\.(?:jpe?g|png|gif)|spacer\.gif|silhouette", re.I)
+
+
+def placeholder(url) -> bool:
+    return bool(isinstance(url, str) and _PLACEHOLDER.search(url))
+
 _PREFERRED = ("medium", "large", "url", "fullUrl", "src", "href", "original", "small")
 
 
@@ -35,7 +44,7 @@ def _ok(url: Any) -> Optional[str]:
     u = url.strip()
     if u.startswith("//"):
         u = "https:" + u
-    if not u.startswith("http") or _NOT_PHOTO.search(u):
+    if not u.startswith("http") or _NOT_PHOTO.search(u) or _PLACEHOLDER.search(u):
         return None
     return u
 

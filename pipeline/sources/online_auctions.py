@@ -18,6 +18,7 @@ Live       -> data.cards[], data.pageCount
 """
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from typing import Iterator
 
@@ -29,6 +30,7 @@ from urllib.parse import urlencode
 from ..fetch import Blocked
 from ..records import RawRecord, AUCTION
 from ..images import first_image
+from ..normalize import mileage_from_title
 
 QUERIES = [("live", "ending_soon"), ("upcoming", "ending_soon"), ("sold", "closed_date_desc")]
 
@@ -47,6 +49,11 @@ def map_somo(a: dict, source: str, qtype: str) -> RawRecord | None:
         return None
     loc = v.get("location") or {}
     bid = (a.get("bidDetails") or {}).get("value")
+    # since 2026-11-12 the sold list hides final prices (bidDetails.isPriceHidden): the sale is recorded without one
+    hidden = bool((a.get("bidDetails") or {}).get("isPriceHidden") or a.get("isPriceHidden")) and not bid
+    # "SF90 Spider — 150 Miles": the model, then a note that often holds the mileage
+    model, _, note = str(v.get("model") or "").partition(" — ")
+    mi = mileage_from_title(note) if note else None
     if qtype == "live":
         status = "live"
     elif qtype == "upcoming":
@@ -58,15 +65,16 @@ def map_somo(a: dict, source: str, qtype: str) -> RawRecord | None:
     return RawRecord(
         source=source, kind=AUCTION, source_id=str(a.get("auctionId") or v.get("slug")),
         url=f"https://sothebysmotorsport.com/auction/{v.get('slug')}",
-        title=f"{v.get('year') or ''} Ferrari {v.get('model') or ''}".strip(),
+        title=f"{v.get('year') or ''} Ferrari {model.strip()}".strip(),
+        mileage=mi, mileage_unit="mi",
         price=float(bid) if bid else None, currency=((a.get("reservePrice") or {}).get("currency") or "USD"),
-        year=v.get("year"), make="Ferrari", model_text=v.get("model"),
+        year=v.get("year"), make="Ferrari", model_text=model.strip() or None,
         location=", ".join(str(x).strip(" ,") for x in [loc.get("city"), loc.get("state")] if x) or None,
         status=status, ends_at=_iso(a.get("soldDate") if status == "sold" else a.get("endTime")),
         no_reserve=not a.get("hasReservePrice", True), lot_number=str(a.get("lotNumber") or "") or None,
         auction_house="Sotheby's Motorsport", seller_type="auction",
         image_url=first_image(((v.get("files") or {}).get("titleImage"))),
-        extra={"buyer_fee": a.get("buyerFeeGross"), "price_basis": "hammer"},
+        extra={"buyer_fee": a.get("buyerFeeGross"), "price_basis": "hammer", **({"price_hidden": True} if hidden and status == "sold" else {})},
     )
 
 

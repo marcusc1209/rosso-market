@@ -179,9 +179,12 @@ def test_demo_end_to_end(tmp_path, monkeypatch):
     import yaml
     p.write_text(yaml.safe_dump(cfg))
     assert run.main(["--config", str(p), "--date", "2026-10-30", "--backfill", "14"]) == 0
-    data = json.loads((tmp_path / "site" / "data" / "site.json").read_text())
-    assert data["sample"] is True and data["brief"]["tracked_listings"] > 500 and data["auctions"]["live"]
-    text = json.dumps([data["brief"], data["insights"]])
+    read = lambda name: json.loads((tmp_path / "site" / "data" / name).read_text())
+    data, over, auc = read("site.json"), read("overview.json"), read("auctions.json")
+    assert data["sample"] is True and over["brief"]["tracked_listings"] > 500 and auc["live"]
+    assert "auctions" not in data and data["coverage"]["for_sale"] == over["brief"]["tracked_listings"]
+    assert read("spec.json")
+    text = json.dumps([over["brief"], over["insights"]])
     assert "—" not in text and ";" not in text
 
 

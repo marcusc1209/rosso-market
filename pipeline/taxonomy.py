@@ -200,7 +200,7 @@ def is_ferrari(title: str, make: Optional[str] = None) -> bool:
 # Things that show up in Ferrari searches but are not cars.
 NON_CAR = re.compile(
     r"\b(wheels?|rims?|seats?|brochure|poster|sign|model car|scale model|diecast|die cast|1 ?[:x] ?(8|12|18|43)|"
-    r"go ?kart|pedal car|engine only|transmission only|(?<!gated )(?<!manual )(?<!speed )gearbox|tool kit|toolkit|luggage|helmet|watch|"
+    r"go ?kart|pedal car|engine only|transmission only|suitcases?|schedoni|briefcase|(?<!gated )(?<!manual )(?<!speed )gearbox|tool kit|toolkit|luggage|helmet|watch|"
     r"memorabilia|steering wheel|hardtop only|parts|literature|replica|tribute|re ?creation|kit car|simulator|bumper|"
     r"junior|childs?|children|kids?|ride on|ride in|neon|lighted|illuminated|clock|artwork|painting|sculpture|book|jacket|chair|desk|"
     r"engine stand|display engine|continuation|evocation|recreation|powered|arcade|game|table|display model|"
@@ -214,7 +214,7 @@ NON_CAR = re.compile(
 OTHER_MAKES = ("abarth", "fiat", "lancia", "alfa romeo", "maserati", "lamborghini", "porsche", "ford", "chevrolet",
                "pontiac", "toyota", "mercedes", "bmw", "jaguar", "shelby", "de tomaso", "iso", "bizzarrini", "lego")
 _OTHER = re.compile(r"\b(" + "|".join(OTHER_MAKES) + r")\b")
-_TRACK = re.compile(r"\b(challenge(?! stradale)|xx programme|corse clienti|gt3|(?<!250 )(?<!330 )(?<!250 gt )gte|gt2 pro|competizione gt|333 sp|"
+_TRACK = re.compile(r"\b(challenge(?! stradale)|xx programme|corse clienti|gt3|(?:f ?)?(?:360|430|458|488|296) (?:gtc|gt2?|gtlm|n gt|ngt)\b|grand am|308 gt m\b|(?<!250 )(?<!330 )(?<!250 gt )gte|gt2 pro|competizione gt|333 sp|"
                     r"f1 car|formula 1|f2004|f2003|f2002|f2001|race car|racecar|599 ?xx|xx evo|fxx|312 t\d?|312 b\d?|126 c\d?|"
                     r"641|642|643|f92a|f93a|412 t\d|f310( b)?|f300|f399|f2005|248 f1|f2007|f2008|f60|f138|f14 t)\b")
 
@@ -233,6 +233,48 @@ def is_track_car(title: str) -> bool:
 
 def looks_like_car(title: str) -> bool:
     return not NON_CAR.search(clean_title(title))
+
+
+# ---------------------------------------------------------------- specials: cars that are not a standard example
+# A conversion, a prototype or a one off carries its model's name but not its market, so it is listed on the
+# model's page with a Special tag and left out of its medians, averages, trends and fair values (clean.special_lots).
+_ONE_OFF = re.compile(r"\b(one[- ]off|1 of 1\b|one of one\b|sole example|prototype|pre[- ]production|pre[- ]series|development car|"
+                      r"show car|press car|launch car|concept|art car|special projects?|sp\d{2}\b|fuori serie|ex[- ]works)\b", re.I)
+_MODIFIED = re.compile(r"\b(novitec|mansory|liberty walk|widebody|wide body|twin[- ]turbo(?:charged)? conversion|restomod|resto[- ]mod|"
+                       r"koenig|hamann|engine swap|ls[- ]swap(?:ped)?)\b", re.I)
+SPECIAL_LABELS = {"conversion": "Manual conversion", "one_off": "One off or prototype", "modified": "Modified",
+                  "outlier": "Price far from the model's other sales"}
+
+
+def special_kind(title: str, text: str = "") -> "str | None":
+    """'conversion', 'one_off' or 'modified' for a car that is not a standard example of its model, else None."""
+    both = f"{title or ''} {text or ''}"
+    if _CONVERSION.search(both):
+        return "conversion"
+    if _ONE_OFF.search(title or ""):
+        return "one_off"
+    if _MODIFIED.search(title or ""):
+        return "modified"
+    return None
+
+
+# ---------------------------------------------------------------- one spelling of each model's name
+# Sites write the same model several ways ("Ferrari 430", "F 430", "La Ferrari", "12 Cilindri"). Titles are
+# shown with Ferrari's own spelling, so a model's cars read alike on its page.
+_NAME_FIXES = [(re.compile(p, re.I), r) for p, r in (
+    (r"\bFerrari 430\b(?! Scuderia)", "Ferrari F430"), (r"\bF[ -]430\b", "F430"), (r"\bFerrari 355\b", "Ferrari F355"),
+    (r"\bF[ -]355\b", "F355"), (r"\bF12[ -]?Berlinetta\b", "F12berlinetta"), (r"\bF12[ -]?TDF\b", "F12tdf"),
+    (r"\bLa Ferrari\b", "LaFerrari"), (r"\b12[ -]Cilindri\b", "12Cilindri"), (r"\bGTC4[ -]Lusso\b", "GTC4Lusso"),
+    (r"\bGTC 4 ?Lusso\b", "GTC4Lusso"), (r"\bSpyder\b", "Spider"), (r"\bF8[ -]?Tributo\b", "F8 Tributo"),
+    (r"\bF8[ -]?Spider\b", "F8 Spider"), (r"\bSF[ -]90\b", "SF90"), (r"\bPuro[ -]sangue\b", "Purosangue"),
+    (r"\bF512[ -]?M\b", "F512 M"), (r"\b512[ -]?TR\b", "512 TR"), (r"\bFerrari Ferrari\b", "Ferrari"))]
+
+
+def tidy_title(title: str) -> str:
+    t = title or ""
+    for rx, to in _NAME_FIXES:
+        t = rx.sub(to, t)
+    return re.sub(r"\s{2,}", " ", t).strip()
 
 
 # ---------------------------------------------------------------- gearbox: factory manual or F1

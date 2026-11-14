@@ -73,3 +73,19 @@ def test_a_shrunk_listing_or_unreadable_pages_still_degrade_it():
     assert health.check(con, "ba", 6, {"listed": 372, "read": 20, "failed": 15})["state"] == "degraded"
     con.execute("INSERT INTO runs VALUES (7, 'ba', 'ok', 0, 0, NULL)")
     assert health.check(con, "ba", 7, {"listed": 0, "read": 0, "failed": 0})["state"] == "down"
+
+
+def test_car_timeline_merges_sites_and_marks_relistings():
+    from pipeline.cars import timeline
+    ev = [
+        {"kind": "listed", "date": "2026-11-01", "end": None, "price": 287999, "seller": "Ferrari of X", "n_photos": 30,
+         "changes": [["2026-11-01", 293999], ["2026-11-06", 287999]]},
+        {"kind": "delisted", "date": "2026-11-01", "end": "2026-11-13", "price": 288994, "seller": "Ferrari of X", "n_photos": 9,
+         "changes": [["2026-11-01", 294994], ["2026-11-06", 288994]]},
+        {"kind": "delisted", "date": "2026-03-01", "end": "2026-06-01", "price": 310000, "seller": "Dealer Y", "changes": []},
+        {"kind": "unsold", "date": "2026-08-10", "price": 250000, "where": "Bring a Trailer"},
+    ]
+    t = timeline(ev)
+    assert [(x["date"], x["kind"], x["price"]) for x in t] == [
+        ("2026-03-01", "listed", 310000), ("2026-06-01", "delisted", 310000), ("2026-08-10", "unsold", 250000),
+        ("2026-11-01", "relisted", 293999), ("2026-11-06", "cut", 287999)]

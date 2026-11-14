@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import re
 import logging
+import math
 import statistics as st
 from datetime import date
 
@@ -57,6 +58,8 @@ def purge(con) -> dict:
     counts["estimate_as_price"] = _drop_estimate_prices(con)
     counts.update(_apply_auction_policy(con))
     counts["reclassified"] = _reclassify(con)
+    counts["titles_tidied"] = _tidy_titles(con)
+    counts["placeholder_photos"] = _drop_placeholder_photos(con)
     counts["archive_undated"] = _undate_old_rm(con)
     con.commit()
     if any(counts.values()):
@@ -139,7 +142,9 @@ def _apply_auction_policy(con) -> dict:
     out = {}
     for label, where, why in (
         ("private_or_sealed", _PRIVATE_SQL, "purged: private or sealed sale, no public price"),
-        ("sold_without_price", "status='sold' AND price_usd IS NULL", "purged: sold without a published price"),
+        # a sale whose site shows it but hides the price (price_hidden, Sotheby's Motorsport) is kept without one
+        ("sold_without_price", "status='sold' AND price_usd IS NULL AND COALESCE(raw, '') NOT LIKE '%\"price_hidden\": true%'",
+         "purged: sold without a published price"),
     ):
         rows = con.execute(f"SELECT uid, source, title FROM lots WHERE {where}").fetchall()
         for uid, source, title in rows:
@@ -164,6 +169,97 @@ def _reclassify(con) -> int:
                 con.execute(f"UPDATE {table} SET model_id=? WHERE uid=?", (m.model.id, r["uid"]))
                 n += 1
     return n
+
+
+def _tidy_titles(con) -> int:
+    """One spelling of each model's name in stored titles (taxonomy.tidy_title)."""
+    n = 0
+    for table in ("lots", "sightings"):
+        for r in con.execute(f"SELECT uid, title FROM {table} WHERE title IS NOT NULL").fetchall():
+            t = taxonomy.tidy_title(r["title"])
+            if t != r["title"]:
+                con.execute(f"UPDATE {table} SET title=? WHERE uid=?", (t, r["uid"]))
+                n += 1
+    return n
+
+
+def _drop_placeholder_photos(con) -> int:
+    """A dealer's "photo coming soon" picture is not a photo of the car: the card shows no photo instead."""
+    from .images import placeholder
+    n = 0
+    for table in ("lots", "sightings"):
+        for r in con.execute(f"SELECT uid, image_url FROM {table} WHERE image_url IS NOT NULL").fetchall():
+            if placeholder(r["image_url"]):
+                con.execute(f"UPDATE {table} SET image_url=NULL WHERE uid=?", (r["uid"],))
+                n += 1
+    return n
+
+
+# ---------------------------------------------------------------- specials and outliers
+SPECIAL_WINDOW_DAYS = 730      # a sale is compared with its model's sales within two years either side
+SPECIAL_MIN_SALES = 6
+SPECIAL_FLOOR = 0.69           # ln 2: never an outlier within half to double the model's median
+SPECIAL_MADS = 3.5             # and beyond 3.5 times the usual spread of the model's sales
+_memo: dict = {}
+
+
+def special_lots(con, gb: dict | None = None) -> dict[str, str]:
+    """uid -> why a sale is not a standard example of its model, left out of medians, averages, trends, charts
+    and fair values but still listed on the model's page with a Special tag:
+
+      conversion, one_off, modified   named in the title or catalogue text (taxonomy.special_kind)
+      outlier                         sold far from what the model (the same gearbox, for models sold with both)
+                                      made within two years either side: beyond half or double the median and
+                                      beyond 3.5 times the usual spread of its sales
+    """
+    key = (id(con), con.total_changes)
+    if _memo.get("key") == key:
+        return _memo["value"]
+    if gb is None:
+        from . import export
+        gb = export.gearboxes(con)
+    out: dict[str, str] = {}
+    by: dict[tuple, list] = {}
+    for r in con.execute("""SELECT uid, vehicle_key, model_id, title, status, price_usd, substr(ends_at,1,10) AS d, raw FROM lots
+                            WHERE model_id IS NOT NULL AND model_id != 'classic-other'"""):
+        text = ""
+        if r["raw"] and ("conver" in r["raw"] or "swap" in r["raw"]):
+            try:
+                raw = json.loads(r["raw"])
+                ex = raw.get("extra") or {}
+                text = " ".join(str(x) for x in (ex.get("excerpt"), ex.get("subtitle"), ex.get("description"), raw.get("description")) if x)
+            except ValueError:
+                pass
+        kind = taxonomy.special_kind(r["title"] or "", text)
+        if kind:
+            out[r["uid"]] = kind
+            continue
+        if r["status"] != "sold" or not r["price_usd"] or not r["d"]:
+            continue
+        try:
+            d = date.fromisoformat(r["d"]).toordinal()
+        except ValueError:
+            continue
+        vk = r["vehicle_key"] or ""
+        k = vk if vk.startswith(("vin:", "chassis:")) else "uid:" + r["uid"]
+        gear = (gb.get(k) or "f1") if r["model_id"] in taxonomy.DUAL_GEARBOX else ""
+        by.setdefault((r["model_id"], gear), []).append((r["uid"], math.log(r["price_usd"]), d))
+    for rows in by.values():
+        for uid, lp, d in rows:
+            near = [q for _, q, e in rows if abs(e - d) <= SPECIAL_WINDOW_DAYS]
+            if len(near) < SPECIAL_MIN_SALES:
+                continue
+            med = st.median(near)
+            mad = st.median(abs(q - med) for q in near) * 1.4826
+            if abs(lp - med) > max(SPECIAL_FLOOR, SPECIAL_MADS * mad):
+                out[uid] = "outlier"
+    _memo.update(key=key, value=out)
+    return out
+
+
+def left_out(con, gb: dict | None = None) -> set[str]:
+    """Every sale kept out of medians, averages, trends and charts: impossible prices and specials."""
+    return implausible_lots(con) | set(special_lots(con, gb))
 
 
 def implausible_lots(con) -> set[str]:

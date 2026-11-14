@@ -448,6 +448,18 @@ def _backtest_regression_only(rows: list[dict], lam: float = LAMBDA, folds: int 
     return miss
 
 
+def confidence(n_sold: int, miss) -> str:
+    """How much a model's fair values can be leaned on, from the sales behind them and how far held out sales
+    landed from their value: high (30 sales or more, within 12%), medium (12 or more, within 17%), else low."""
+    if miss is None:
+        return "low"
+    if n_sold >= 30 and miss <= 0.12:
+        return "high"
+    if n_sold >= 12 and miss <= 0.17:
+        return "medium"
+    return "low"
+
+
 def build(con, day: date, gb: Optional[dict] = None, skip=frozenset()) -> dict:
     """{"cars": {listing vehicle key or lot uid: fair value}, "models": {model id: accuracy}}"""
     rows = dataset(con, day, gb, skip)
@@ -461,7 +473,8 @@ def build(con, day: date, gb: Optional[dict] = None, skip=frozenset()) -> dict:
         ms = miss.get(m, [])
         err = math.exp(median(ms)) - 1 if ms else None
         ok = fit.n_sold[m] >= MIN_SOLD and err is not None and err <= MAX_MISS
-        models[m] = {"sold": fit.n_sold[m], "miss_pct": round(err * 100, 1) if err is not None else None, "shown": ok}
+        models[m] = {"sold": fit.n_sold[m], "miss_pct": round(err * 100, 1) if err is not None else None, "shown": ok,
+                     "confidence": confidence(fit.n_sold[m], err)}
     out = {}
     for p in rows:
         if p["kind"] != "ask" or not models.get(p["model"], {}).get("shown"):
@@ -470,12 +483,28 @@ def build(con, day: date, gb: Optional[dict] = None, skip=frozenset()) -> dict:
         if v and 1 / FAR <= p["price"] / v["value"] <= FAR:
             v["ask_pct"] = round((p["price"] / v["value"] - 1) * 100, 1)
             out[p["key"]] = v
+    # how far dealers ask above what the model sells for at auction: the median gap of its cars for sale
+    gaps = defaultdict(list)
+    for p in rows:
+        if p["kind"] == "ask" and ("level", p["model"]) in fit.ix:
+            v = out.get(p["key"]) or fit.value(p, anchors)
+            if v and v["value"]:
+                gaps[p["model"]].append((p["price"] / v["value"] - 1) * 100)
+    for m, g in gaps.items():
+        if len(g) >= 3:
+            models[m]["ask_gap_pct"] = round(median(g), 1)
+            models[m]["asks"] = len(g)
+    basis = lambda m: {"n": models[m]["sold"], "miss": models[m]["miss_pct"], "conf": models[m]["confidence"],
+                       "ask_gap": models[m].get("ask_gap_pct")}
+    for p in rows:
+        if p["kind"] == "ask" and p["key"] in out:
+            out[p["key"]].update(basis(p["model"]))
     lots = {}
     for p in upcoming(con, day, gb):
         if models.get(p["model"], {}).get("shown"):
             v = fit.value(p, anchors)
             if v:
-                lots[p["id"]] = v
+                lots[p["id"]] = dict(v, **basis(p["model"]))
     log.info("fair value: %d cars for sale valued, %d of %d models shown, %d outliers left out",
              len(out), sum(m["shown"] for m in models.values()), len(models), fit.dropped)
     return {"cars": out, "lots": lots, "models": models, "fit": fit, "anchors": anchors}
@@ -555,7 +584,7 @@ def valuer(fit: Fit, models: dict, day: date, anchors: "Optional[Anchors]" = Non
                "ym": ym, "by": round(fit.coef("g", "year") + fit.coef("year", m), 5),
                "mm": round(mm), "bm": round(fit.coef("g", "miles") + fit.coef("miles", m), 5),
                "sigma": round(_valuer_sigma(fit.sigma.get(m, 0.2), miss, tested), 4), "years": [min(years[m]), max(years[m])],
-               "tested": tested, "asks": asks[m],
+               "tested": tested, "asks": asks[m], "conf": info.get("confidence"), "ask_gap": info.get("ask_gap_pct"),
                "colours": cols, "colour_n": {f: n[f] for f in cols if n[f]},
                "unsure": round(sum(cols[f] * n[f] for f in cols) / tot, 5) if tot else 0.0,
                "sold": info["sold"], "miss_pct": info["miss_pct"]}

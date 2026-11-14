@@ -23,6 +23,9 @@ from . import sales, taxonomy
 
 MOVER_MIN_PCT = 0.0             # any move counts; repricing must agree in direction
 MOVER_MIN_CARS = 5
+HEADLINE_MIN_CARS = 10          # a headline (the gainer and decliner cards, the brief) needs this many cars on each side;
+                                # models under it still appear in the tables, marked as a small sample
+HEADLINE_MIN_LOTS = 8           # and a sell through headline this many closed lots in each period
 OUTLIER_LOW, OUTLIER_HIGH = 0.4, 2.5
 
 
@@ -306,12 +309,15 @@ def market_movers(con, day: date, stats: dict, covers: dict, back: int = 7) -> d
     for x in wow["models"]:
         x["image"] = covers.get(x["id"])
         x["listings"] = (stats.get(x["id"]) or {}).get("listings", x["cars_now"])
+        x["thin"] = min(x["cars_now"], x["cars_last"]) < HEADLINE_MIN_CARS
     out["all"] = wow["models"]
-    if out["all"]:
-        if out["all"][0]["change"] > 0:
-            out["gainer"] = out["all"][0]
-        if out["all"][-1]["change"] < 0:
-            out["decliner"] = out["all"][-1]
+    out["days"] = back
+    deep = [x for x in out["all"] if not x["thin"]]
+    if deep:
+        if deep[0]["change"] > 0:
+            out["gainer"] = deep[0]
+        if deep[-1]["change"] < 0:
+            out["decliner"] = deep[-1]
     then_day = _base_day(con, day, back)
     now = snapshot(con, day)
     then = snapshot(con, date.fromisoformat(then_day)) if then_day else {}
@@ -419,6 +425,8 @@ def sale_fields(r) -> dict:
 
 
 def auctions(con, day: date, stats: dict) -> dict:
+    from . import clean
+    special = clean.special_lots(con)
     now = datetime.combine(day, datetime.max.time(), tzinfo=timezone.utc)
     live, upcoming, results = [], [], []
     for r in con.execute("SELECT * FROM lots WHERE last_seen >= ? ORDER BY ends_at", (_d(day, 1),)):
@@ -432,6 +440,8 @@ def auctions(con, day: date, stats: dict) -> dict:
     for r in con.execute("""SELECT * FROM lots WHERE status IN ('sold','unsold') AND substr(ends_at,1,10) BETWEEN ? AND ?
                             ORDER BY ends_at DESC""", (_d(day, 90), day.isoformat())):
         lot = _lot(r)
+        if r["uid"] in special:
+            lot["special"] = special[r["uid"]]
         s = stats.get(r["model_id"])
         if s and r["price_usd"]:
             lot["median_ask"] = s["median"]
@@ -497,7 +507,7 @@ def insights(stats: dict, auc: dict, day: date, cert: dict) -> list[dict]:
                             f"across {s['listings']} and {c['listings']} tracked cars.", "model": s["id"]})
     # auction result vs ask
     recent = [l for l in auc["results"] if l["status"] == "sold" and l.get("vs_ask_pct") is not None
-              and not l.get("outlier") and l["ends_at"][:10] >= _d(day, 14)]
+              and not l.get("outlier") and not l.get("special") and l["ends_at"][:10] >= _d(day, 14)]
     if recent:
         l = max(recent, key=lambda l: abs(l["vs_ask_pct"]))
         side = "under" if l["vs_ask_pct"] < 0 else "over"
@@ -505,7 +515,7 @@ def insights(stats: dict, auc: dict, day: date, cert: dict) -> list[dict]:
                     "body": f"Sold for {_money(l['price_usd'])} at {l['auction_house']}. That is {abs(l['vs_ask_pct']):.0f}% {side} "
                             f"the median dealer ask for the model, {_money(l['median_ask'])}.", "url": l["url"], "model": l["model_id"]})
     # biggest sale of the past week
-    week = [l for l in auc["results"] if l["status"] == "sold" and l.get("price_usd") and not l.get("outlier")
+    week = [l for l in auc["results"] if l["status"] == "sold" and l.get("price_usd") and not l.get("outlier") and not l.get("special")
             and l["ends_at"][:10] > _d(day, 7)]
     if week:
         l = max(week, key=lambda l: l["price_usd"])
@@ -514,7 +524,8 @@ def insights(stats: dict, auc: dict, day: date, cert: dict) -> list[dict]:
                             + (f", against a median of {_money(l['auction_median'])} for the model at auction." if l.get("auction_median") else "."),
                     "url": l["url"], "model": l["model_id"], "image": l.get("image"), "uid": l["uid"]})
     # sell through change
-    cand = [(mid, v) for mid, v in auc["sell_through"].items() if v["closed_30d"] >= 4 and (v["closed_prior_60d"] or 0) >= 4]
+    cand = [(mid, v) for mid, v in auc["sell_through"].items()
+            if v["closed_30d"] >= HEADLINE_MIN_LOTS and (v["closed_prior_60d"] or 0) >= HEADLINE_MIN_LOTS]
     if cand:
         mid, v = min(cand, key=lambda x: (x[1]["rate_30d"] or 0) - (x[1]["rate_prior_60d"] or 0))
         name = stats[mid]["name"] if stats.get(mid) else getattr(taxonomy.BY_ID.get(mid), "name", mid)
@@ -574,7 +585,7 @@ def brief(stats: dict, mv: list, ovn: dict, auc: dict, history_days: int = 99) -
         return {"headline": headline, "bullets": bullets, "tracked_listings": tracked, "active_auctions": len(auc["live"]),
                 "overnight_changes": ovn["total"], "overnight": ovn, "price_cuts_7d": cuts, "warming_up": True}
     # headline prefers models with real depth; thin models still appear in the movers list
-    deep = [m for m in mv if m["listings"] >= 10] or mv
+    deep = [m for m in mv if m["listings"] >= HEADLINE_MIN_CARS]
     down = [m for m in deep if m["direction"] == "down"]
     up = [m for m in deep if m["direction"] == "up"]
     if len(down) >= 2:
@@ -587,12 +598,12 @@ def brief(stats: dict, mv: list, ovn: dict, auc: dict, history_days: int = 99) -
         headline = "Ferrari asks hold steady this week"
     bullets = []
     if down:
-        bullets.append({"label": "Biggest drop", "text": f"{down[0]['name']}, median ask down {abs(down[0]['change_7d']):.1f}%."})
+        bullets.append({"label": "Biggest drop, 7 days", "text": f"{down[0]['name']}, median ask down {abs(down[0]['change_7d']):.1f}% in 7 days across {down[0]['listings']} cars."})
     if up:
-        bullets.append({"label": "Biggest gain", "text": f"{up[0]['name']}, median ask up {up[0]['change_7d']:.1f}%."})
+        bullets.append({"label": "Biggest gain, 7 days", "text": f"{up[0]['name']}, median ask up {up[0]['change_7d']:.1f}% in 7 days across {up[0]['listings']} cars."})
     most = max(stats.values(), key=lambda s: s["cut_7d"], default=None)
     if most and most["cut_7d"]:
-        bullets.append({"label": "Most price cuts", "text": f"{most['name']} sellers lowered the price on {most['cut_7d']} cars this week."})
-    bullets.append({"label": "Price cuts overall", "text": f"{cuts} tracked Ferraris were reduced in the last 7 days."})
+        bullets.append({"label": "Most price cuts, 7 days", "text": f"{most['name']} sellers lowered the price on {most['cut_7d']} of {most['listings']} cars in the last 7 days."})
+    bullets.append({"label": "Price cuts overall, 7 days", "text": f"{cuts} of {tracked:,} Ferraris for sale were reduced in the last 7 days."})
     return {"headline": headline, "bullets": bullets, "tracked_listings": tracked, "active_auctions": len(auc["live"]),
             "overnight_changes": ovn["total"], "overnight": ovn, "price_cuts_7d": cuts}

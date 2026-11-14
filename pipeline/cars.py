@@ -78,6 +78,7 @@ class Index:
 def build(con, day: date, stats: dict) -> tuple[dict[str, dict], Index]:
     today = day.isoformat()
     skip = clean.implausible_lots(con)
+    special = clean.special_lots(con)          # not standard examples: they keep their page, but are no one's comparable
     cars: dict[str, dict] = defaultdict(lambda: {"listings": [], "lots": []})
     idx = Index()
 
@@ -107,8 +108,8 @@ def build(con, day: date, stats: dict) -> tuple[dict[str, dict], Index]:
         for r in con.execute("""SELECT uid, title, image_url, price_usd, ends_at, auction_house, year, mileage_mi,
                                        source, url, country, location, raw FROM lots
                                 WHERE status='sold' AND price_usd > 0 AND ends_at IS NOT NULL AND model_id=?
-                                AND substr(ends_at,1,10) <= ? ORDER BY ends_at DESC LIMIT 14""", (mid, today)):
-            if r["uid"] in skip:
+                                AND substr(ends_at,1,10) <= ? ORDER BY ends_at DESC LIMIT 20""", (mid, today)):
+            if r["uid"] in skip or r["uid"] in special or len(comps[mid]) >= 14:
                 continue
             sl = sales.describe(r)
             comps[mid].append({"id": idx.by_uid.get(r["uid"]), "title": r["title"], "image": r["image_url"],
@@ -120,7 +121,55 @@ def build(con, day: date, stats: dict) -> tuple[dict[str, dict], Index]:
         page = _page(key, g, prices, comps, stats, today)
         if page:
             out[page["id"]] = page
+    for uid, kind in special.items():
+        cid = idx.by_uid.get(uid)
+        if cid in out:
+            out[cid]["special"] = kind
     return out, idx
+
+
+def timeline(events: list[dict]) -> list[dict]:
+    """Every price the car has carried, oldest first: each listing, reprice, relisting, delisting and auction
+    result, as {date, price, kind, where}. kind: listed, relisted, cut, raise, delisted, sold, unsold, live, upcoming.
+
+    The same car listed on several sites at once is one listing period (the dealer's fee often makes the sites
+    differ by a few hundred dollars): the period follows the listing that is still up, else the one with the most
+    price changes. A listing that starts after the last one ended is a relisting."""
+    out = []
+    listings = sorted((e for e in events if e["kind"] in ("listed", "delisted") and e.get("date")), key=lambda e: e["date"])
+    periods: list[list] = []
+    for e in listings:
+        end = lambda x: x.get("end") or "9999"
+        if periods and e["date"] <= max(end(x) for x in periods[-1]):
+            periods[-1].append(e)
+        else:
+            periods.append([e])
+    for n, evs in enumerate(periods):
+        lead = max(evs, key=lambda e: (e["kind"] == "listed", len(e.get("changes") or []), e.get("n_photos") or 0))
+        ch = lead.get("changes") or ([[lead["date"], lead["price"]]] if lead.get("price") else [])
+        start = min(e["date"] for e in evs)
+        prev = None
+        for i, (d, p) in enumerate(ch):
+            if i == 0:
+                kind, d = ("relisted" if n or any(o["date"] < start for o in out) else "listed"), min(d, start)
+            else:
+                kind = "cut" if prev and p < prev else "raise"
+            out.append({"date": d, "price": p, "kind": kind, "where": lead.get("seller")})
+            prev = p
+        if all(e.get("end") for e in evs):
+            out.append({"date": max(e["end"] for e in evs), "price": prev, "kind": "delisted", "where": lead.get("seller")})
+    for e in events:
+        if e["kind"] not in ("listed", "delisted"):
+            out.append({"date": e["date"], "price": e.get("price"), "kind": e["kind"], "where": e.get("where"),
+                        **({"estimate": e["estimate"]} if e.get("estimate") and not e.get("price") else {})})
+    # a listing that follows an auction result is a relisting too
+    out.sort(key=lambda t: (t["date"] or "", t["kind"] in ("listed", "relisted")))
+    seen = False
+    for t in out:
+        if t["kind"] == "listed" and seen:
+            t["kind"] = "relisted"
+        seen = True
+    return out
 
 
 def _page(key: str, g: dict, prices: dict, comps: dict, stats: dict, today: str) -> Optional[dict]:
@@ -240,7 +289,7 @@ def _page(key: str, g: dict, prices: dict, comps: dict, stats: dict, today: str)
         "location": now.get("location"), "certified": now.get("certified", False), "no_reserve": now.get("no_reserve"),
         "specs": [[k, v] for k, v in spec if v not in (None, "")],
         "colour": colors.family(pick("exterior_color")), "mileage": mileage, "gearbox": gearbox,
-        "history": events,
+        "history": events, "timeline": timeline(events),
         "comps": [c for c in comps.get(mid, []) if c["id"] != car_id(key)][:8],
         "market": {"median_ask": _round(s.get("median")), "listings": s.get("listings")},
     }

@@ -44,6 +44,19 @@ llm_fallback:                      # optional: Claude reads pages where structur
 
 news_feeds:                        # headlines and links only, racing news filtered out
   - {name: Motor1, url: https://www.motor1.com/rss/make/ferrari/}   # verified 2026-10-31
+  # added 2026-11-14: each outlet's public RSS feed. A feed that is missing, refused or closed by robots.txt is
+  # skipped, and the run log says how many headlines each one gave.
+  - {name: Road & Track, url: https://www.roadandtrack.com/rss/all.xml/}
+  - {name: Car and Driver, url: https://www.caranddriver.com/rss/all.xml/}
+  - {name: Carscoops, url: https://www.carscoops.com/feed/}
+  - {name: The Drive, url: https://www.thedrive.com/feed}
+  - {name: Autocar, url: https://www.autocar.co.uk/rss}
+  - {name: Top Gear, url: https://www.topgear.com/feeds/all/rss.xml}
+  - {name: Autoblog, url: https://www.autoblog.com/rss.xml}
+  - {name: Motor Authority, url: https://www.motorauthority.com/rss}
+  - {name: duPont Registry News, url: https://news.dupontregistry.com/feed/}
+  - {name: Robb Report, url: https://robbreport.com/motors/cars/feed/}
+  - {name: Jalopnik, url: https://jalopnik.com/rss}
 
 classic_com:                       # listing dates for cars no listing site dates (pipeline/classic_com.py)
   enabled: false                   # off: CLASSIC.COM answers automated requests with 403 from GitHub's servers and

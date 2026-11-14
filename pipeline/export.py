@@ -91,7 +91,12 @@ def build(con, day: date, cfg: dict, health: list[dict]) -> dict:
         families.append({"name": fam, "listings": n, "sold_12m": sold_12m, "models": [x["id"] for x in ms], "signal": signal, "change": change,
                          "slug": re.sub(r"[^a-z0-9]+", "-", fam.lower()).strip("-")})
 
-    news = [dict(r) for r in con.execute("SELECT title, url, outlet, published, image FROM news ORDER BY published DESC LIMIT 12")]
+    # the newest headlines, at most four from one outlet so no single site fills the page
+    news, per = [], Counter()
+    for r in con.execute("SELECT title, url, outlet, published, image FROM news ORDER BY published DESC LIMIT 80"):
+        if per[r["outlet"]] < 4 and len(news) < 12:
+            per[r["outlet"]] += 1
+            news.append(dict(r))
     # Every insight and headline gets a picture: its own, or the model's cover photo
     for i in ins:
         if not i.get("image") and covers.get(i.get("model")):
@@ -139,7 +144,7 @@ def auction_stats(con, day: date) -> dict:
     rows = con.execute("""SELECT uid, model_id, status, price_usd, substr(ends_at,1,10) AS d FROM lots
                           WHERE status IN ('sold','unsold') AND ends_at IS NOT NULL AND substr(ends_at,1,10) <= ?""",
                        (day.isoformat(),)).fetchall()
-    skip = clean.implausible_lots(con)
+    skip = clean.left_out(con)
     by = {}
     for r in rows:
         if r["uid"] in skip:
@@ -152,7 +157,8 @@ def auction_stats(con, day: date) -> dict:
         sold_prev = sorted(r["price_usd"] for r in prev if r["status"] == "sold" and r["price_usd"])
         med = st.median(sold) if sold else None
         med_prev = st.median(sold_prev) if len(sold_prev) >= 8 else None
-        last = max((r for r in rs if r["status"] == "sold"), key=lambda r: r["d"], default=None)
+        last = max((r for r in rs if r["status"] == "sold" and r["price_usd"]), key=lambda r: r["d"], default=None)
+        sold_n = sum(1 for r in now if r["status"] == "sold")       # with or without a published price
         out[mid] = {
             "sold_12m": len(sold), "closed_12m": len(now),
             "median_sold_12m": None if med is None else round(med),
@@ -161,7 +167,7 @@ def auction_stats(con, day: date) -> dict:
             "p25_12m": round(A._q(sold, 0.25)) if len(sold) >= 4 else None,
             "p75_12m": round(A._q(sold, 0.75)) if len(sold) >= 4 else None,
             "change_yoy": None if not (med and med_prev and len(sold) >= 8) else round((med / med_prev - 1) * 100, 1),
-            "sell_through_12m": round(len(sold) / len(now) * 100) if now else None,
+            "sell_through_12m": round(sold_n / len(now) * 100) if now else None,
             "last_sold": None if not last else {"day": last["d"], "price": last["price_usd"]},
         }
     return out
@@ -206,7 +212,11 @@ def coverage(con, cfg: dict, models: list) -> dict:
              if (v or {}).get("enabled") and k in SOURCE_NAMES]
     if cfg.get("_tracker"):
         names.append("CarGurus")             # the owner's weekly CarGurus checks (pipeline/tracker.py)
-    return {"cars": cars_n, "models": sum(1 for m in models if m.get("listings") or (m.get("auction") or {}).get("sold_12m")),
+    # one definition of each count, used by the hero and the foot of the overview alike:
+    #   for_sale    cars with an asking price in today's snapshot (each physical car once)
+    #   at_auction  lots live or coming up        on_record  every car ever seen, for sale or at auction
+    return {"cars": cars_n, "on_record": cars_n, "for_sale": sum(m.get("listings") or 0 for m in models),
+            "models": sum(1 for m in models if m.get("listings") or (m.get("auction") or {}).get("sold_12m")),
             "sources": names}
 
 
@@ -332,6 +342,7 @@ def model_detail(con, model_id: str, day: date, idx=None, paint=None, extra=None
                      country=sales.listing_country(r["country"], r["location"]),
                      state=us_state(r["location"], cities), gearbox=listing_gearbox(gb, r["vehicle_key"]),
                      fair=fair.get(r["vehicle_key"])) for r in rows]
+    special = clean.special_lots(con, gb)
     skip = clean.implausible_lots(con)
     lots = [r for r in con.execute("""SELECT uid, vehicle_key, title, url, auction_house, status, price_usd, ends_at, mileage_mi, image_url AS image,
                                  source, country, location, raw FROM lots
@@ -343,6 +354,7 @@ def model_detail(con, model_id: str, day: date, idx=None, paint=None, extra=None
                            (model_id, (day - timedelta(days=1)).isoformat())).fetchall()
     lot_out = lambda r: {k: r[k] for k in r.keys() if k not in ("uid", "raw", "source", "country", "vehicle_key")} | A.sale_fields(r) \
         | {"car": car(r["uid"]), "gearbox": lot_gearbox(gb, r)} \
+        | ({"special": special[r["uid"]]} if r["uid"] in special else {}) \
         | ({"fair": (extra.get("fair_lots") or {})[r["uid"]]} if r["uid"] in (extra.get("fair_lots") or {}) else {})
 
     # Market chart, like classic.com: every dated auction result (sold, or not sold at its high bid),
@@ -353,7 +365,7 @@ def model_detail(con, model_id: str, day: date, idx=None, paint=None, extra=None
                                    source, url, country, location, ends_at, raw, year FROM lots
                             WHERE model_id=? AND status IN ('sold','unsold') AND price_usd > 0 AND ends_at IS NOT NULL
                               AND substr(ends_at,1,10) <= ? ORDER BY ends_at""", (model_id, day.isoformat())):
-        if r["uid"] not in skip:
+        if r["uid"] not in skip and r["uid"] not in special:
             sl = sales.describe(r)
             pts.append([r["d"], round(r["price_usd"]), "s" if r["status"] == "sold" else "u", car(r["uid"]),
                         r["title"], r["image_url"], r["auction_house"], sl["sale"], sl["country"], r["year"],
@@ -377,7 +389,7 @@ def model_detail(con, model_id: str, day: date, idx=None, paint=None, extra=None
             "points": pts,
             "auction_points": [[p[0], p[1], 1 if p[2] == "s" else 0] for p in pts if p[2] in "su"],
             "upcoming": [lot_out(r) for r in upcoming],
-            "mileage": mileage.curve(con, model_id, day, idx, skip,
+            "mileage": mileage.curve(con, model_id, day, idx, skip | set(special),
                                      (lambda vk: listing_gearbox(gb, vk), lambda vk, uid: gb.get(gb_key("lots", vk, uid)))
                                      if model_id in taxonomy.DUAL_GEARBOX else None),
             # cars for sale week by week, with the owner's CarGurus tracker where it covers the model
@@ -392,6 +404,10 @@ def model_detail(con, model_id: str, day: date, idx=None, paint=None, extra=None
                        "market": paint["market"] if paint else None}}
 
 
+OVERVIEW_KEYS = ("brief", "market_movers", "pulse", "insights", "news", "index", "market_change")
+UNUSED_KEYS = ("movers", "covers", "colors", "takes")       # built for the pipeline's own use, never read by the page
+
+
 def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
     site_dir = Path(cfg["settings"].get("site_dir", "site"))
     data_dir = site_dir / "data"
@@ -403,7 +419,7 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
     pages, idx = cars.build(con, day, stats)
     gb = gearboxes(con)
     # what each car for sale (and each lot coming up) should sell for (pipeline/fairvalue.py)
-    fv = fairvalue.build(con, day, gb, clean.implausible_lots(con))
+    fv = fairvalue.build(con, day, gb, clean.left_out(con, gb))
     for vk, v in fv["cars"].items():
         cid = idx.listing(vk)
         if cid in pages and pages[cid].get("status") == "for_sale":
@@ -413,6 +429,14 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
         if cid in pages and pages[cid].get("status") in ("live", "upcoming"):
             pages[cid]["fair_value"] = v
     cars.write(pages, site_dir)
+    # every car available now with its spec, for search by spec ("manual F430", "red 458 under 10k miles")
+    cities = city_states(con)
+    spec = [[cid, p["title"], p["model"]["id"], p.get("year"), round(p["mileage"]) if p.get("mileage") else None, p.get("colour"),
+             p.get("gearbox"), us_state(p.get("location"), cities), p.get("price"), p["status"], (p.get("photos") or [None])[0],
+             p.get("seller"), (p.get("fair_value") or {}).get("ask_pct") if p["status"] == "for_sale" else None,
+             1 if p.get("certified") else 0]
+            for cid, p in pages.items() if p["status"] in ("for_sale", "live", "upcoming")]
+    (data_dir / "spec.json").write_text(json.dumps(spec, separators=(",", ":"), default=str), encoding="utf-8")
     for key in ("live", "upcoming", "results"):
         for l in payload["auctions"][key]:
             l["car"] = idx.lot(l["uid"])
@@ -456,11 +480,26 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
             m["gearbox_auction"] = {g: open_gear.get((m["id"], g), 0) for g in ("manual", "f1")}
             m["gearbox_change_7d"] = {g: gear_7d.get(f"{m['id']}|{g}") for g in ("manual", "f1")}
     # how far each model (and each gearbox) moved over the market panel's periods (pipeline/pulse.py)
-    moves = pulse.model_moves(con, day, fv.get("fit"), gb, clean.implausible_lots(con), gear_of)
+    moves = pulse.model_moves(con, day, fv.get("fit"), gb, clean.left_out(con, gb), gear_of)
+    # how sure each model's fair values are, and how far its dealers ask above them
+    for m in payload["models"]:
+        info = fv["models"].get(m["id"])
+        if info:
+            m["fv"] = {"n": info["sold"], "miss": info["miss_pct"], "conf": info.get("confidence"), "shown": info["shown"],
+                       "ask_gap": info.get("ask_gap_pct")}
+    # The data is split by view, so a model or car page does not download the overview's or the auctions' share:
+    #   site.json      what every view needs (models, families, coverage, source health)
+    #   overview.json  the overview's brief, movers, insights, news and index
+    #   auctions.json  live, upcoming and recent lots
+    for k in UNUSED_KEYS:
+        payload.pop(k, None)
+    dump = lambda name, obj: (data_dir / name).write_text(json.dumps(obj, separators=(",", ":"), default=str), encoding="utf-8")
+    dump("overview.json", {k: payload.pop(k) for k in OVERVIEW_KEYS if k in payload})
+    dump("auctions.json", payload.pop("auctions"))
     out = data_dir / "site.json"
     out.write_text(json.dumps(payload, separators=(",", ":"), default=str), encoding="utf-8")
     since = (con.execute("SELECT MIN(day) FROM daily_asks").fetchone() or [None])[0]
-    shared = {"cities": city_states(con), "sold": sold_points(con, clean.implausible_lots(con), gb), "gearbox": gb,
+    shared = {"cities": city_states(con), "sold": sold_points(con, clean.left_out(con, gb), gb), "gearbox": gb,
               "tracker": cfg.get("_tracker") or {}, "since": since, "fair": fv["cars"], "fair_lots": fv["lots"]}
     brief = {m["id"]: {"id": m["id"], "name": m["name"], "listings": m.get("listings") or 0, "median": m.get("median"),
                        "sold_12m": (m.get("auction") or {}).get("sold_12m") or 0,

@@ -21,6 +21,7 @@ from . import taxonomy
 
 PERIODS = {"90d": 90, "12m": 365}
 MIN_SALES = {"90d": 4, "12m": 5}       # sales of the model in each of the two periods
+HEADLINE_MIN_SALES = 8                 # under this on either side a model is a small sample: listed, never the headline card
 
 
 def _adjusted(fit) -> list[tuple]:
@@ -48,7 +49,7 @@ def sales_change(fit, day: date, key: str, stats: dict, covers: dict) -> dict:
         out.append({"id": mid, "name": m.name, "family": m.family,
                     "change": round((math.exp(median(a[2] for a in n) - median(a[2] for a in t)) - 1) * 100, 2),
                     "sales": len(n), "sales_last": len(t), "median": round(median(a[3] for a in n)),
-                    "median_last": round(median(a[3] for a in t)), "image": covers.get(mid),
+                    "median_last": round(median(a[3] for a in t)), "image": covers.get(mid), "thin": min(len(n), len(t)) < HEADLINE_MIN_SALES,
                     "listings": (stats.get(mid) or {}).get("listings", 0)})
     out.sort(key=lambda x: x["change"], reverse=True)
     counts = {}
@@ -65,8 +66,8 @@ def sales_change(fit, day: date, key: str, stats: dict, covers: dict) -> dict:
     if len(now) >= 20 and len(then) >= 20:
         market = round((math.exp(median(a[2] for a in now) - median(a[2] for a in then)) - 1) * 100, 2)
     return {"basis": "sold", "since": (day - timedelta(days=days)).isoformat(), "all": out,
-            "gainer": out[0] if out and out[0]["change"] > 0 else None,
-            "decliner": out[-1] if out and out[-1]["change"] < 0 else None,
+            "gainer": next((x for x in out if not x["thin"] and x["change"] > 0), None),
+            "decliner": next((x for x in reversed(out) if not x["thin"] and x["change"] < 0), None), "days": days,
             "active": active, "market": market, "sales": len(now), "sales_last": len(then)}
 
 

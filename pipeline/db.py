@@ -8,12 +8,15 @@ successfully twice without seeing it).
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from .records import Normalized, LISTING, AUCTION
 from .dedupe import representative_price
+
+log = logging.getLogger("db")
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS sightings (
@@ -116,7 +119,8 @@ def upsert(con, n: Normalized, day: date):
             estimate_low_usd, estimate_high_usd, no_reserve, bid_count, ends_at, location, country, mileage_mi, vin, lot_number,
             image_url, first_seen, last_seen, sample, raw)
           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-          ON CONFLICT(uid) DO UPDATE SET status=COALESCE(excluded.status, status), price_usd=CASE WHEN excluded.status IN ('sold','unsold','upcoming') THEN excluded.price_usd ELSE COALESCE(excluded.price_usd, price_usd) END,
+          ON CONFLICT(uid) DO UPDATE SET status=COALESCE(excluded.status, status), price_usd=CASE WHEN excluded.status='sold' AND excluded.price_usd IS NULL AND status='sold' THEN price_usd
+                                                                   WHEN excluded.status IN ('sold','unsold','upcoming') THEN excluded.price_usd ELSE COALESCE(excluded.price_usd, price_usd) END,
             estimate_low_usd=COALESCE(excluded.estimate_low_usd, estimate_low_usd), estimate_high_usd=COALESCE(excluded.estimate_high_usd, estimate_high_usd),
             bid_count=COALESCE(excluded.bid_count, bid_count), ends_at=COALESCE(excluded.ends_at, ends_at), last_seen=excluded.last_seen,
             image_url=COALESCE(excluded.image_url, image_url),
@@ -204,14 +208,49 @@ def build_daily_asks(con, day: date):
             self.price_usd = r["price"]
             self.raw = type("R", (), {"source": r["source"]})
 
+    cars = []
     for key, rs in groups.items():
         # a car its listings disagree on (reconcile_models has usually settled it already)
         model = resolve_model([(r["model_id"], r["source"]) for r in rs])
-        price = representative_price([_S(r) for r in rs])
+        cars.append((key, model, representative_price([_S(r) for r in rs]), rs))
+    odd = odd_asks([(k, m, p) for k, m, p, _ in cars])
+    for key, model, price, rs in cars:
+        if key in odd:
+            continue
         con.execute("INSERT INTO daily_asks VALUES (?,?,?,?,?,?)",
                     (d, key, model, price, len(rs), int(any(r["certified"] for r in rs))))
+    if odd:
+        con.execute("INSERT OR REPLACE INTO kv (key, value) VALUES ('odd_asks', ?)", (json.dumps(odd),))
+        log.info("%d asks far outside their model's range left out of today's prices: %s", len(odd),
+                 ", ".join(f"{k} ${v['price']:,.0f} (model median ${v['median']:,.0f})" for k, v in list(odd.items())[:6]))
     con.commit()
-    return len(groups)
+    return len(cars) - len(odd)
+
+
+ODD_ASK = 4.0            # an ask over 4 times, or under a quarter of, its model's median ask is a placeholder or a typo
+ODD_ASK_DUAL = 8.0       # models sold with both gearboxes: a factory manual can ask several times the F1 car
+ODD_ASK_MIN_CARS = 6
+
+
+def odd_asks(cars: list) -> dict:
+    """{vehicle key: {model, price, median}} for asks far outside their model's range (cars: [(key, model, price)]).
+    They stay in the database and on their own page, but out of the day's prices, medians and lists."""
+    import statistics
+    from . import taxonomy
+    by: dict[str, list] = {}
+    for k, m, p in cars:
+        if m and p:
+            by.setdefault(m, []).append((k, p))
+    out = {}
+    for m, xs in by.items():
+        if len(xs) < ODD_ASK_MIN_CARS or m in ("classic-other", "250"):
+            continue
+        med = statistics.median(p for _, p in xs)
+        up = ODD_ASK_DUAL if m in taxonomy.DUAL_GEARBOX else ODD_ASK
+        for k, p in xs:
+            if p > med * up or p < med / ODD_ASK:
+                out[k] = {"model": m, "price": p, "median": med}
+    return out
 
 
 def save_news(con, items, day: date):

@@ -30,7 +30,7 @@ import statistics as st
 
 # reasons a record is turned away by design (pipeline/normalize.py)
 DELIBERATE = ("not a Ferrari", "not a car", "another make's car", "track only car", "listed outside the US",
-              "private or sealed sale")
+              "private or sealed sale", "sold without a published price")
 
 
 def _coverage_history(con, source: str, listed: int) -> list:

@@ -5,6 +5,7 @@ import re
 from typing import Optional, Tuple
 
 from . import sales, taxonomy
+from .images import placeholder as placeholder_image
 from .records import RawRecord, Normalized, AUCTION
 
 # ---------------------------------------------------------------- prices
@@ -258,6 +259,9 @@ class Reject(Exception):
 def normalize(raw: RawRecord, fx: dict, min_confidence: float = 0.5) -> Normalized:
     if not raw.title and not raw.model_text:
         raise Reject("no title")
+    raw.title = taxonomy.tidy_title(raw.title)          # one spelling of each model's name ("Ferrari 430" is an F430)
+    if raw.image_url and placeholder_image(raw.image_url):
+        raw.image_url = None                            # a "photo coming soon" picture is not a photo of the car
     if not taxonomy.is_ferrari(raw.title or "", raw.make):
         raise Reject("not a Ferrari")
     if not taxonomy.looks_like_car(raw.title or ""):
@@ -291,7 +295,9 @@ def normalize(raw: RawRecord, fx: dict, min_confidence: float = 0.5) -> Normaliz
         if raw.status == "upcoming":
             price, price_usd = None, None        # an upcoming lot has an estimate, never a price
         if raw.status == "sold" and price_usd is None:
-            raise Reject("sold without a published price")
+            if not raw.extra.get("price_hidden"):
+                raise Reject("sold without a published price")
+            flags.append("sold, price not published")       # the site shows the sale but hides the price
     if raw.kind != AUCTION and price_usd is None:
         raise Reject("listing without a price")
     if raw.kind != AUCTION:

@@ -541,3 +541,15 @@ def test_broadarrow_sitemap_drops_other_makes():
     xml = (b"<urlset><url><loc>https://www.broadarrowauctions.com/vehicles/gi26e_r0061/1992-lancia-delta-hf-integrale-evoluzione-giallo-ferrari</loc></url>"
            b"<url><loc>https://www.broadarrowauctions.com/vehicles/ql26_r0071/2020-ferrari-488-pista-spider</loc></url></urlset>")
     assert lot_urls(xml) == ["https://www.broadarrowauctions.com/vehicles/ql26_r0071/2020-ferrari-488-pista-spider"]
+
+
+def test_somo_sale_with_a_hidden_price_is_kept_without_one():
+    a = {"auctionId": "B6", "vehicleData": {"year": 1989, "make": "Ferrari", "model": "Mondial T Cabriolet", "slug": "x"},
+         "bidDetails": {"value": None, "isPriceHidden": True}, "soldDate": "2026-11-13T22:15:00.000Z", "hasReservePrice": True}
+    rec = map_somo(a, "somo", "sold")
+    assert rec.status == "sold" and rec.price is None and rec.extra["price_hidden"] is True
+    n = normalize(rec, FX)
+    assert n.price_usd is None and "sold, price not published" in n.flags
+    b = dict(a, vehicleData=dict(a["vehicleData"], model="SF90 Spider — 150 Miles"))
+    r2 = map_somo(b, "somo", "sold")
+    assert r2.title == "1989 Ferrari SF90 Spider" and r2.mileage == 150

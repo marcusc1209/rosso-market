@@ -2,11 +2,14 @@
 never article text, and the site always links out to the original."""
 from __future__ import annotations
 
+import logging
 import re
 import xml.etree.ElementTree as ET
 from email.utils import parsedate_to_datetime
 from typing import Iterator
 
+
+log = logging.getLogger("news")
 
 def parse_feed(xml_text: str, outlet: str) -> list[dict]:
     out = []
@@ -45,8 +48,10 @@ def fetch_news(fetcher, feeds: list[dict], keyword: str = "ferrari") -> Iterator
     for f in feeds:
         try:
             xml_text = fetcher.get(f["url"]).text
-        except Exception:
+            items = parse_feed(xml_text, f.get("name", ""))
+        except Exception as e:
+            log.info("news feed %s not read: %s", f.get("name"), str(e)[:120])
             continue
-        for item in parse_feed(xml_text, f.get("name", "")):
-            if keyword in item["title"].lower() and not RACING.search(item["title"]):
-                yield item
+        kept = [i for i in items if keyword in i["title"].lower() and not RACING.search(i["title"])]
+        log.info("news feed %s: %d items, %d Ferrari road car headlines", f.get("name"), len(items), len(kept))
+        yield from kept
