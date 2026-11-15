@@ -69,7 +69,7 @@ nav.main a:hover, nav.main summary:hover, nav.main a[aria-current="page"] { colo
 nav.main a[aria-current="page"], nav.main summary.current, details.models[open] summary { box-shadow: inset 0 -2px 0 var(--rosso); color: var(--ink); }
 details.models { position: static; }
 details.models summary::after { content: " \25BE"; font-size: 12px; }
-.menu { position: absolute; left: 0; right: 0; top: 100%; background: var(--surface); border-bottom: 1px solid var(--line); box-shadow: 0 18px 30px rgba(0,0,0,.08); }
+.menu { position: absolute; left: 0; right: 0; top: 100%; background: var(--surface); border-bottom: 1px solid var(--line); box-shadow: 0 18px 30px rgba(0,0,0,.08); max-height: calc(100vh - 72px); overflow-y: auto; overscroll-behavior: contain; }
 .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 20px 28px; padding-block: 22px 26px; }
 .menu-grid h4 { margin: 0 0 8px; font: 600 12px/1.2 var(--f-body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .menu-grid a { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; text-decoration: none; font-size: 14px; }
@@ -662,7 +662,7 @@ caption.sr { position: absolute; }
 #app:focus { outline: none; }
 :where(button, select, summary, input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=range])) { min-height: 36px; }
 nav.main a, nav.main summary { min-height: 36px; display: inline-flex; align-items: center; }
-.menu-grid a { padding-block: 8px; }
+nav.main .menu-grid a { display: flex; padding-block: 8px; }
 footer nav a, .crumbs a, .link-more, .sres a { min-height: 32px; display: inline-flex; align-items: center; }
 .sres a { display: grid; }
 .wl-n { margin-left: 6px; background: var(--rosso); color: #fff; font: 600 12px/1 var(--f-mono); padding: 3px 6px; border-radius: 9px; }
@@ -842,8 +842,8 @@ const FRESH = { cache: "no-cache" };
   };
   const SPECIALS = { conversion: "Manual conversion", one_off: "One off or prototype", modified: "Modified", outlier: "Price far from the model's other sales" };
   const tag = (k, tip) => `<span class="chip ${TAGS[k][1]}" title="${esc(tip || TAGS[k][2])}">${TAGS[k][0]}</span>`;
-  const thinTag = why => `<span class="thin" title="${esc(why || TAGS.thin[2])}">Small sample</span>`;
-  const legend = keys => `<details class="legend"><summary>What the tags mean</summary><dl>${keys.map(k => `<dt>${k === "thin" ? thinTag() : tag(k)}</dt><dd>${esc(TAGS[k][2])}.</dd>`).join("")}</dl></details>`;
+  const thinTag = () => "";
+  const legend = keys => `<details class="legend"><summary>What the tags mean</summary><dl>${keys.map(k => `<dt>${tag(k)}</dt><dd>${esc(TAGS[k][2])}.</dd>`).join("")}</dl></details>`;
   const plural = (n, w) => `${n.toLocaleString("en-US")} ${w}${n === 1 ? "" : "s"}`;
 
   // ------------------------------------------------------------ charts
@@ -907,10 +907,7 @@ const FRESH = { cache: "no-cache" };
     const vAt = yy => min + (1 - (yy - 120) / (H - 190)) * span;      // the index value a grid line stands for
     return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">${rows}
       <path d="${line}L${W} ${H}L0 ${H}Z" fill="var(--giallo)" opacity=".06"/>
-      <path d="${line}" fill="none" stroke="var(--giallo)" stroke-width="2" vector-effect="non-scaling-stroke" opacity=".85"/></svg>
-      ${[0.25, 0.5, 0.75].map(f => `<span class="hc-l hc-y" style="right:10px;top:${f * 100}%">${Math.round(vAt(H * f))}</span>`).join("")}
-      <span class="hc-l hc-x" style="left:10px">${monthYear(index[0][0])}</span><span class="hc-l hc-x" style="right:10px">${monthYear(index[index.length - 1][0])}</span>
-      <span class="hc-l" style="right:44px;top:${yOf(vals[vals.length - 1]).toFixed(1)}%">Now ${vals[vals.length - 1].toFixed(0)}</span>`;
+      <path d="${line}" fill="none" stroke="var(--giallo)" stroke-width="2" vector-effect="non-scaling-stroke" opacity=".85"/></svg>`;
   }
 
   // ------------------------------------------------------------ pieces
@@ -1210,7 +1207,6 @@ const FRESH = { cache: "no-cache" };
           <div><b>${(cov.for_sale ?? b.tracked_listings).toLocaleString("en-US")}</b><small>Ferraris for sale today</small></div>
           <div><b>${live.length}</b><small>Live auctions now</small></div>
         </div>
-        ${ixNote ? `<p class="hero-cap">${ixNote}</p>` : ""}
       </div>
     </section>
     <div class="jump"><div class="wrap jump-scroll"><div class="jump-row" role="navigation" aria-label="Sections">
@@ -1313,7 +1309,7 @@ const FRESH = { cache: "no-cache" };
     const few = x => sold ? `${x.sales} sales against ${x.sales_last} before` : `${x.cars_now} cars now against ${x.cars_last} then`;
     const table = (title, rows) => `<div><h3 class="mv-h">${title}</h3><div class="tbl-wrap"><table class="sheet mv"><caption class="sr">${title}, ${esc(win)}, by ${sold ? "auction sale price" : "asking price"}</caption><thead><tr><th class="p">Pos</th><th>Model</th><th class="r">${sold ? "Sales" : "Cars now"}</th><th class="r">${sold ? "Median sold" : "Median ask"}</th><th class="r">Change, ${esc(win)}</th></tr></thead><tbody>
       ${rows.map((x, i) => `<tr class="click" data-href="${modelLink(x.id)}"><td class="p">P${i + 1}</td><td class="name"><a href="${modelLink(x.id)}">${esc(x.name)}</a>${x.thin ? thinTag(few(x)) : ""}</td><td class="r num">${sold ? x.sales : x.cars_now}</td><td class="r num">${money(x.median)}</td><td class="r">${chg(x.change)}</td></tr>`).join("")}</tbody></table></div></div>`;
-    return `<div class="top-moves${lists.length === 1 ? " one" : ""}">${lists.map(([t, r]) => table(t, r)).join("")}</div>${all.some(x => x.thin) ? legend(["thin"]) : ""}`;
+    return `<div class="top-moves${lists.length === 1 ? " one" : ""}">${lists.map(([t, r]) => table(t, r)).join("")}</div>`;
   }
 
   function newsList(items) {
@@ -1658,9 +1654,9 @@ const FRESH = { cache: "no-cache" };
         : !mv ? `Market, ${rl.toLowerCase()}` : mv.basis === "ask" ? (mv.since > cut ? `Asks since ${dateShort(mv.since)}` : `Asks, ${rl.toLowerCase()}`) : `Market, ${rl.toLowerCase()}`;
       const mvThin = mv && mv.basis === "sold" && Math.min(mv.sales ?? 99, mv.sales_then ?? 99) < 8;
       el.querySelector(".mp-stats").innerHTML = [[mvLabel, mv ? chg(mv.change) + (mvThin ? " " + thinTag(`${mv.sales} recent sales against ${mv.sales_then} earlier ones`) : "") : "n/a"],
-        ["Median sale", prices.length ? money(medianOf(prices)) : "n/a"], ["Average sale", prices.length ? money(sum / prices.length) : "n/a"], ["Sales", prices.length],
+        ["Median sale", prices.length ? money(medianOf(prices)) : "n/a"], 
         ["Dollar volume", prices.length ? money(sum) : "n/a"], ["Lowest sale", prices.length ? money(prices[0]) : "n/a"],
-        ["Top sale", prices.length ? money(prices[prices.length - 1]) : "n/a"], [recent ? "Most recent, " + dateShort(recent[0]) : "Most recent", recent ? money(recent[1]) : "n/a"],
+        ["Top sale", prices.length ? money(prices[prices.length - 1]) : "n/a"], 
         ["Median ask now", st.gear !== "all" || detail.fixedGear ? ((D2.listings || []).length ? money(medianOf(D2.listings.map(l => l.price_usd).filter(Boolean))) : "n/a") : ask.length ? money(ask[ask.length - 1][1]) : "n/a"], ["For sale now", (D2.listings || []).length]]
         .map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join("");
       const t = st.tab;
@@ -2672,8 +2668,8 @@ const FRESH = { cache: "no-cache" };
         <p>Each model page shows what every exterior colour is worth against red. Sites name paint their own way, so every name is first put in a family: Rosso Corsa, Rosso Scuderia and plain Red are all red, Grigio Silverstone is grey. Paint Ferrari makes outside its standard range, which Ferrari Approved lists only as "Extra Sample", is still a colour: such a car takes its colour from another site that lists the same VIN, and what the one off paint adds is measured separately, so it is not credited to the colour. A special order car no site names a colour for is left out. Year and mileage move price far more than paint, and one colour's cars may simply be newer, so we fit each model's prices to year, mileage and colour together and read off what the colour alone adds. The range shown is 90% sure. A colour needs at least three cars in the model, and red at least three, before it is shown. The figure for every model compares cars only within the same model and years, never a 296 against a Roma.</p>
         <h3>Auction results</h3>
         <p>Auction sites report prices differently. Bring a Trailer, Cars &amp; Bids, Sotheby's Motorsport and duPont Registry Live show the winning bid. RM Sotheby's and Mecum include the buyer's premium. Prices in pounds, euros or francs are converted to US dollars at the day's rate. A result far outside the model's asking range is kept on its model page but left out of the headline insights, because it is more often a data error than a real sale.</p>
-        <h3>Specials and small samples</h3>
-        <p>Race cars are not counted as the road car. Manual conversions, one offs, modified cars and sales priced far from the model's other sales stay on the model page with a Special tag, and are left out of its averages, medians and trends. A figure that rests on fewer than eight sales or ten cars carries a Small sample tag and is never used as a headline.</p>
+        <h3>Specials</h3>
+        <p>Race cars are not counted as the road car. Manual conversions, one offs, modified cars and sales priced far from the model's other sales stay on the model page with a Special tag, and are left out of its averages, medians and trends. A figure that rests on fewer than eight sales or ten cars is never used as a headline.</p>
         <h3>Fair value and dealer asks</h3>
         <p>Fair value is what a car should sell for at auction, from the model's sales over three years and the car's year, mileage, colour and gearbox. Each value shows how many sales stand behind it and how close it has come to sales it had not seen. Dealers ask more than auction prices: their price covers preparation, a warranty on certified cars, their margin and room to negotiate. Each model shows that gap, so an ask above fair value by about the usual gap is normal for a dealer car.</p>
         <h3>What these numbers are not</h3>
@@ -2844,6 +2840,13 @@ const FRESH = { cache: "no-cache" };
     notFound();
   }
 
+  const hm = document.getElementById("models-menu");
+  // with a mouse the list opens on hover and closes shortly after the pointer leaves
+  if (matchMedia("(hover: hover) and (pointer: fine)").matches) {
+    let shut = null;
+    hm.addEventListener("mouseenter", () => { clearTimeout(shut); hm.open = true; });
+    hm.addEventListener("mouseleave", () => { shut = setTimeout(() => { hm.open = false; }, 220); });
+  }
   document.addEventListener("click", e => {
     const menu = document.getElementById("models-menu");
     if (menu.open && !menu.contains(e.target)) menu.open = false;
