@@ -1,5 +1,5 @@
-<title>Rosso Market</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<title>Rosso Market: Ferrari prices, auctions and fair values</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23c4161c'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='Arial Narrow,Arial,sans-serif' font-weight='800' font-size='30' fill='%23fff'%3ERM%3C/text%3E%3C/svg%3E">
 <meta name="description" content="Daily asking prices for every Ferrari for sale in the US and every hypercar for sale worldwide, with auction results from around the world.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -58,7 +58,7 @@ h3 { font: 600 17px/1.3 var(--f-body); }
 /* ---------- header */
 .site-head { background: var(--surface); border-bottom: 1px solid var(--line); position: relative; z-index: 20; }
 .head-row { display: flex; align-items: center; gap: 24px; min-height: 64px; flex-wrap: wrap; padding-block: 8px; }
-.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; min-height: 36px; }
 .logo-mark { width: 30px; height: 30px; display: grid; place-items: center; background: var(--giallo); color: #111; font: 800 15px/1 var(--f-display); letter-spacing: .02em; }
 .logo-word { font: 800 21px/1 var(--f-display); letter-spacing: .06em; text-transform: uppercase; }
 .logo-word span { color: var(--rosso); }
@@ -68,10 +68,10 @@ nav.main summary::-webkit-details-marker { display: none; }
 nav.main a:hover, nav.main summary:hover, nav.main a[aria-current="page"] { color: var(--ink); }
 nav.main a[aria-current="page"], nav.main summary.current, details.models[open] summary { box-shadow: inset 0 -2px 0 var(--rosso); color: var(--ink); }
 details.models { position: static; }
-details.models summary::after { content: " \25BE"; font-size: 11px; }
+details.models summary::after { content: " \25BE"; font-size: 12px; }
 .menu { position: absolute; left: 0; right: 0; top: 100%; background: var(--surface); border-bottom: 1px solid var(--line); box-shadow: 0 18px 30px rgba(0,0,0,.08); }
 .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 20px 28px; padding-block: 22px 26px; }
-.menu-grid h4 { margin: 0 0 8px; font: 600 11px/1.2 var(--f-body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.menu-grid h4 { margin: 0 0 8px; font: 600 12px/1.2 var(--f-body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .menu-grid a { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; text-decoration: none; font-size: 14px; }
 .menu-grid a:hover span:first-child { color: var(--rosso); }
 .menu-grid a span:last-child { color: var(--muted); font-size: 12px; }
@@ -112,6 +112,16 @@ details.models summary::after { content: " \25BE"; font-size: 11px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--giallo); display: inline-block; }
 .hero h1 { font: 800 clamp(54px, 10vw, 128px)/.86 var(--f-display); letter-spacing: .005em; text-transform: uppercase; }
 .hero h1 span { color: #e8262d; }
+.hero h1.finding { font: 800 clamp(34px, 5.6vw, 76px)/.95 var(--f-display); max-width: 20ch; }
+.hero-cap { margin: 0; color: var(--hero-muted); font-size: 13px; max-width: 70ch; }
+.hc-l { position: absolute; transform: translateY(-140%); font: 500 12px/1 var(--f-mono); color: var(--giallo); background: color-mix(in srgb, var(--hero-bg) 80%, transparent); padding: 3px 5px; white-space: nowrap; }
+.hc-y, .hc-x { color: var(--hero-muted); background: none; }
+.hc-y { transform: translateY(-120%); }
+.hc-x { bottom: 8px; transform: none; }
+@media (max-width: 700px) { .hc-l { display: none; } .hc-l.hc-x { display: block; } }
+.gridn { display: grid; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .gridn { grid-template-columns: repeat(2, minmax(0, 1fr)); } .gridn[data-g="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .gridn[data-g="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); } .gridn[data-g="6"] { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .hero p.lede { max-width: 58ch; color: #c9ced4; font-size: 17px; margin: 0; }
 .hero-index { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 8px; }
 .hero-index div { display: grid; gap: 2px; }
@@ -130,7 +140,7 @@ details.models summary::after { content: " \25BE"; font-size: 11px; }
 section.block { padding-block: 56px; border-bottom: 1px solid var(--line); scroll-margin-top: 52px; }
 .sec-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; margin-bottom: 26px; }
 .sec-head .eyebrow { margin-bottom: 8px; color: var(--rosso); }
-.link-more { font-size: 14px; font-weight: 500; text-decoration: none; color: var(--rosso); white-space: nowrap; }
+.link-more { font-size: 14px; font-weight: 500; text-decoration: none; color: var(--rosso); white-space: nowrap; display: inline-block; padding: 7px 0; }
 .link-more:hover { text-decoration: underline; }
 
 /* brief */
@@ -177,16 +187,16 @@ section.block { padding-block: 56px; border-bottom: 1px solid var(--line); scrol
   box-shadow: 0 10px 30px rgba(0, 0, 0, .14); display: grid; grid-template-rows: auto minmax(0, 1fr); max-height: min(62vh, 480px); }
 .mpick-pop input { font: 400 15px var(--f-body); color: var(--ink); background: var(--surface); border: 0; border-bottom: 1px solid var(--line); padding: 11px 12px; width: 100%; outline: none; }
 .mpick-list { overflow-y: auto; overscroll-behavior: contain; padding: 4px 0 8px; }
-.mpick-list h5 { margin: 10px 12px 4px; font: 600 11px var(--f-body); color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.mpick-list h5 { margin: 10px 12px 4px; font: 600 12px var(--f-body); color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
 .mpick-list button { display: flex; width: 100%; justify-content: space-between; gap: 10px; align-items: baseline; text-align: left; border: 0; background: none;
   font: 400 15px var(--f-body); color: var(--ink); padding: 8px 12px 8px 22px; cursor: pointer; }
 .mpick-list button:hover, .mpick-list button.on { background: color-mix(in srgb, var(--muted) 12%, transparent); }
 .mpick-list button[aria-selected="true"] { font-weight: 600; box-shadow: inset 3px 0 0 var(--rosso); }
-.mpick-list button small, .val-out .lim { font-size: 11px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.mpick-list button small, .val-out .lim { font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
 .mpick-none { padding: 12px; color: var(--muted); font-size: 14px; }
 .val-form .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.val-form .check { display: flex; gap: 10px; align-items: center; font-weight: 400; font-size: 14px; }
-.val-form .check input { width: 18px; height: 18px; accent-color: var(--rosso); }
+.val-form .check { display: flex; gap: 10px; align-items: center; font-weight: 400; font-size: 14px; min-height: 36px; }
+.val-form .check input { width: 20px; height: 20px; accent-color: var(--rosso); }
 .val-out { border-top: 2px solid var(--ink); padding-top: 18px; display: grid; gap: 14px; }
 .val-out .big { font: 500 clamp(36px, 5vw, 52px)/1 var(--f-mono); font-variant-numeric: tabular-nums; }
 .val-out .rng { color: var(--muted); font-size: 15px; }
@@ -218,7 +228,7 @@ section.block { padding-block: 56px; border-bottom: 1px solid var(--line); scrol
 /* tables (timing sheet) */
 .tbl-wrap { overflow-x: auto; border-top: 2px solid var(--ink); }
 table.sheet { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
-.sheet th { text-align: left; font: 600 11px/1.2 var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 10px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.sheet th { text-align: left; font: 600 12px/1.2 var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 10px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .sheet td { padding: 11px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 .sheet td.r, .sheet th.r { text-align: right; }
 .sheet td.num, .sheet td .num { white-space: nowrap; }
@@ -285,16 +295,16 @@ table.sheet.mv { min-width: 0; }
 .family .go { color: var(--rosso); font-weight: 500; font-size: 14px; }
 
 /* insights */
-.insights { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0 32px; }
+.insights { gap: 0 32px; }
 .insight { padding: 18px 0; border-top: 1px solid var(--line); display: grid; gap: 8px; align-content: start; }
-.tag { display: inline-block; justify-self: start; font: 600 11px/1 var(--f-body); letter-spacing: .1em; text-transform: uppercase; padding: 5px 7px; background: var(--chip); color: var(--muted); }
+.tag { display: inline-block; justify-self: start; font: 600 12px/1 var(--f-body); letter-spacing: .1em; text-transform: uppercase; padding: 5px 7px; background: var(--chip); color: var(--muted); }
 .insight p { margin: 0; color: var(--muted); }
 .insight a { font-size: 14px; font-weight: 500; color: var(--rosso); text-decoration: none; }
 
 
 /* news */
 .date { color: var(--muted); font-size: 12px; font-family: var(--f-mono); }
-.news { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+.news { gap: 20px; }
 .news a { text-decoration: none; display: grid; gap: 8px; align-content: start; }
 .news .ph { aspect-ratio: 16 / 10; border: 1px solid var(--line); }
 .news a:hover h3 { color: var(--rosso); }
@@ -309,7 +319,7 @@ table.sheet.mv { min-width: 0; }
 .lot h3 { font-size: 15px; line-height: 1.3; }
 .ph { position: relative; aspect-ratio: 4 / 3; background: var(--chip); overflow: hidden; }
 .ph img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s ease; }
-.ph.none::after { content: "Photo unavailable"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font: 600 10px/1 var(--f-body); letter-spacing: .12em; text-transform: uppercase; }
+.ph.none::after { content: "Photo unavailable"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font: 600 12px/1 var(--f-body); letter-spacing: .12em; text-transform: uppercase; }
 .ph .chips { position: absolute; left: 10px; top: 10px; right: 10px; min-height: 0; z-index: 1; }
 .ph .chip { background: var(--surface); }
 .lot .specs { color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: 2px 10px; }
@@ -334,6 +344,7 @@ table.sheet.mv { min-width: 0; }
 .lot .bid { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
 .lot .bid b { font: 500 20px/1 var(--f-mono); font-variant-numeric: tabular-nums; }
 .lot .bid span { color: var(--muted); font-size: 12px; text-align: right; }
+.lot .bid span .cd { display: block; font: 500 15px/1.2 var(--f-mono); color: var(--ink); white-space: nowrap; margin-bottom: 3px; }
 .fv { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 13px; }
 .fv > span:first-child { color: var(--muted); }
 .fvp { display: inline-block; font: 500 13px/1 var(--f-mono); font-variant-numeric: tabular-nums; padding: 4px 7px; margin-left: 6px; border-radius: 2px;
@@ -352,7 +363,7 @@ table.sheet.mv { min-width: 0; }
 .fv em, .fvc em { font-style: normal; font-weight: 600; font-size: 12px; white-space: nowrap; }
 .fv-adj { color: var(--muted); font-size: 12px; text-align: right; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; min-height: 21px; }
-.chip { font: 600 10px/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; padding: 5px 7px; border: 1px solid var(--line); color: var(--muted); }
+.chip { font: 600 12px/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; padding: 5px 7px; border: 1px solid var(--line); color: var(--muted); }
 .chip.hot { border-color: var(--rosso); color: var(--rosso); }
 .chip.sold { border-color: var(--up); color: var(--up); }
 .chip.unsold { border-color: var(--down); color: var(--down); }
@@ -366,7 +377,7 @@ table.sheet.mv { min-width: 0; }
 .gallery .count { position: absolute; right: 10px; bottom: 10px; background: rgba(0,0,0,.72); color: #fff; font: 600 12px/1 var(--f-body); padding: 8px 10px; letter-spacing: .04em; }
 .gallery .count.m { display: none; }
 .gallery.one { grid-template-columns: 1fr; grid-template-rows: 1fr; aspect-ratio: 16 / 8; }
-.gallery.none { aspect-ratio: 16 / 6; max-height: 300px; display: grid; place-items: center; background: var(--chip); color: var(--muted); font: 600 11px/1 var(--f-body); letter-spacing: .12em; text-transform: uppercase; }
+.gallery.none { aspect-ratio: 16 / 6; max-height: 300px; display: grid; place-items: center; background: var(--chip); color: var(--muted); font: 600 12px/1 var(--f-body); letter-spacing: .12em; text-transform: uppercase; }
 .lightbox { position: fixed; inset: 0; z-index: 100; background: #0b0c0d; display: grid; grid-template-rows: auto 1fr auto; color: #fff; }
 .lightbox[hidden] { display: none; }
 .lb-top { display: flex; justify-content: space-between; align-items: center; padding: 14px max(16px, env(safe-area-inset-left, 0px)); font-size: 14px; }
@@ -395,7 +406,7 @@ table.sheet.mv { min-width: 0; }
 .status.live { background: var(--rosso); color: #fff; } .status.off_market { background: var(--muted); color: #fff; }
 .specs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); border-top: 2px solid var(--ink); }
 .specs-grid div { padding: 12px 12px 12px 0; border-bottom: 1px solid var(--line); display: grid; gap: 3px; }
-.specs-grid span { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.specs-grid span { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 .specs-grid b { font-weight: 500; overflow-wrap: anywhere; }
 .car-sec { margin-top: 40px; }
 .car-sec h2 { font-size: 26px; margin-bottom: 14px; }
@@ -412,7 +423,7 @@ table.sheet.mv { min-width: 0; }
 .ev .sub { color: var(--muted); font-size: 13px; }
 .ev a { color: var(--rosso); font-size: 13px; font-weight: 500; text-decoration: none; }
 .ev .ph { border: 1px solid var(--line); }
-.ev .n { position: absolute; right: 6px; bottom: 6px; background: rgba(0,0,0,.7); color: #fff; font: 600 11px/1 var(--f-body); padding: 4px 6px; z-index: 1; }
+.ev .n { position: absolute; right: 6px; bottom: 6px; background: rgba(0,0,0,.7); color: #fff; font: 600 12px/1 var(--f-body); padding: 4px 6px; z-index: 1; }
 .ev details { grid-column: 1 / -1; font-size: 13px; color: var(--muted); }
 .ev summary { cursor: pointer; color: var(--rosso); font-weight: 500; }
 
@@ -422,10 +433,12 @@ table.sheet.mv { min-width: 0; }
 .mkt-stats span { font-size: 12px; color: var(--muted); }
 .mkt-stats b { font: 500 18px/1.1 var(--f-mono); font-variant-numeric: tabular-nums; }
 .mkt-stats b > span { font: inherit; color: var(--ink); }
+.mkt-stats b > span.thin, .kpi b .thin { display: block; width: max-content; margin: 6px 0 0; font: 600 12px/1 var(--f-body); color: var(--muted); }
 .mkt-stats b > span.up { color: var(--up); } .mkt-stats b > span.down { color: var(--down); }
 .mkt-controls { display: flex; justify-content: space-between; gap: 10px 20px; flex-wrap: wrap; margin-bottom: 10px; }
 .seg { display: inline-flex; border: 1px solid var(--line); }
-.seg button { border: 0; background: var(--surface); padding: 6px 11px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--muted); }
+.seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.seg button { border: 0; background: var(--surface); padding: 6px 11px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--muted); white-space: nowrap; flex: none; }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
 .keys { display: flex; flex-wrap: wrap; gap: 6px; }
 .keys button { border: 1px solid var(--line); background: var(--surface); padding: 5px 10px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--ink); }
@@ -450,6 +463,7 @@ table.sheet.mv { min-width: 0; }
 .crumbs a:hover { color: var(--rosso); }
 .page-head h1 { font: 800 clamp(44px, 7vw, 84px)/.9 var(--f-display); text-transform: uppercase; }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; margin-top: 28px; border-top: 2px solid var(--ink); }
+@media (min-width: 1100px) { .kpis[data-n="9"], .kpis[data-n="10"] { grid-template-columns: repeat(5, 1fr); } .kpis[data-n="11"], .kpis[data-n="12"] { grid-template-columns: repeat(6, 1fr); } }
 .kpi { padding: 14px 16px 14px 0; border-bottom: 1px solid var(--line); display: grid; gap: 4px; }
 .kpi b { font: 500 24px/1.1 var(--f-mono); font-variant-numeric: tabular-nums; }
 .kpi > span { font-size: 12px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
@@ -470,7 +484,7 @@ table.sheet.mv { min-width: 0; }
 @media (max-width: 560px) { .pc-row { grid-template-columns: 1fr auto 5.6em; gap: 8px; } .pc-row > span:nth-child(2) { display: none; } }
 .line-ask { width: 18px; height: 3px; border-radius: 2px; background: var(--ask); display: inline-block; vertical-align: middle; margin-right: 6px; }
 .band { width: 18px; height: 10px; background: var(--ink); opacity: .14; display: inline-block; }
-.axis { fill: var(--muted); font: 11px var(--f-mono); }
+.axis { fill: var(--muted); font: 12px var(--f-mono); }
 .grid-line { stroke: var(--line); stroke-width: 1; }
 .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
 .auc-search { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
@@ -483,7 +497,8 @@ table.sheet.mv { min-width: 0; }
 .mp-tabs::-webkit-scrollbar { display: none; }
 .mp-tabs button { white-space: nowrap; }
 .mp-stats[hidden] { display: none; }
-.mp-segs { display: flex; gap: 10px; flex-wrap: wrap; }
+.mp-segs { display: flex; gap: 10px; flex-wrap: wrap; min-width: 0; max-width: 100%; }
+.mp-segs .seg { min-width: 0; }
 .chip.gear { background: var(--ink); color: var(--surface); border-color: var(--ink); }
 /* Models menu: a model sold with both gearboxes opens into its F1 and 6-Speed pages */
 .mgroup .mg-main span:first-child::after { content: ""; display: inline-block; width: 5px; height: 5px; margin-left: 8px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: translateY(-3px) rotate(45deg); opacity: .5; }
@@ -515,7 +530,7 @@ table.sheet.mv { min-width: 0; }
 .chart-box g.bar.me rect[fill="var(--ink)"] { fill: var(--giallo); fill-opacity: 1; stroke: var(--ink); stroke-width: 1; }
 .loc-row.me span { font-weight: 700; } .loc-row.me i { background: var(--giallo); opacity: 1; box-shadow: inset 0 0 0 1px var(--ink); }
 .paint-row.me { background: color-mix(in srgb, var(--giallo) 16%, transparent); margin-inline: -20px; padding-inline: 20px; }
-.me-tag { font-size: 11px; font-weight: 700; background: var(--giallo); color: #111; padding: 2px 6px; margin-left: 6px; vertical-align: 1px; }
+.me-tag { font-size: 12px; font-weight: 700; background: var(--giallo); color: #111; padding: 2px 6px; margin-left: 6px; vertical-align: 1px; }
 @media (max-width: 640px) { .paint-row.me { margin-inline: -12px; padding-inline: 12px; } }
 /* numbers on hover for bars, boxes and lines */
 .htip { position: absolute; z-index: 6; pointer-events: none; background: var(--ink); color: var(--surface); padding: 8px 10px; font-size: 13px; line-height: 1.35; display: grid; gap: 1px; white-space: nowrap; box-shadow: 0 8px 20px rgba(0,0,0,.25); }
@@ -549,7 +564,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
 .foot a:hover { color: var(--ink); }
 .health { display: grid; gap: 6px; }
 .health div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
-.state { font: 600 10px/1 var(--f-body); letter-spacing: .1em; text-transform: uppercase; padding: 4px 6px; }
+.state { font: 600 12px/1 var(--f-body); letter-spacing: .1em; text-transform: uppercase; padding: 4px 6px; }
 .state.ok { color: var(--up); border: 1px solid var(--up); }
 .state.degraded { color: #a06b00; border: 1px solid #a06b00; }
 .state.down { color: var(--down); border: 1px solid var(--down); }
@@ -561,7 +576,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   .brief { gap: 28px; }
   .car-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "side" "rest"; }
   .car-box { position: static; }
-  .gallery { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; aspect-ratio: auto; gap: 4px; margin-left: calc(-1 * var(--gutter)); margin-right: calc(-1 * var(--gutter)); }
+  .gallery, .gallery.one { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; aspect-ratio: auto; width: auto; max-height: none; gap: 4px; margin-left: calc(-1 * var(--gutter)); margin-right: calc(-1 * var(--gutter)); }
   .gallery button { flex: 0 0 88%; aspect-ratio: 4 / 3; scroll-snap-align: start; }
   .gallery.one button { flex-basis: 100%; }
   .gallery .count { display: none; }
@@ -605,7 +620,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   .lot { grid-template-columns: 116px minmax(0, 1fr); grid-template-rows: auto; }
   .lot > .ph { aspect-ratio: auto; height: 100%; min-height: 116px; }
   .lot > .ph .chips { left: 6px; top: 6px; right: 6px; gap: 4px; }
-  .lot > .ph .chip { font-size: 9px; padding: 4px 5px; }
+  .lot > .ph .chip { font-size: 12px; padding: 4px 5px; letter-spacing: .02em; }
   .lot .body { padding: 10px 12px 12px; gap: 4px; }
   .lot h3 { font-size: 14px; }
   .lot .bid { padding-top: 8px; margin-top: 2px; }
@@ -619,7 +634,7 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   .kpis { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
   .kpi { padding: 10px 10px 10px 0; }
   .kpi b { font-size: 18px; }
-  .kpi > span { font-size: 10.5px; }
+  .kpi > span { font-size: 12px; }
   .chart-box { padding: 10px 4px 4px; margin-inline: calc(-1 * var(--gutter) + 6px); }
   .mkt-controls { gap: 8px; }
   .keys { gap: 4px; }
@@ -639,9 +654,65 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
   .lb-strip img { height: 64px; }
 }
 
+/* ---------- access: skip link, visually hidden text, control sizes */
+.skip { position: absolute; left: 8px; top: -60px; z-index: 100; background: var(--ink); color: var(--surface); padding: 10px 14px; font-weight: 600; text-decoration: none; }
+.skip:focus { top: 8px; }
+.sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+caption.sr { position: absolute; }
+#app:focus { outline: none; }
+:where(button, select, summary, input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=range])) { min-height: 36px; }
+nav.main a, nav.main summary { min-height: 36px; display: inline-flex; align-items: center; }
+.menu-grid a { padding-block: 8px; }
+footer nav a, .crumbs a, .link-more, .sres a { min-height: 32px; display: inline-flex; align-items: center; }
+.sres a { display: grid; }
+.wl-n { margin-left: 6px; background: var(--rosso); color: #fff; font: 600 12px/1 var(--f-mono); padding: 3px 6px; border-radius: 9px; }
+.thin { display: inline-block; margin-left: 6px; font: 600 12px/1 var(--f-body); letter-spacing: .04em; color: var(--muted); border: 1px dashed var(--muted); padding: 3px 5px; white-space: nowrap; vertical-align: middle; }
+.win { color: var(--muted); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.legend { margin-top: 18px; font-size: 13px; color: var(--muted); }
+.legend summary { cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; }
+.legend dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 14px; margin: 10px 0 0; align-items: baseline; }
+.legend dt { justify-self: start; } .legend dd { margin: 0; }
+.chip.special { border-style: dashed; }
+.ph-chart { width: 100%; height: auto; display: block; max-width: 720px; }
+.car-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.car-tags:empty { display: none; }
+.fv-conf { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.conf { font: 600 12px/1 var(--f-body); letter-spacing: .04em; text-transform: uppercase; padding: 4px 6px; border: 1px solid var(--line); color: var(--ink); white-space: nowrap; }
+.conf.high { border-color: var(--up); color: var(--up); } .conf.low { border-style: dashed; color: var(--muted); }
+.fv-note { margin: 0; font-size: 13px; color: var(--muted); }
+.watch { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 6px 12px; cursor: pointer; font: 500 14px var(--f-body); margin-top: 12px; }
+.watch[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--surface); }
+.watch svg { width: 16px; height: 16px; }
+.wl-news { border: 1px solid var(--line); border-left: 4px solid var(--rosso); background: var(--surface); padding: 16px 20px; margin-bottom: 32px; }
+.wl-news h2 { font-size: 20px; margin: 0 0 10px; }
+.wl-news ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.wl-news li { display: flex; gap: 12px; flex-wrap: wrap; align-items: baseline; }
+.wl-news a { font-weight: 600; }
+.wl-t { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); background: var(--surface); padding: 0 8px; }
+.wl-t input { border: 0; background: none; width: 12ch; font: 14px var(--f-mono); color: var(--ink); padding: 6px 0; min-height: 34px; }
+.wl-t:focus-within { outline: 2px solid var(--ask); outline-offset: 1px; }
+.wl-t input:focus { outline: none; }
+.wl-rm, .more { border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 6px 12px; cursor: pointer; font: 500 14px var(--f-body); }
+.wl-rm:hover, .more:hover { border-color: var(--ink); }
+table.wl td { vertical-align: middle; }
+table.wl td.name { min-width: 170px; }
+table.wl { margin-top: 10px; }
+.find-bar { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
+.find-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.find-bar select { margin-left: 6px; }
+.empty a { text-decoration: underline; }
+.lf { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.lf label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.lf select { font: 500 14px var(--f-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); padding: 6px 8px; border-radius: 0; text-transform: none; letter-spacing: 0; }
+.lf label.check { display: flex; gap: 8px; align-items: center; min-height: 36px; font-size: 14px; text-transform: none; letter-spacing: 0; color: var(--ink); }
+.lf label.check input { width: 20px; height: 20px; accent-color: var(--rosso); }
+.lf-clear { border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--ink); }
+.lf-n { margin-left: auto; color: var(--muted); font-size: 13px; align-self: center; }
+.ended { color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
 </style>
 
+<a class="skip" href="#app" id="skip">Skip to content</a>
 <header class="site-head">
   <div class="wrap head-row">
     <a class="logo" href="#overview" aria-label="Rosso Market home">
@@ -657,21 +728,22 @@ footer { padding-block: 40px 60px; color: var(--muted); font-size: 13px; }
       <a href="#family-hypercars-and-limited-series" data-nav="family-hypercars-and-limited-series">Hypercars</a>
       <a href="#auctions" data-nav="auctions">Auctions</a>
       <a href="#value" data-nav="value">Value my car</a>
+      <a href="#watchlist" data-nav="watchlist">Watchlist<span class="wl-n" id="wl-n" hidden></span></a>
       <a href="#news" data-nav="news">News</a>
     </nav>
     <div class="search" role="search">
-      <input type="search" id="q" placeholder="Search VIN or model" aria-label="Search by VIN, chassis number or model"
+      <input type="search" id="q" placeholder="Search VIN, model or spec" aria-label="Search by VIN, chassis number, model or spec, such as manual F430 or red 458 under 10k miles"
              autocomplete="off" spellcheck="false" aria-controls="sres" aria-expanded="false">
       <div class="sres" id="sres" role="listbox" hidden></div>
     </div>
   </div>
 </header>
 <div class="sample-bar" id="sample-bar" hidden><div class="wrap">Sample data. These figures come from the pipeline's demo source so you can see the layout. Live prices appear once the real sources are switched on.</div></div>
-<main id="app"><div class="wrap loading">Loading market data</div></main>
+<main id="app" tabindex="-1"><div class="wrap loading">Loading market data</div></main>
 <footer><div class="wrap foot" id="foot"></div></footer>
 <div class="lightbox" id="lb" hidden role="dialog" aria-modal="true" aria-label="Photos">
   <div class="lb-top"><span id="lb-count"></span><button type="button" id="lb-close" aria-label="Close photos">✕</button></div>
-  <div class="lb-stage"><button type="button" class="lb-prev" id="lb-prev" aria-label="Previous photo">‹</button><img id="lb-img" alt="" referrerpolicy="no-referrer"><button type="button" class="lb-next" id="lb-next" aria-label="Next photo">›</button></div>
+  <div class="lb-stage"><button type="button" class="lb-prev" id="lb-prev" aria-label="Previous photo">‹</button><img id="lb-img" alt="" width="1600" height="1067" referrerpolicy="no-referrer"><button type="button" class="lb-next" id="lb-next" aria-label="Next photo">›</button></div>
   <div class="lb-strip" id="lb-strip"></div>
 </div>
 
@@ -707,14 +779,17 @@ const FRESH = { cache: "no-cache" };
     return `<div class="fv"><span>Fair value<span class="fvp ${fvCls(pct)}">${short(f.value)}</span></span>${pct != null ? fvVs(pct, who) : `<span class="flat">${short(f.low)} to ${short(f.high)}</span>`}</div>`;
   };
   // Where the ask sits against the fair range: the band is the range, the line the fair value, the dot the ask
-  function fvGauge(f, price) {
+  function fvGauge(f, price, neutral) {
     const lo = Math.min(f.low, price || Infinity) * 0.92, hi = Math.max(f.high, price || 0) * 1.08;
     const at = v => ((v - lo) / (hi - lo) * 100).toFixed(1) + "%";
     return `<div class="fvg" role="img" aria-label="Fair range ${short(f.low)} to ${short(f.high)}${price ? ", price " + short(price) : ""}">
       <div class="fvg-band" style="left:${at(f.low)};width:calc(${at(f.high)} - ${at(f.low)})"></div><div class="fvg-fair" style="left:${at(f.value)}"></div>
-      ${price ? `<div class="fvg-ask ${fvCls(fvPct(f, price))}" style="left:${at(price)}"></div>` : ""}</div>
+      ${price ? `<div class="fvg-ask ${neutral ? "" : fvCls(fvPct(f, price))}" style="left:${at(price)}"></div>` : ""}</div>
       <div class="fvg-l"><span>${short(f.low)}</span><span>Fair <b>${short(f.value)}</b></span><span>${short(f.high)}</span></div>`;
   }
+  // On a live auction an early bid far under fair value is how every auction starts, not a bargain: say where the
+  // bid stands in plain grey, with no colour.
+  const fvBid = (f, bid, over) => !f ? "" : `<div class="fv"><span>Fair value<span class="fvp">${short(f.value)}</span></span>${bid && !over ? `<span class="flat">Bid at ${Math.round(bid / f.value * 100)}% of fair value</span>` : `<span class="flat">${short(f.low)} to ${short(f.high)}</span>`}</div>`;
   const fvAdj = f => (f.adjustments || []).filter(a => Math.abs(a[1]) >= 0.5).map(([k, v]) => `${esc(k)} ${v > 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}%`).join(" · ");
   // Until a week of prices exists the "7 days" change runs from the first day we have.
   const weekLabel = () => {
@@ -723,12 +798,52 @@ const FRESH = { cache: "no-cache" };
     const days = Math.round((Date.parse(D.as_of) - Date.parse(since)) / 864e5);
     return days >= 7 ? "7 days" : "Since " + new Date(since + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
   };
+  const monthYear = iso => new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
   const dateLong = iso => new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
-  const endET = iso => {
+  // End times show in the visitor's own time zone, with its short name ("Fri, Nov 13, 2:15 PM PST")
+  const endLocal = iso => {
     if (!iso) return "";
     const d = new Date(iso);
-    return d.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }) + " ET";
+    try { return d.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" }); }
+    catch (e) { return d.toLocaleString("en-US"); }
   };
+  // The data refreshes once a day, so the page itself checks each lot's end time: a lot past it is no longer live.
+  const msLeft = l => l && l.ends_at ? Date.parse(l.ends_at) - Date.now() : NaN;
+  const isOver = l => l.status === "live" && msLeft(l) <= 0;
+  const endsSoon = l => l.status === "live" && msLeft(l) > 0 && msLeft(l) < 48 * 3600e3;
+  const fmtLeft = ms => {
+    const s = Math.max(0, Math.floor(ms / 1000)), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+    return d ? `${d}d ${h}h left` : h ? `${h}h ${m}m left` : `${m}m ${String(s % 60).padStart(2, "0")}s left`;
+  };
+  const countdown = iso => `<b class="cd num" data-end="${esc(iso)}">${fmtLeft(Date.parse(iso) - Date.now())}</b>`;
+  // once a second: move every countdown on, and turn a lot that just closed into "Ended"
+  function tick() {
+    document.querySelectorAll(".cd[data-end]").forEach(el => {
+      const ms = Date.parse(el.dataset.end) - Date.now();
+      if (ms > 0) { el.textContent = fmtLeft(ms); return; }
+      el.textContent = "Ended, result pending"; el.classList.add("ended"); el.removeAttribute("data-end");
+      const card = el.closest(".lot");
+      if (card) { const hot = card.querySelector(".chip.hot"); if (hot) { hot.className = "chip"; hot.textContent = "Ended"; } const lb = card.querySelector(".bid .eyebrow"); if (lb && lb.textContent === "Current bid") lb.textContent = "Last bid seen"; }
+    });
+  }
+  // Tags on cards and tables, each with a plain explanation (shown on hover and in the legend under the lists)
+  const TAGS = {
+    soon: ["Ending soon", "hot", "The auction closes within 48 hours"],
+    live: ["Live", "hot", "Bidding is open now"],
+    ended: ["Ended", "", "The auction has closed. Its result appears after the next daily update"],
+    noreserve: ["No reserve", "", "Sells to the highest bidder, whatever the bid"],
+    sold: ["Sold", "sold", "Sold at auction"],
+    rnm: ["RNM", "unsold", "Reserve not met: bidding ended below the seller's minimum, so the car did not sell"],
+    upcoming: ["Upcoming", "", "Bidding has not opened yet"],
+    manual: ["Manual", "gear", "Factory six speed manual gearbox"],
+    approved: ["Ferrari Approved", "sold", "Sold through Ferrari's certified pre owned programme, with its inspection and warranty"],
+    special: ["Special", "special", "Not a standard example (a conversion, a one off, a modified car or a price far from the model's other sales). Left out of the model's averages and trends"],
+    thin: ["Small sample", "", "Rests on few cars or sales, so read it with care"],
+  };
+  const SPECIALS = { conversion: "Manual conversion", one_off: "One off or prototype", modified: "Modified", outlier: "Price far from the model's other sales" };
+  const tag = (k, tip) => `<span class="chip ${TAGS[k][1]}" title="${esc(tip || TAGS[k][2])}">${TAGS[k][0]}</span>`;
+  const thinTag = why => `<span class="thin" title="${esc(why || TAGS.thin[2])}">Small sample</span>`;
+  const legend = keys => `<details class="legend"><summary>What the tags mean</summary><dl>${keys.map(k => `<dt>${k === "thin" ? thinTag() : tag(k)}</dt><dd>${esc(TAGS[k][2])}.</dd>`).join("")}</dl></details>`;
   const plural = (n, w) => `${n.toLocaleString("en-US")} ${w}${n === 1 ? "" : "s"}`;
 
   // ------------------------------------------------------------ charts
@@ -788,22 +903,60 @@ const FRESH = { cache: "no-cache" };
     const pts = index.map((p, i) => [i / (index.length - 1) * W, 120 + (1 - (p[1] - min) / span) * (H - 190)]);
     const line = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join("");
     const rows = [0.25, 0.5, 0.75].map(f => `<line x1="0" x2="${W}" y1="${H * f}" y2="${H * f}" stroke="var(--hero-line)" stroke-width="1"/>`).join("");
+    const yOf = v => (120 + (1 - (v - min) / span) * (H - 190)) / H * 100;
+    const vAt = yy => min + (1 - (yy - 120) / (H - 190)) * span;      // the index value a grid line stands for
     return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">${rows}
       <path d="${line}L${W} ${H}L0 ${H}Z" fill="var(--giallo)" opacity=".06"/>
-      <path d="${line}" fill="none" stroke="var(--giallo)" stroke-width="2" vector-effect="non-scaling-stroke" opacity=".85"/></svg>`;
+      <path d="${line}" fill="none" stroke="var(--giallo)" stroke-width="2" vector-effect="non-scaling-stroke" opacity=".85"/></svg>
+      ${[0.25, 0.5, 0.75].map(f => `<span class="hc-l hc-y" style="right:10px;top:${f * 100}%">${Math.round(vAt(H * f))}</span>`).join("")}
+      <span class="hc-l hc-x" style="left:10px">${monthYear(index[0][0])}</span><span class="hc-l hc-x" style="right:10px">${monthYear(index[index.length - 1][0])}</span>
+      <span class="hc-l" style="right:44px;top:${yOf(vals[vals.length - 1]).toFixed(1)}%">Now ${vals[vals.length - 1].toFixed(0)}</span>`;
   }
 
   // ------------------------------------------------------------ pieces
-  const modelLink = id => `#model-${id}`;
+  // Built pages carry a <base> tag (scripts/build_site.py): models then live at real addresses (models/f430/) that
+  // search engines can index and link previews can read. Cars and the other views stay hash routes. Without the
+  // tag (site/index.html opened as it is) every route is a hash, as before.
+  const BASE = document.querySelector("base") ? new URL(document.baseURI) : null;
+  const GEAR_SLUG = { manual: "6-speed", f1: "f1" };
+  const modelLink = (id, gear) => BASE ? `models/${id}/${gear ? "#" + GEAR_SLUG[gear] : ""}` : `#model-${id}${gear ? "--" + GEAR_SLUG[gear] : ""}`;
+  function curRoute() {
+    const h = decodeURIComponent(location.hash.slice(1));
+    if (BASE && location.pathname.startsWith(BASE.pathname)) {
+      const m = location.pathname.slice(BASE.pathname.length).match(/^models\/([^/]+)\/?(?:index\.html)?$/);
+      if (m) return "model-" + m[1] + (h === "6-speed" || h === "f1" ? "--" + h : "");
+    }
+    return h || "overview";
+  }
+  let lastHref = null;
+  // Go to "#route" or "models/<id>/" without reloading the page
+  function go(href) {
+    if (!BASE) { location.hash = href.replace(/^[^#]*#?/, ""); return; }
+    const url = new URL(href, document.baseURI);
+    if (url.href !== location.href) history.pushState(null, "", url);
+    route();
+  }
+  const SITE = "Rosso Market";
+  function setTitle(t) {
+    document.title = t ? `${t} | ${SITE}` : `${SITE}: Ferrari prices, auctions and fair values`;
+    const c = document.querySelector('link[rel="canonical"]');
+    if (c && BASE) c.href = location.origin + location.pathname + (location.pathname === BASE.pathname && location.hash && location.hash !== "#overview" ? location.hash : "");
+  }
+  // the data is split by view: site.json for every view, overview.json and auctions.json when a view needs them
+  const parts = {};
+  const need = name => parts[name] || (parts[name] = fetch(`data/${name}.json`, FRESH).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(d => { if (name === "auctions") D.auctions = d; else Object.assign(D, d); return d; }).catch(e => { delete parts[name]; throw e; }));
+  const loading = () => { app.innerHTML = '<div class="wrap loading">Loading</div>'; };
   const familyName = f => f;
 
   // Market Movers: the biggest gainer and decliner by asking price, and the most active model.
-  function moverCard(kind, m, since, basis = "ask") {
+  function moverCard(kind, m, since, basis = "ask", win = "") {
     const sold = basis === "sold";
+    const span = `<div class="win">${esc(win)}, ${sold ? "sale prices" : "asking prices"}</div>`;
     if (!m) {
       const what = sold ? "sale prices" : "asking prices";
       const msg = kind === "gainer" ? `No model's ${what} rose` : kind === "decliner" ? `No model's ${what} fell` : sold ? "No sales" : "No listings added or removed";
-      return `<div class="mover"><div class="ph none"></div><div class="mb"><div class="eyebrow">${{ gainer: "Biggest gainer", decliner: "Biggest decline", active: "Most active" }[kind]}</div><p class="why" style="margin:0">${msg} since ${dateLong(since)}.</p></div></div>`;
+      return `<div class="mover"><div class="ph none"></div><div class="mb"><div class="eyebrow">${{ gainer: "Biggest gainer", decliner: "Biggest decline", active: "Most active" }[kind]}</div><p class="why" style="margin:0">${msg} since ${dateLong(since)} among models with enough ${sold ? "sales" : "cars"} to compare.</p></div></div>`;
     }
     const label = { gainer: "Biggest gainer", decliner: "Biggest decline", active: "Most active" }[kind];
     const body = kind === "active" && sold
@@ -813,9 +966,9 @@ const FRESH = { cache: "no-cache" };
       ? `<div class="big num">${m.total}</div><div class="why">cars changed hands or hit the market since ${dateLong(since)}</div>
          <div class="split"><span>New <b>${m.new}</b></span><span>Gone <b>${m.removed}</b></span><span>Sold at auction <b>${m.sold}</b></span></div>`
       : sold
-      ? `<div class="big">${chg(m.change)}</div><div class="why">${m.sales} sales since ${dateLong(since)}, ${m.sales_last} in the period before.</div>
+      ? `<div class="big">${chg(m.change)}</div>${span}<div class="why">${m.sales} sales since ${dateLong(since)}, ${m.sales_last} in the period before.</div>
          <div class="split"><span>Median sold now <b>${short(m.median)}</b></span><span>Before <b>${short(m.median_last)}</b></span></div>`
-      : `<div class="big">${chg(m.change)}</div><div class="why">Median ask by model year, against ${dateLong(since)}. ${m.cars_now} cars now, ${m.cars_last} then.</div>
+      : `<div class="big">${chg(m.change)}</div>${span}<div class="why">Median ask by model year, against ${dateLong(since)}. ${m.cars_now} cars now, ${m.cars_last} then.</div>
          ${m.median_last ? `<div class="split"><span>Median now <b>${short(m.median)}</b></span><span>${dateLong(since)} <b>${short(m.median_last)}</b></span></div>` : ""}`;
     return `<a class="mover" href="${modelLink(m.id)}">${photo(m.image, m.name, `<span class="chip" style="background:var(--surface)">${label}</span>`)}
       <div class="mb"><h3>${esc(m.name)}</h3>${body}
@@ -827,7 +980,7 @@ const FRESH = { cache: "no-cache" };
   function photo(url, alt, chips) {
     const over = chips ? `<div class="chips">${chips}</div>` : "";
     if (!url) return `<div class="ph none">${over}</div>`;
-    return `<div class="ph"><img src="${esc(url)}" alt="${esc(alt || "")}" loading="lazy" decoding="async" referrerpolicy="no-referrer"
+    return `<div class="ph"><img src="${esc(url)}" alt="${esc(alt || "")}" width="640" height="427" loading="lazy" decoding="async" referrerpolicy="no-referrer"
       onerror="this.parentNode.classList.add('none');this.remove()">${over}</div>`;
   }
 
@@ -897,6 +1050,43 @@ const FRESH = { cache: "no-cache" };
     draw();
   }
 
+  // Filters over a model's cars for sale: year, mileage, colour, gearbox and state. Only the ones that can
+  // narrow this list are offered. The choices live in the page, not the address, and reset with the model.
+  const COLOUR_NAMES = { red: "Red", black: "Black", white: "White", silver: "Silver", grey: "Grey", blue: "Blue", yellow: "Yellow", green: "Green", brown: "Brown", orange: "Orange" };
+  function listingFilters(el, all, render) {
+    const uniq = f => [...new Set(all.map(f).filter(x => x != null && x !== ""))];
+    const years = uniq(l => l.year).sort((a, b) => a - b), colours = uniq(l => l.colour), states = uniq(l => l.state).sort(), gears = uniq(l => l.gearbox);
+    const maxMi = Math.max(0, ...all.map(l => l.mileage_mi || 0));
+    const miSteps = [1000, 2500, 5000, 10000, 20000, 30000, 50000, 75000].filter(v => v < maxMi);
+    const opt = (v, l, sel) => `<option value="${esc(String(v))}"${sel ? " selected" : ""}>${esc(String(l))}</option>`;
+    const f = { y0: "", y1: "", mi: "", colour: "", gear: "", state: "", fair: false };
+    const hasFair = all.some(l => l.fair && l.fair.ask_pct != null);
+    el.innerHTML = `<form class="lf" onsubmit="return false" aria-label="Filter cars for sale">
+      ${years.length > 1 ? `<label><span>Year from</span><select name="y0">${opt("", "Any")}${years.map(y => opt(y, y)).join("")}</select></label>
+        <label><span>Year to</span><select name="y1">${opt("", "Any")}${years.map(y => opt(y, y)).join("")}</select></label>` : ""}
+      ${miSteps.length ? `<label><span>Mileage</span><select name="mi">${opt("", "Any")}${miSteps.map(v => opt(v, "Under " + v.toLocaleString("en-US") + " mi")).join("")}</select></label>` : ""}
+      ${colours.length > 1 ? `<label><span>Colour</span><select name="colour">${opt("", "Any")}${colours.sort().map(c => opt(c, COLOUR_NAMES[c] || c)).join("")}</select></label>` : ""}
+      ${gears.includes("manual") && gears.length > 1 ? `<label><span>Gearbox</span><select name="gear">${opt("", "Any")}${opt("manual", "Manual")}${opt("f1", "F1")}</select></label>` : ""}
+      ${states.length > 1 ? `<label><span>State</span><select name="state">${opt("", "Any")}${states.map(x => opt(x, STATE_NAMES[x] || x)).join("")}</select></label>` : ""}
+      ${hasFair ? `<label class="check"><input type="checkbox" name="fair"> Below fair value</label>` : ""}
+      <button type="button" class="lf-clear" hidden>Clear filters</button>
+      <span class="lf-n" aria-live="polite"></span></form><div class="lf-out"></div>`;
+    const form = el.querySelector("form");
+    const apply = () => {
+      for (const k of Object.keys(f)) if (form[k]) f[k] = form[k].type === "checkbox" ? form[k].checked : form[k].value;
+      const items = all.filter(l => (!f.y0 || (l.year && l.year >= +f.y0)) && (!f.y1 || (l.year && l.year <= +f.y1))
+        && (!f.mi || (l.mileage_mi != null && l.mileage_mi < +f.mi)) && (!f.colour || l.colour === f.colour)
+        && (!f.gear || (l.gearbox || "f1") === f.gear) && (!f.state || l.state === f.state) && (!f.fair || (l.fair && l.fair.ask_pct < -5)));
+      const on = Object.values(f).some(Boolean);
+      form.querySelector(".lf-clear").hidden = !on;
+      form.querySelector(".lf-n").textContent = on ? `${items.length} of ${plural(all.length, "car")}` : plural(all.length, "car");
+      render(items);
+    };
+    form.addEventListener("change", apply);
+    form.querySelector(".lf-clear").addEventListener("click", () => { form.reset(); apply(); });
+    apply();
+  }
+
   // Missing values (no mileage published, say) always sort to the end.
   const by = (f, dir = 1) => (a, b) => { const x = f(a), y = f(b); if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return x < y ? -dir : x > y ? dir : 0; };
   const LISTING_SORTS = [
@@ -931,7 +1121,7 @@ const FRESH = { cache: "no-cache" };
   });
 
   function listingCard(l) {
-    const chips = (l.certified ? '<span class="chip sold">Ferrari Approved</span>' : "") + (l.gearbox === "manual" ? '<span class="chip gear">Manual</span>' : "");
+    const chips = (l.certified ? tag("approved") : "") + (l.gearbox === "manual" ? tag("manual") : "");
     return `<a class="lot" ${carLink(l)}>
       ${photo(l.image, l.title, chips)}
       <div class="body"><h3>${esc(l.title)}</h3>
@@ -944,23 +1134,26 @@ const FRESH = { cache: "no-cache" };
   }
 
   function lotCard(l) {
-    const chips = [];
-    if (l.ending_soon) chips.push('<span class="chip hot">Ending soon</span>');
-    if (l.no_reserve) chips.push('<span class="chip">No reserve</span>');
-    if (l.status === "sold") chips.push('<span class="chip sold">Sold</span>');
-    if (l.status === "unsold") chips.push('<span class="chip unsold" title="Reserve not met">RNM</span>');
-    if (l.status === "upcoming") chips.push('<span class="chip">Upcoming</span>');
-    if (l.gearbox === "manual") chips.push('<span class="chip gear">Manual</span>');
+    const chips = [], over = isOver(l);
+    if (over) chips.push(tag("ended")); else if (endsSoon(l)) chips.push(tag("soon"));
+    if (l.no_reserve) chips.push(tag("noreserve"));
+    if (l.status === "sold") chips.push(tag("sold"));
+    if (l.status === "unsold") chips.push(tag("rnm"));
+    if (l.status === "upcoming") chips.push(tag("upcoming"));
+    if (l.gearbox === "manual") chips.push(tag("manual"));
+    if (l.special) chips.push(tag("special", SPECIALS[l.special] + ". Left out of the model's averages and trends"));
     let label, value;
-    if (l.status === "live") { label = "Current bid"; value = money(l.price_usd); }
+    if (l.status === "live") { label = over ? "Last bid seen" : "Current bid"; value = l.price_usd ? money(l.price_usd) : over ? "None" : "No bids yet"; }
     else if (l.status === "upcoming") { label = "Estimate"; value = l.estimate_low_usd ? `${short(l.estimate_low_usd)} to ${short(l.estimate_high_usd)}` : "On request"; }
-    else if (l.status === "sold") { label = "Sold for"; value = money(l.price_usd); }
+    else if (l.status === "sold") { label = "Sold for"; value = l.price_usd ? money(l.price_usd) : "Price not published"; }
     else if (l.price_usd) { label = "High bid"; value = money(l.price_usd); }
     else if (l.estimate_low_usd) { label = "Estimate"; value = `${short(l.estimate_low_usd)} to ${short(l.estimate_high_usd)}`; }
     else { label = "High bid"; value = "Not published"; }
     const est = l.status === "live" && l.estimate_low_usd ? ` Est. ${short(l.estimate_low_usd)} to ${short(l.estimate_high_usd)}` : "";
     const done = l.status === "sold" || l.status === "unsold";
-    const when = !l.ends_at ? "" : done ? dateLong(l.ends_at.slice(0, 10)) : "Ends " + endET(l.ends_at);
+    const when = !l.ends_at ? "" : done ? dateLong(l.ends_at.slice(0, 10))
+      : over ? `<b class="ended">Ended, result pending</b><br>${endLocal(l.ends_at)}`
+      : l.status === "live" ? `${countdown(l.ends_at)}<br>Ends ${endLocal(l.ends_at)}` : endLocal(l.ends_at);
     const vs = l.status === "sold" && l.vs_ask_pct != null ? `<div style="font-size:12px">${chg(l.vs_ask_pct)} vs median ask</div>` : "";
     return `<a class="lot" ${carLink(l)}>
       ${photo(l.image, l.title, chips.join(""))}
@@ -969,13 +1162,13 @@ const FRESH = { cache: "no-cache" };
       <div class="house">${esc(l.auction_house)}${!l.sale && l.location ? ", " + esc(l.location) : ""}${l.lot_number ? ", lot " + esc(l.lot_number) : ""}</div>
       ${l.mileage_mi ? `<div class="specs">${miles(l.mileage_mi)}</div>` : ""}
       <div class="bid"><div><div class="eyebrow">${label}</div><b>${value}</b></div><span>${when}${est}${vs}</span></div>
-      ${done ? "" : fvLine(l.fair, l.status === "live" ? l.price_usd : null, l.status === "live" ? "Bid" : "")}
+      ${done ? "" : fvBid(l.fair, l.status === "live" ? l.price_usd : null, over)}
       </div></a>`;
   }
 
   function modelsTable(models, opts = {}) {
-    return `<div class="tbl-wrap"><table class="sheet">
-      <thead><tr>${opts.rank ? '<th class="p">Pos</th>' : ""}<th>Model</th><th class="r">For sale</th><th class="r">Median ask</th><th class="r">${weekLabel()}</th><th class="r">Sold, 12 mo</th><th class="r">Median sold</th><th class="r">vs last year</th><th class="r">Sell through</th></tr></thead>
+    return `<div class="tbl-wrap"><table class="sheet"><caption class="sr">${esc(opts.caption || "Models")}: cars for sale, median ask and auction results over 12 months</caption>
+      <thead><tr>${opts.rank ? '<th class="p">Pos</th>' : ""}<th>Model</th><th class="r">For sale</th><th class="r">Median ask</th><th class="r">Ask change, ${weekLabel().toLowerCase()}</th><th class="r">Sold, 12 months</th><th class="r">Median sold, 12 months</th><th class="r">Median sold vs year before</th><th class="r">Sell through, 12 months</th></tr></thead>
       <tbody>${models.map((m, i) => `<tr class="click" data-href="${modelLink(m.id)}">
         ${opts.rank ? `<td class="p">P${i + 1}</td>` : ""}
         <td class="name"><a href="${modelLink(m.id)}">${esc(m.name)}</a></td>
@@ -987,12 +1180,21 @@ const FRESH = { cache: "no-cache" };
   }
 
   // ------------------------------------------------------------ views
-  function viewOverview(scrollTo) {
+  async function viewOverview(scrollTo) {
+    if (!D.brief || !D.auctions) {
+      loading();
+      try { await Promise.all([need("overview"), need("auctions")]); } catch (e) { app.innerHTML = '<div class="wrap loading">The overview could not be loaded. Check the connection and reload.</div>'; return; }
+      if (curRoute() !== "overview") return;
+    }
+    setTitle("");
     const b = D.brief;
     const mm = D.market_movers || { since: null, all: [] };
     if (mm.since && !mm.all.length && !mm.active) mm.since = null;
-    const live = D.auctions.live;
-    const ix = D.index;
+    const live = D.auctions.live.filter(l => !isOver(l));       // a lot past its end time is no longer live
+    const ix = D.index || [];
+    const cov = D.coverage || {};
+    const ins = D.insights.slice(0, D.insights.length >= 6 ? 6 : D.insights.length === 5 ? 4 : D.insights.length);
+    const ixNote = ix.length > 1 ? `Chart: what the same Ferrari sells for at auction, month by month, as an index where ${monthYear(ix[0][0])} is 100. It now stands at ${ix[ix.length - 1][1].toFixed(0)}.` : "";
     const mc = D.market_change || {};
     const heroPct = v => v == null ? "n/a" : (v < 0 ? "▼ " : "▲ ") + Math.abs(v).toFixed(1) + "%";
 
@@ -1000,13 +1202,15 @@ const FRESH = { cache: "no-cache" };
     <section class="hero">
       <div class="hero-chart">${heroChart(ix)}</div>
       <div class="wrap">
-        <div class="eyebrow"><span class="dot"></span>As of ${dateLong(D.as_of)}, ${esc(D.region)}</div>
-        <h1>Rosso<br><span>Market</span></h1>
+        <div class="eyebrow"><span class="dot"></span>Rosso Market, as of ${dateLong(D.as_of)}, ${esc(D.region)}</div>
+        <h1 class="finding">${esc(b.headline)}</h1>
         <div class="hero-index">
-          <div><b>${heroPct(mc["90d"])}</b><small>Market, last 90 days</small></div>
-          <div><b>${heroPct(mc["12m"])}</b><small>Last 12 months</small></div>
-          <div><b>${b.tracked_listings.toLocaleString("en-US")}</b><small>Ferraris tracked today</small></div>
+          <div><b>${heroPct(mc["90d"])}</b><small>Sale prices, last 90 days</small></div>
+          <div><b>${heroPct(mc["12m"])}</b><small>Sale prices, last 12 months</small></div>
+          <div><b>${(cov.for_sale ?? b.tracked_listings).toLocaleString("en-US")}</b><small>Ferraris for sale today</small></div>
+          <div><b>${live.length}</b><small>Live auctions now</small></div>
         </div>
+        ${ixNote ? `<p class="hero-cap">${ixNote}</p>` : ""}
       </div>
     </section>
     <div class="jump"><div class="wrap jump-scroll"><div class="jump-row" role="navigation" aria-label="Sections">
@@ -1017,15 +1221,14 @@ const FRESH = { cache: "no-cache" };
     <section class="block" id="brief"><div class="wrap brief">
       <div>
         <div class="eyebrow" style="color:var(--rosso);margin-bottom:10px">Market Brief</div>
-        <h2>${esc(b.headline)}</h2>
-        <div class="eyebrow" style="margin-bottom:12px">What changed this week</div>
+        <h2>What changed in the last 7 days</h2>
         <ul class="changes">${b.bullets.map(x => `<li><b>${esc(x.label)}</b><span>${esc(x.text)}</span></li>`).join("")}</ul>
       </div>
       <div class="stats">
-        <div class="stat"><b>${b.tracked_listings.toLocaleString("en-US")}</b><span>Tracked listings</span></div>
-        <div class="stat"><b>${b.active_auctions}</b><span>Active auctions</span></div>
-        <div class="stat"><b>${b.overnight_changes}</b><span>Overnight changes<em>${b.overnight.new} new, ${b.overnight.removed} gone, ${b.overnight.repriced} repriced</em></span></div>
-        <div class="stat"><b>${b.price_cuts_7d}</b><span>Price cuts this week</span></div>
+        <div class="stat"><b>${(cov.for_sale ?? b.tracked_listings).toLocaleString("en-US")}</b><span>Ferraris for sale today</span></div>
+        <div class="stat"><b>${live.length}</b><span>Live auctions now</span></div>
+        <div class="stat"><b>${b.overnight_changes}</b><span>Changes since yesterday<em>${b.overnight.new} new, ${b.overnight.removed} gone, ${b.overnight.repriced} repriced</em></span></div>
+        <div class="stat"><b>${b.price_cuts_7d}</b><span>Price cuts, last 7 days</span></div>
       </div>
     </div></section>
 
@@ -1037,13 +1240,13 @@ const FRESH = { cache: "no-cache" };
 
     <section class="block" id="auctions-sec"><div class="wrap">
       <div class="sec-head"><div><div class="eyebrow">Live Auction Watch</div><h2>Notable auctions</h2></div><a class="link-more" href="#auctions">All auctions →</a></div>
-      ${live.length ? `<div class="lots" data-rows="2" data-min="4">${live.slice(0, 16).map(lotCard).join("")}</div>` : '<div class="empty">No Ferrari lots are live right now.</div>'}
+      ${live.length ? `<div class="lots" data-rows="2" data-min="4">${live.slice(0, 16).map(lotCard).join("")}</div>${legend(["soon", "noreserve", "manual"])}` : '<div class="empty">No Ferrari lots are live right now.</div>'}
     </div></section>
 
     <section class="block" id="insights"><div class="wrap">
       <div class="sec-head"><div><div class="eyebrow">Key Insights</div><h2>Signals worth watching</h2></div></div>
-      <div class="insights">${D.insights.map(i => { const go = i.car || i.url ? carLink(i) : i.model ? `href="${modelLink(i.model)}"` : ""; return `<div class="insight">${go ? `<a ${go} style="display:block">` : "<div>"}${photo(i.image, i.headline)}${go ? "</a>" : "</div>"}<span class="tag">${esc(i.label)}</span><h3>${esc(i.headline)}</h3><p>${esc(i.body)}</p>
-        ${i.url ? `<a ${carLink(i)}>View lot →</a>` : i.model ? `<a href="${modelLink(i.model)}">${esc((byId[i.model] || {}).name || "Model")} prices →</a>` : ""}</div>`; }).join("")}</div>
+      <div class="insights gridn" data-g="${ins.length >= 6 ? 6 : ins.length === 3 ? 3 : 4}">${ins.map(i => { const go = i.car || i.url ? carLink(i) : i.model ? `href="${modelLink(i.model)}"` : ""; return `<div class="insight">${go ? `<a ${go} style="display:block">` : "<div>"}${photo(i.image, i.headline)}${go ? "</a>" : "</div>"}<span class="tag">${esc(i.label)}</span><h3>${esc(i.headline)}</h3><p>${esc(i.body)}</p>
+        ${i.url ? `<a class="link-more" ${carLink(i)}>View lot →</a>` : i.model ? `<a class="link-more" href="${modelLink(i.model)}">${esc((byId[i.model] || {}).name || "Model")} prices →</a>` : ""}</div>`; }).join("")}</div>
     </div></section>
 
     <section class="block" id="news-sec"><div class="wrap">
@@ -1066,7 +1269,8 @@ const FRESH = { cache: "no-cache" };
         body.innerHTML = `<div class="empty">${k === "30d" ? "Movers appear once there are asking prices to compare." : "Too few sales to compare yet."}</div>`;
         return;
       }
-      body.innerHTML = `<div class="movers">${moverCard("gainer", p.gainer, p.since, p.basis)}${moverCard("decliner", p.decliner, p.since, p.basis)}${moverCard("active", p.active, p.since, p.basis)}</div>${topMoves(p.all, p.basis)}`;
+      const win = k === "30d" && p.since > cutFor("30d", D.as_of) ? "since " + dateShort(p.since) : { "30d": "30 days", "90d": "90 days", "12m": "12 months" }[k];
+      body.innerHTML = `<div class="movers">${moverCard("gainer", p.gainer, p.since, p.basis, win)}${moverCard("decliner", p.decliner, p.since, p.basis, win)}${moverCard("active", p.active, p.since, p.basis, win)}</div>${topMoves(p.all, p.basis, win)}`;
       wireRows();
     };
     document.querySelectorAll("#mv-seg button").forEach(b => b.addEventListener("click", () => showMovers(b.dataset.p)));
@@ -1089,7 +1293,8 @@ const FRESH = { cache: "no-cache" };
       <h2>Every Ferrari, every sale, one place</h2>
       <p>Dealer listings, auction results and fair values for the US market, and hypercars worldwide, refreshed every day.</p>
       <div class="cover-stats">
-        <div><b>${c.cars.toLocaleString("en-US")}</b><span>Ferraris tracked</span></div>
+        <div><b>${(c.for_sale ?? 0).toLocaleString("en-US")}</b><span>Ferraris for sale today</span></div>
+        <div><b>${(c.on_record ?? c.cars).toLocaleString("en-US")}</b><span>Cars on record, for sale or sold</span></div>
         <div><b>${c.models}</b><span>Models tracked</span></div>
         <div><b>${c.sources.length}</b><span>Sources tracked</span></div>
       </div>
@@ -1098,28 +1303,30 @@ const FRESH = { cache: "no-cache" };
     </section>`;
   }
   const MV_PERIODS = [["30d", "30 days"], ["90d", "90 days"], ["12m", "12 months"]];
-  function topMoves(all, basis = "ask") {
+  function topMoves(all, basis = "ask", win = "") {
     const up = all.filter(x => x.change > 0).sort((a, b) => b.change - a.change);
     const dn = all.filter(x => x.change < 0).sort((a, b) => a.change - b.change);
     const lists = up.length && dn.length ? [["Top gainers", up.slice(0, 5)], ["Top declines", dn.slice(0, 5)]]
       : up.length ? [["Top gainers", up.slice(0, 10)]] : dn.length ? [["Top declines", dn.slice(0, 10)]] : [];
     if (!lists.length) return "";
     const sold = basis === "sold";
-    const table = (title, rows) => `<div><h3 class="mv-h">${title}</h3><div class="tbl-wrap"><table class="sheet mv"><thead><tr><th class="p">Pos</th><th>Model</th><th class="r">${sold ? "Sales" : "Cars now"}</th><th class="r">${sold ? "Median sold" : "Median ask"}</th><th class="r">Change</th></tr></thead><tbody>
-      ${rows.map((x, i) => `<tr class="click" data-href="${modelLink(x.id)}"><td class="p">P${i + 1}</td><td class="name"><a href="${modelLink(x.id)}">${esc(x.name)}</a></td><td class="r num">${sold ? x.sales : x.cars_now}</td><td class="r num">${money(x.median)}</td><td class="r">${chg(x.change)}</td></tr>`).join("")}</tbody></table></div></div>`;
-    return `<div class="top-moves${lists.length === 1 ? " one" : ""}">${lists.map(([t, r]) => table(t, r)).join("")}</div>`;
+    const few = x => sold ? `${x.sales} sales against ${x.sales_last} before` : `${x.cars_now} cars now against ${x.cars_last} then`;
+    const table = (title, rows) => `<div><h3 class="mv-h">${title}</h3><div class="tbl-wrap"><table class="sheet mv"><caption class="sr">${title}, ${esc(win)}, by ${sold ? "auction sale price" : "asking price"}</caption><thead><tr><th class="p">Pos</th><th>Model</th><th class="r">${sold ? "Sales" : "Cars now"}</th><th class="r">${sold ? "Median sold" : "Median ask"}</th><th class="r">Change, ${esc(win)}</th></tr></thead><tbody>
+      ${rows.map((x, i) => `<tr class="click" data-href="${modelLink(x.id)}"><td class="p">P${i + 1}</td><td class="name"><a href="${modelLink(x.id)}">${esc(x.name)}</a>${x.thin ? thinTag(few(x)) : ""}</td><td class="r num">${sold ? x.sales : x.cars_now}</td><td class="r num">${money(x.median)}</td><td class="r">${chg(x.change)}</td></tr>`).join("")}</tbody></table></div></div>`;
+    return `<div class="top-moves${lists.length === 1 ? " one" : ""}">${lists.map(([t, r]) => table(t, r)).join("")}</div>${all.some(x => x.thin) ? legend(["thin"]) : ""}`;
   }
 
   function newsList(items) {
     if (!items.length) return '<div class="empty">Headlines appear here once news feeds are switched on in the pipeline settings. We show the headline, outlet and date, and link to the original story.</div>';
-    return `<div class="news">${items.map(n => `<a href="${esc(n.url)}" target="_blank" rel="noopener">${photo(n.image, "")}<span class="date">${n.published ? dateLong(n.published) : ""} ${esc(n.outlet)}</span><h3>${esc(n.title)}</h3></a>`).join("")}</div>`;
+    if (items.length > 4) items = items.slice(0, items.length - items.length % 4);
+    return `<div class="news gridn" data-g="4">${items.map(n => `<a href="${esc(n.url)}" target="_blank" rel="noopener">${photo(n.image, "")}<span class="date">${n.published ? dateLong(n.published) : ""} ${esc(n.outlet)}</span><h3>${esc(n.title)}</h3></a>`).join("")}</div>`;
   }
 
-  function pageHead(crumb, title, sub, kpis) {
+  function pageHead(crumb, title, sub, kpis, extra = "") {
     return `<div class="page-head"><div class="wrap">
       <div class="crumbs"><a href="#overview">Overview</a> / ${crumb}</div>
-      <h1>${title}</h1>${sub ? `<p class="flat" style="margin:12px 0 0;max-width:70ch">${sub}</p>` : ""}
-      ${kpis ? `<div class="kpis">${kpis.map(([v, l]) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join("")}</div>` : ""}
+      <h1>${title}</h1>${extra}${sub ? `<p class="flat" style="margin:12px 0 0;max-width:70ch">${sub}</p>` : ""}
+      ${kpis ? `<div class="kpis" data-n="${kpis.length}">${kpis.map(([v, l]) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join("")}</div>` : ""}
     </div></div>`;
   }
 
@@ -1131,13 +1338,16 @@ const FRESH = { cache: "no-cache" };
     const m = byId[id];
     if (!m) return notFound();
     const a = m.auction || {};
+    setTitle(`Ferrari ${m.name} prices and market`);
     const kpis = [];
-    if (m.listings) kpis.push([money(m.median), "Median ask"], [chg(m.change_7d), weekLabel()], [m.listings, "For sale now"], [m.days_on_market ?? "n/a", "Median days listed"]);
+    if (m.listings) kpis.push([money(m.median), "Median ask"], [chg(m.change_7d), "Asks, " + weekLabel().toLowerCase()], [m.listings, "For sale now"], [m.days_on_market ?? "n/a", "Median days listed"]);
+    // the yearly figure is the market panel's own one year move, filled in when the model's data arrives, so the
+    // page never shows two different numbers for the same year
     kpis.push([a.median_sold_12m ? money(a.median_sold_12m) : "n/a", "Median sold, 12 months"], [a.sold_12m ?? 0, "Sold at auction, 12 months"],
-      [a.change_yoy != null ? chg(a.change_yoy) : "n/a", "Median sold vs a year earlier"], [a.sell_through_12m != null ? a.sell_through_12m + "%" : "n/a", "Sell through, 12 months"]);
+      ['<span id="kpi-1y">n/a</span>', "Sale prices, 1 year"], [a.sell_through_12m != null ? a.sell_through_12m + "%" : "n/a", "Sell through, 12 months"]);
     if (a.last_sold) kpis.push([money(a.last_sold.price), "Last sale, " + dateLong(a.last_sold.day)]);
     app.innerHTML = pageHead(`<a href="#family-${slug(m.family)}">${esc(m.family)}</a>`, esc(m.name),
-      `Auction results for the Ferrari ${esc(m.name)} from every auction we track, with asking prices from dealers ${m.family === "Hypercars and limited series" ? "anywhere in the world, since so few exist that the world is one market for them" : "in the US"} as they come in.${m.gearbox_listings ? ` Both gearboxes together: see <a href="#model-${id}--6-speed">${esc(m.name)} 6-Speed</a> or <a href="#model-${id}--f1">${esc(m.name)} F1</a> on its own.` : ""}`, kpis)
+      `Auction results for the Ferrari ${esc(m.name)} from every auction we track, with asking prices from dealers ${m.family === "Hypercars and limited series" ? "anywhere in the world, since so few exist that the world is one market for them" : "in the US"} as they come in.${m.gearbox_listings ? ` Both gearboxes together: see <a href="${modelLink(id, "manual")}">${esc(m.name)} 6-Speed</a> or <a href="${modelLink(id, "f1")}">${esc(m.name)} F1</a> on its own.` : ""}`, kpis, watchBtn("model", id, m.name))
       + `<section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Sales and asking prices</div><h2>Market</h2></div></div>
          <div id="m-auc"><p class="flat">Loading results</p></div></div></section>
          <section class="block" id="m-up-sec" hidden><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Coming up</div><h2>Live and upcoming lots</h2></div></div><div class="lots" id="m-up"></div></div></section>
@@ -1146,8 +1356,10 @@ const FRESH = { cache: "no-cache" };
     window.scrollTo(0, 0);
     const detail = await loadModel(id);
     if (!detail) { document.getElementById("m-auc").innerHTML = '<p class="flat">Could not load this model\'s market. Refresh to try again.</p>'; return; }
-    if (location.hash !== "#model-" + arg) return;
+    if (curRoute() !== "model-" + arg) return;
     modelBody(m, detail);
+    const y = (detail.moves || {})["1y"], k = document.getElementById("kpi-1y");
+    if (k && y) k.innerHTML = chg(y.change) + (Math.min(y.sales || 0, y.sales_then || 0) < 8 ? thinTag(`${y.sales} sales against ${y.sales_then} a year earlier`) : "");
   }
 
   async function loadModel(id) {
@@ -1178,7 +1390,7 @@ const FRESH = { cache: "no-cache" };
     app.innerHTML = `<div class="wrap loading">Loading ${esc(name)}</div>`;
     window.scrollTo(0, 0);
     const full = await loadModel(id);
-    if (location.hash !== `#model-${id}--${gear === "manual" ? "6-speed" : "f1"}`) return;
+    if (curRoute() !== `model-${id}--${GEAR_SLUG[gear]}`) return;
     if (!full) { app.innerHTML = '<div class="wrap loading">Could not load this model. Refresh to try again.</div>'; return; }
     const d = gearDetail(full, gear);
     const yearAgo = new Date(D.as_of + "T12:00:00Z"); yearAgo.setUTCFullYear(yearAgo.getUTCFullYear() - 1);
@@ -1186,17 +1398,15 @@ const FRESH = { cache: "no-cache" };
     const s12 = d.points.filter(p => p[2] === "s" && p[0] >= cut), u12 = d.points.filter(p => p[2] === "u" && p[0] >= cut);
     const asks = d.listings.map(l => l.price_usd).filter(Boolean), days = d.listings.map(daysListed).filter(x => x != null);
     const lastS = d.points.filter(p => p[2] === "s").pop();
-    // the 12 months before the last 12, for the year on year change of this gearbox's sales
-    const twoAgo = new Date(D.as_of + "T12:00:00Z"); twoAgo.setUTCFullYear(twoAgo.getUTCFullYear() - 2);
-    const sPrev = d.points.filter(p => p[2] === "s" && p[0] >= twoAgo.toISOString().slice(0, 10) && p[0] < cut);
-    const yoy = s12.length && sPrev.length ? (medianOf(s12.map(p => p[1])) / medianOf(sPrev.map(p => p[1])) - 1) * 100 : null;
+    const y1 = (d.moves || {})["1y"];           // the market panel's own one year move, so the page shows one figure
     const c7 = (m.gearbox_change_7d || {})[gear];
-    const kpis = [[asks.length ? money(medianOf(asks)) : "n/a", "Median ask"], [c7 != null ? chg(c7) : "n/a", weekLabel()], [d.listings.length, "For sale now"], [days.length ? Math.round(medianOf(days)) : "n/a", "Median days listed"],
+    setTitle(`Ferrari ${name}${gear === "f1" ? " F1" : ""} prices and market`);
+    const kpis = [[asks.length ? money(medianOf(asks)) : "n/a", "Median ask"], [c7 != null ? chg(c7) : "n/a", "Asks, " + weekLabel().toLowerCase()], [d.listings.length, "For sale now"], [days.length ? Math.round(medianOf(days)) : "n/a", "Median days listed"],
       [s12.length ? money(medianOf(s12.map(p => p[1]))) : "n/a", "Median sold, 12 months"], [s12.length, "Sold at auction, 12 months"],
-      [yoy != null ? chg(yoy) : "n/a", "Median sold vs a year earlier"],
+      [y1 ? chg(y1.change) + (Math.min(y1.sales || 0, y1.sales_then || 0) < 8 ? thinTag(`${y1.sales} sales against ${y1.sales_then} a year earlier`) : "") : "n/a", "Sale prices, 1 year"],
       [s12.length + u12.length ? Math.round(s12.length / (s12.length + u12.length) * 100) + "%" : "n/a", "Sell through, 12 months"]];
     if (lastS) kpis.push([money(lastS[1]), "Last sale, " + dateLong(lastS[0])]);
-    const other = gear === "manual" ? [`#model-${id}--f1`, `${m.name} F1`] : [`#model-${id}--6-speed`, `${m.name} 6-Speed`];
+    const other = gear === "manual" ? [modelLink(id, "f1"), `${m.name} F1`] : [modelLink(id, "manual"), `${m.name} 6-Speed`];
     app.innerHTML = pageHead(`<a href="#family-${slug(m.family)}">${esc(m.family)}</a> / <a href="${modelLink(id)}">${esc(m.name)}</a>`, esc(name),
       `${gear === "manual" ? "Factory six speed manual cars only." : "F1 gearbox cars only, manual conversions included."} See <a href="${other[0]}">${esc(other[1])}</a> or <a href="${modelLink(id)}">both together</a>.`, kpis)
       + modelSections();
@@ -1212,19 +1422,24 @@ const FRESH = { cache: "no-cache" };
   function modelBody(m, detail) {
     marketPanel(document.getElementById("m-auc"), detail, m);
     if ((detail.upcoming || []).length) { document.getElementById("m-up-sec").hidden = false; document.getElementById("m-up").innerHTML = detail.upcoming.map(lotCard).join(""); }
-    const listTable = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Car</th><th class="r">Mileage</th><th>Colour</th><th>Seller</th><th class="r">Days listed</th><th class="r">Asking</th><th class="r">Fair value</th><th class="r">Ask vs fair</th></tr></thead><tbody>
-      ${items.map(l => `<tr><td class="thumb">${photo(l.image, "")}</td><td class="name"><a ${carLink(l)}>${esc(l.title)}</a>${l.certified ? ' <span class="chip sold">Approved</span>' : ""}</td>
+    const listTable = items => `<div class="tbl-wrap"><table class="sheet"><caption class="sr">${esc(m.name)} cars for sale</caption><thead><tr><th><span class="sr">Photo</span></th><th>Car</th><th class="r">Mileage</th><th>Colour</th><th>Seller</th><th class="r">Days listed</th><th class="r">Asking</th><th class="r">Fair value</th><th class="r">Ask vs fair</th></tr></thead><tbody>
+      ${items.map(l => `<tr><td class="thumb">${photo(l.image, "")}</td><td class="name"><a ${carLink(l)}>${esc(l.title)}</a>${l.certified ? " " + tag("approved") : ""}${l.gearbox === "manual" ? " " + tag("manual") : ""}</td>
       <td class="r num">${miles(l.mileage_mi)}</td><td>${esc(l.exterior_color || "")}</td><td>${esc(l.dealer_name || "")}${l.location ? `<div class="flat" style="font-size:12px">${esc(l.location)}</div>` : ""}</td><td class="r num">${daysListed(l) ?? ""}</td><td class="r num">${money(l.price_usd)}</td><td class="r num">${l.fair ? `<span class="fvp ${fvCls(l.fair.ask_pct)}">${short(l.fair.value)}</span>` : ""}</td><td class="r fvc">${l.fair ? fvVs(l.fair.ask_pct) : ""}</td></tr>`).join("")}
       </tbody></table></div>`;
     const mList = document.getElementById("m-list");
     if (detail.listings.length) {
-      switchable(mList, detail.listings, listingCard, listTable, { id: "listings", sorts: LISTING_SORTS });
+      listingFilters(mList, detail.listings, items => {
+        const box = mList.querySelector(".lf-out");
+        if (!items.length) { box.innerHTML = '<div class="empty">No cars match these filters.</div>'; return; }
+        switchable(box, items, listingCard, listTable, { id: "listings", sorts: LISTING_SORTS });
+        box.insertAdjacentHTML("beforeend", legend(["approved", "manual"]));
+      });
     } else mList.innerHTML = '<div class="empty">No cars listed right now.</div>';
-    const resTable = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Lot</th><th>Sale</th><th>Country</th><th>Closed</th><th class="r">Mileage</th><th>Result</th><th class="r">Price</th></tr></thead><tbody>
+    const resTable = items => `<div class="tbl-wrap"><table class="sheet"><caption class="sr">${esc(m.name)} auction results</caption><thead><tr><th><span class="sr">Photo</span></th><th>Lot</th><th>Sale</th><th>Country</th><th>Closed</th><th class="r">Mileage</th><th>Result</th><th class="r">Price</th></tr></thead><tbody>
       ${items.map(r => `<tr><td class="thumb">${photo(r.image, "")}</td><td class="name"><a ${carLink(r)}>${esc(r.title)}</a></td><td>${saleLink(r) || esc(r.auction_house)}<div class="flat" style="font-size:12px">${esc(r.auction_house)}</div></td><td>${esc(countryOf(r))}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td><td class="r num">${miles(r.mileage_mi)}</td>
-      <td><span class="chip ${r.status}"${r.status === "sold" ? "" : ' title="Reserve not met"'}>${r.status === "sold" ? "Sold" : "RNM"}</span></td><td class="r num">${money(r.price_usd)}</td></tr>`).join("")}</tbody></table></div>`;
+      <td>${tag(r.status === "sold" ? "sold" : "rnm")}${r.special ? " " + tag("special", SPECIALS[r.special] + ". Left out of the model's averages and trends") : ""}</td><td class="r num">${r.price_usd ? money(r.price_usd) : r.status === "sold" ? "Not published" : ""}</td></tr>`).join("")}</tbody></table></div>`;
     const mRes = document.getElementById("m-res");
-    if (detail.results.length) switchable(mRes, detail.results, lotCard, resTable);
+    if (detail.results.length) { switchable(mRes, detail.results, lotCard, resTable); mRes.insertAdjacentHTML("beforeend", legend(["sold", "rnm", "special", "manual"])); }
     else mRes.innerHTML = '<div class="empty">No auction results recorded yet.</div>';
   }
 
@@ -1341,7 +1556,7 @@ const FRESH = { cache: "no-cache" };
       const i = nearest(e);
       if (i < 0) return show(-1);
       // mouse: the card is already showing, so a click opens the car. Touch: first tap shows it.
-      if (i === sel && vis[i][3]) location.hash = "car-" + vis[i][3];
+      if (i === sel && vis[i][3]) go("#car-" + vis[i][3]);
       else show(i);
     });
     el.querySelectorAll("[data-r]").forEach(b => b.addEventListener("click", () => { range = b.dataset.r; draw(); }));
@@ -1441,7 +1656,9 @@ const FRESH = { cache: "no-cache" };
       const mv = (D2.moves || {})[st.range], rl = (RANGES.find(r => r[0] === st.range) || [])[1] || "";
       const mvLabel = st.range === "all" ? (mv ? `Market since ${mv.since.slice(0, 4)}` : "Market, all time")
         : !mv ? `Market, ${rl.toLowerCase()}` : mv.basis === "ask" ? (mv.since > cut ? `Asks since ${dateShort(mv.since)}` : `Asks, ${rl.toLowerCase()}`) : `Market, ${rl.toLowerCase()}`;
-      el.querySelector(".mp-stats").innerHTML = [[mvLabel, mv ? chg(mv.change) : "n/a"], ["Average sale", prices.length ? money(sum / prices.length) : "n/a"], ["Sales", prices.length],
+      const mvThin = mv && mv.basis === "sold" && Math.min(mv.sales ?? 99, mv.sales_then ?? 99) < 8;
+      el.querySelector(".mp-stats").innerHTML = [[mvLabel, mv ? chg(mv.change) + (mvThin ? " " + thinTag(`${mv.sales} recent sales against ${mv.sales_then} earlier ones`) : "") : "n/a"],
+        ["Median sale", prices.length ? money(medianOf(prices)) : "n/a"], ["Average sale", prices.length ? money(sum / prices.length) : "n/a"], ["Sales", prices.length],
         ["Dollar volume", prices.length ? money(sum) : "n/a"], ["Lowest sale", prices.length ? money(prices[0]) : "n/a"],
         ["Top sale", prices.length ? money(prices[prices.length - 1]) : "n/a"], [recent ? "Most recent, " + dateShort(recent[0]) : "Most recent", recent ? money(recent[1]) : "n/a"],
         ["Median ask now", st.gear !== "all" || detail.fixedGear ? ((D2.listings || []).length ? money(medianOf(D2.listings.map(l => l.price_usd).filter(Boolean))) : "n/a") : ask.length ? money(ask[ask.length - 1][1]) : "n/a"], ["For sale now", (D2.listings || []).length]]
@@ -1542,7 +1759,7 @@ const FRESH = { cache: "no-cache" };
     };
     cv.addEventListener("pointermove", e => { if (e.pointerType === "mouse") { const i = nearest(e); if (i !== sel) show(i); } });
     cv.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") show(-1); });
-    cv.addEventListener("click", e => { const i = nearest(e); if (i < 0) return show(-1); if (i === sel && items[i][3]) location.hash = "car-" + items[i][3]; else show(i); });
+    cv.addEventListener("click", e => { const i = nearest(e); if (i < 0) return show(-1); if (i === sel && items[i][3]) go("#car-" + items[i][3]); else show(i); });
   }
 
   // Years: for each model year the full range of prices, the middle half, the median and the average.
@@ -1595,7 +1812,7 @@ const FRESH = { cache: "no-cache" };
     if (vs.length < 2) { el.innerHTML = '<div class="empty">No other versions of this model are tracked separately.</div>'; return; }
     const runMed = a => a.map((p, i) => [p[0], medianOf(a.slice(Math.max(0, i - 8), i + 1).map(q => q[1]))]).slice(Math.min(4, a.length - 1));
     const series = vs.map((v, i) => ({ v, color: SERIES[i % SERIES.length], pts: runMed(v.sold.filter(p => p[0] >= cut)) })).filter(s => s.pts.length >= 2);
-    const tbl = `<div class="tbl-wrap" style="margin-top:16px"><table class="sheet"><thead><tr><th>Version</th><th class="r">For sale</th><th class="r">Median ask</th><th class="r">Sold, 12 months</th><th class="r">Median sale, 12 months</th><th class="r">Ask vs sale</th></tr></thead><tbody>
+    const tbl = `<div class="tbl-wrap" style="margin-top:16px"><table class="sheet"><caption class="sr">${esc(m.name)} versions: cars for sale and sales over 12 months</caption><thead><tr><th>Version</th><th class="r">For sale</th><th class="r">Median ask</th><th class="r">Sold, 12 months</th><th class="r">Median sale, 12 months</th><th class="r">Ask vs sale</th></tr></thead><tbody>
       ${vs.map((v, i) => `<tr class="click${mine(v) ? " me" : ""}" data-href="${modelLink(v.id)}"><td class="name"><i class="vk" style="background:${SERIES[i % SERIES.length]}"></i><a href="${modelLink(v.id)}">${esc(v.name)}</a></td><td class="r num">${v.listings || ""}</td><td class="r num">${v.median ? money(v.median) : "n/a"}</td><td class="r num">${v.sold_12m || ""}</td><td class="r num">${v.median_sold_12m ? money(v.median_sold_12m) : "n/a"}</td><td class="r">${v.median && v.median_sold_12m ? chg((v.median / v.median_sold_12m - 1) * 100) : ""}</td></tr>`).join("")}</tbody></table></div>`;
     if (!series.length) { el.innerHTML = '<p class="flat" style="margin:0 0 6px;font-size:14px">Too few dated sales in this range to draw the versions over time.</p>' + tbl; wireRows(); return; }
     el.innerHTML = `<div class="legend" style="margin-bottom:10px">${series.map(s => `<span><i class="vk" style="background:${s.color}"></i>${esc(s.v.name)}</span>`).join("")}</div>
@@ -1677,7 +1894,7 @@ const FRESH = { cache: "no-cache" };
     el.innerHTML = `<div class="legend" style="margin-bottom:10px"><span><i class="bar-f"></i>Cars for sale</span><span><i class="line-ask"></i>Median ask</span>
         <span class="flat">This week ${lastW[1]}${prevW ? `, a week earlier ${prevW[1]} (${lastW[1] - prevW[1] >= 0 ? "+" : "−"}${Math.abs(lastW[1] - prevW[1])})` : ""}</span></div>
       <div class="chart-box"><div class="cv"></div></div>
-      <div class="tbl-wrap" style="margin-top:16px"><table class="sheet"><thead><tr><th>Week of</th><th class="r">For sale</th><th class="r">New</th><th class="r">Gone</th><th class="r">Median ask</th><th class="r">Change</th></tr></thead><tbody>
+      <div class="tbl-wrap" style="margin-top:16px"><table class="sheet"><caption class="sr">${esc(m.name)} listings week by week</caption><thead><tr><th>Week of</th><th class="r">For sale</th><th class="r">New</th><th class="r">Gone</th><th class="r">Median ask</th><th class="r">Change on the week before</th></tr></thead><tbody>
       ${w.slice().reverse().slice(0, 12).map((r, i, a) => { const p = a[i + 1]; return `<tr><td class="num">${wl(r[0])}</td><td class="r num">${r[1]}</td><td class="r num">${r[2] ?? ""}</td><td class="r num">${r[3] ?? ""}</td><td class="r num">${r[4] ? money(r[4]) : "n/a"}</td><td class="r">${p && p[4] && r[4] ? chg((r[4] / p[4] - 1) * 100) : ""}</td></tr>`; }).join("")}</tbody></table></div>
 `;
     const cv = el.querySelector(".cv"), T = 14, B = 34;
@@ -1708,7 +1925,7 @@ const FRESH = { cache: "no-cache" };
   const lb = () => document.getElementById("lb");
   function openPhotos(list, i) {
     LB = { list, i };
-    document.getElementById("lb-strip").innerHTML = list.map((u, j) => `<img src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-j="${j}">`).join("");
+    document.getElementById("lb-strip").innerHTML = list.map((u, j) => `<img src="${esc(u)}" alt="" width="77" height="58" loading="lazy" referrerpolicy="no-referrer" data-j="${j}">`).join("");
     lb().hidden = false; document.body.style.overflow = "hidden";
     showPhoto(i);
     document.getElementById("lb-close").focus();
@@ -1854,9 +2071,53 @@ const FRESH = { cache: "no-cache" };
     cv.addEventListener("click", e => {
       const i = nearest(e);
       if (i < 0) return show(-1);
-      if (i === sel && vis[i][3]) location.hash = "car-" + vis[i][3];
+      if (i === sel && vis[i][3]) go("#car-" + vis[i][3]);
       else show(i);
     });
+  }
+
+  // One car's price over time: every listing, reprice, relisting and auction result we hold for it
+  const TL = { listed: "Listed", relisted: "Relisted", cut: "Price cut", raise: "Price raised", delisted: "Delisted", sold: "Sold at auction",
+    unsold: "Reserve not met", live: "Live at auction", upcoming: "Coming up at auction" };
+  function priceHistory(c) {
+    const t = (c.timeline || []).filter(x => x.date);
+    const priced = t.filter(x => x.price);
+    if (priced.length < 2) return "";
+    const W = innerWidth < 700 ? 360 : 720, H = innerWidth < 700 ? 190 : 220, L = 56, R = 14, T = 14, B = 26;      // drawn at the size it shows, so its labels stay readable on a phone
+    const today = D.as_of, t0 = Date.parse(t[0].date), t1 = Math.max(Date.parse(t[t.length - 1].date), c.status === "for_sale" ? Date.parse(today) : 0) || t0 + 864e5;
+    const ps = priced.map(x => x.price), lo = Math.min(...ps), hi = Math.max(...ps), pad = (hi - lo || hi * 0.1) * 0.15;
+    const x = d => L + (Date.parse(d) - t0) / Math.max(1, t1 - t0) * (W - L - R), y = v => T + (1 - (v - (lo - pad)) / ((hi + pad) - (lo - pad))) * (H - T - B);
+    // asking price as steps, one path per listing period. Auction results as dots.
+    let d = "", open = false, last = null;
+    const dots = [];
+    for (const e of t) {
+      if (["listed", "relisted", "cut", "raise"].includes(e.kind) && e.price) {
+        d += open ? `H${x(e.date).toFixed(1)}V${y(e.price).toFixed(1)}` : `M${x(e.date).toFixed(1)} ${y(e.price).toFixed(1)}`;
+        open = true; last = e;
+        dots.push(`<circle cx="${x(e.date).toFixed(1)}" cy="${y(e.price).toFixed(1)}" r="3.2" fill="var(--ink)"/>`);
+      } else if (e.kind === "delisted") { if (open) d += `H${x(e.date).toFixed(1)}`; open = false; }
+      else if (e.price) dots.push(`<circle cx="${x(e.date).toFixed(1)}" cy="${y(e.price).toFixed(1)}" r="5" fill="${e.kind === "sold" ? "var(--up)" : "var(--surface)"}" stroke="${e.kind === "sold" ? "var(--up)" : "var(--down)"}" stroke-width="2"/>`);
+    }
+    if (open && c.status === "for_sale") d += `H${x(today).toFixed(1)}`;
+    const first = priced[0], latest = priced[priced.length - 1], asks = t.filter(e => ["listed", "relisted", "cut", "raise"].includes(e.kind) && e.price);
+    const total = asks.length > 1 ? (asks[asks.length - 1].price / asks[0].price - 1) * 100 : null;
+    const cuts = t.filter(e => e.kind === "cut").length, relists = t.filter(e => e.kind === "relisted").length;
+    let prev = null;
+    const rows = t.map(e => {
+      const isAsk = ["listed", "relisted", "cut", "raise"].includes(e.kind);
+      const pct = isAsk && prev && e.price && e.kind !== "listed" ? (e.price / prev - 1) * 100 : null;
+      const tiny = pct != null && Math.abs(pct) < 0.05 && e.price !== prev ? `<span class="${e.price < prev ? "down" : "up"} num">${e.price < prev ? "▼" : "▲"} ${money(Math.abs(e.price - prev))}</span>` : "";
+      if (isAsk && e.price) prev = e.price;
+      return `<tr><td class="num">${dateLong(e.date)}</td><td>${TL[e.kind] || esc(e.kind)}</td><td class="r num">${e.price ? money(e.price) : e.estimate ? short(e.estimate[0]) + " to " + short(e.estimate[1]) : ""}</td><td class="r">${pct != null && Math.abs(pct) >= 0.05 ? chg(pct) : tiny}</td><td>${esc(e.where || "")}</td></tr>`;
+    }).reverse();
+    return `<div class="car-sec"><h2>Price history</h2>
+      <p class="flat" style="margin:-6px 0 12px;font-size:14px">${[plural(asks.length, "asking price"), cuts ? plural(cuts, "cut") : "", relists ? plural(relists, "relisting") : "", total != null && Math.abs(total) >= 0.05 ? `${total < 0 ? "down" : "up"} ${Math.abs(total).toFixed(1)}% since first listed` : ""].filter(Boolean).join(", ")}.</p>
+      <svg class="ph-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Price history from ${dateLong(t[0].date)}: ${esc(money(first.price))} to ${esc(money(latest.price))}">
+        ${[lo, hi].map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="var(--line)"/><text x="${L - 8}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end" class="axis">${short(v)}</text>`).join("")}
+        <text x="${L}" y="${H - 6}" class="axis">${dateShort(t[0].date)}</text><text x="${W - R}" y="${H - 6}" text-anchor="end" class="axis">${dateShort(new Date(t1).toISOString().slice(0, 10))}</text>
+        ${d ? `<path d="${d}" fill="none" stroke="var(--ink)" stroke-width="2"/>` : ""}${dots.join("")}</svg>
+      <div class="legend" style="margin:6px 0 12px"><span><i class="k" style="background:var(--ink)"></i>Asking price</span><span><i class="k" style="background:var(--up)"></i>Sold at auction</span><span><i class="k" style="background:var(--surface);border:2px solid var(--down)"></i>Reserve not met</span></div>
+      <div class="tbl-wrap"><table class="sheet"><caption class="sr">Every price recorded for this car, newest first</caption><thead><tr><th>Date</th><th>Event</th><th class="r">Price</th><th class="r">Change</th><th>Where</th></tr></thead><tbody>${rows.join("")}</tbody></table></div></div>`;
   }
 
   async function viewCar(id) {
@@ -1864,41 +2125,51 @@ const FRESH = { cache: "no-cache" };
     let c;
     try { const r = await fetch(`data/cars/${id}.json`, FRESH); if (!r.ok) throw 0; c = await r.json(); }
     catch (e) { return notFound(); }
-    if (location.hash !== "#car-" + id) return;
+    if (curRoute() !== "car-" + id) return;
     const m = byId[c.model.id] || {};
+    setTitle(c.title + (c.status === "for_sale" ? " for sale" : c.status === "sold" ? ", sold" : ""));
     const ph = c.photos || [];
+    const over = isOver(c);
     const gal = !ph.length ? '<div class="gallery none">No photos for this car</div>'
-      : `<div class="gallery${ph.length < 3 ? " one" : ""}">${ph.slice(0, ph.length < 3 ? 1 : 5).map((u, i) => `<button type="button" data-p="${i}" aria-label="Open photo ${i + 1}"><img src="${esc(u)}" alt="${i ? "" : esc(c.title)}" ${i ? 'loading="lazy"' : ""} referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">${i === Math.min(4, ph.length - 1) && ph.length > 1 ? `<span class="count">${ph.length} photos</span>` : ""}${i === 0 && ph.length > 1 ? `<span class="count m">${ph.length} photos</span>` : ""}</button>`).join("")}</div>`;
+      : `<div class="gallery${ph.length < 3 ? " one" : ""}">${ph.slice(0, ph.length < 3 ? 1 : 5).map((u, i) => `<button type="button" data-p="${i}" aria-label="Open photo ${i + 1}"><img src="${esc(u)}" alt="${i ? "" : esc(c.title)}" width="${i ? 640 : 1280}" height="${i ? 427 : 853}" ${i ? 'loading="lazy"' : 'fetchpriority="high"'} decoding="async" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">${i === Math.min(4, ph.length - 1) && ph.length > 1 ? `<span class="count">${ph.length} photos</span>` : ""}${i === 0 && ph.length > 1 ? `<span class="count m">${ph.length} photos</span>` : ""}</button>`).join("")}</div>`;
     const priceTxt = (c.status === "upcoming" || (c.status === "unsold" && !c.price)) && c.estimate ? `${short(c.estimate[0])} to ${short(c.estimate[1])}` : c.price ? money(c.price) : "Not published";
-    const when = c.status === "live" || c.status === "upcoming" ? (c.ends_at ? "Ends " + endET(c.ends_at) : "") : c.date ? dateLong(c.date) : "";
+    const when = !c.ends_at || !(c.status === "live" || c.status === "upcoming") ? (c.date ? dateLong(c.date) : "")
+      : over ? "Ended " + endLocal(c.ends_at) : c.status === "live" ? `${countdown(c.ends_at)}, ends ${endLocal(c.ends_at)}` : endLocal(c.ends_at);
     const ext = c.url ? `<a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener">${c.status === "for_sale" ? "Contact seller on" : "View lot on"} ${esc(c.where || "source")} ↗</a>` : "";
     const ask = c.market && c.market.median_ask;
     const fv = c.fair_value;
-    const fvPrice = c.status === "for_sale" || c.status === "live" ? c.price : null;
+    const fvPrice = c.status === "for_sale" || (c.status === "live" && !over) ? c.price : null;
+    const live = c.status === "live";
+    const CONF = { high: "High", medium: "Medium", low: "Low" };
+    // how sure the fair value is, and why dealer asks sit above it
+    const fvBasis = !fv || !fv.conf ? "" : `<div class="fv-conf"><span class="conf ${fv.conf}" title="From the number of sales behind the value and how far it landed from sales it had not seen">${CONF[fv.conf]} confidence</span>
+      <span>${fv.n} auction sales in 3 years${fv.miss != null ? `, typically within ${Math.round(fv.miss)}%` : ""}.</span></div>
+      ${c.status === "for_sale" && fv.ask_gap != null ? `<p class="fv-note">Fair value is what the car should sell for at auction. Dealers ask a median ${Math.abs(Math.round(fv.ask_gap))}% ${fv.ask_gap >= 0 ? "above" : "below"} it for the ${esc(c.model.name)}, which leaves room for their margin, preparation and negotiation.</p>` : ""}`;
     const vsAsk = ask && c.price && c.status !== "upcoming" ? chg((c.price / ask - 1) * 100) : "";
     app.innerHTML = `<div class="page-head" style="padding-block:24px 0;border-bottom:0"><div class="wrap">
-        <div class="crumbs"><a href="#overview">Overview</a> / ${m.family ? `<a href="#family-${slug(m.family)}">${esc(m.family)}</a> / ` : ""}<a href="#model-${esc(c.model.id)}">${esc(c.model.name)}</a></div>
+        <div class="crumbs"><a href="#overview">Overview</a> / ${m.family ? `<a href="#family-${slug(m.family)}">${esc(m.family)}</a> / ` : ""}<a href="${modelLink(c.model.id)}">${esc(c.model.name)}</a></div>
         ${gal}</div></div>
       <section class="block" style="padding-top:0"><div class="wrap car-layout">
         <div class="car-head">
-          <h1 class="car-title">${esc(c.title)}</h1>
+          <h1 class="car-title">${esc(c.title)}</h1>${watchBtn("car", id, c.title, c)}
           <div class="car-meta">${c.vin ? `<span>VIN <span class="num">${esc(c.vin)}</span></span>` : ""}${c.location ? `<span>${esc(c.location)}</span>` : ""}${when ? `<span>${when}</span>` : ""}</div>
         </div>
         <aside><div class="car-box" id="car-box">
-          <span class="status ${c.status}">${STATUS[c.status] || c.status}</span>
-          <div><div class="eyebrow">${esc(c.price_label || "")}</div><div class="big">${priceTxt}</div>${vsAsk ? `<div style="font-size:13px;margin-top:4px">${vsAsk} vs median ask</div>` : ""}</div>
-          ${c.no_reserve ? '<span class="chip" style="justify-self:start">No reserve</span>' : ""}${c.certified ? '<span class="chip sold" style="justify-self:start">Ferrari Approved</span>' : ""}
+          <span class="status ${over ? "off_market" : c.status}">${over ? "Ended, result pending" : STATUS[c.status] || c.status}</span>
+          <div><div class="eyebrow">${over ? "Last bid seen" : esc(c.price_label || "")}</div><div class="big">${live && !c.price ? (over ? "None" : "No bids yet") : c.status === "sold" && !c.price ? "Price not published" : priceTxt}</div>${vsAsk && !(live && !over) ? `<div style="font-size:13px;margin-top:4px">${vsAsk} vs median ask</div>` : ""}</div>
+          <div class="car-tags">${c.no_reserve ? tag("noreserve") : ""}${c.certified ? tag("approved") : ""}${c.gearbox === "manual" ? tag("manual") : ""}${c.special ? tag("special", SPECIALS[c.special] + ". Left out of the model's averages and trends") : ""}</div>
           <div class="row"><span>${c.status === "for_sale" || c.status === "off_market" ? "Seller" : "Auction"}</span><span>${esc(c.seller || "")}</span></div>
           ${c.sale ? `<div class="row"><span>Sale</span><span>${saleLink(c)}</span></div>` : ""}
           ${c.country ? `<div class="row"><span>Country</span><span>${esc(c.country)}</span></div>` : ""}
-          ${fv ? `<div class="row"><span>Fair value</span><span class="fvp ${fvCls(fvPct(fv, fvPrice))}">${money(fv.value)}</span></div>
-          ${fvGauge(fv, fvPrice)}
-          ${fvPrice ? `<div class="row fvc"><span>${c.status === "live" ? "Bid" : "Ask"} vs fair value</span>${fvVs(fvPct(fv, fvPrice))}</div>` : ""}
-          ${fvAdj(fv) ? `<div class="fv-adj">${fvAdj(fv)}</div>` : ""}` : ""}
+          ${fv ? `<div class="row"><span>Fair value</span><span class="fvp ${live ? "" : fvCls(fvPct(fv, fvPrice))}">${money(fv.value)}</span></div>
+          ${fvGauge(fv, fvPrice, live)}
+          ${fvPrice && live ? `<div class="row"><span>Bid so far</span><span class="flat">${Math.round(fvPrice / fv.value * 100)}% of fair value</span></div>`
+            : fvPrice ? `<div class="row fvc"><span>Ask vs fair value</span>${fvVs(fvPct(fv, fvPrice))}</div>` : ""}
+          ${fvAdj(fv) ? `<div class="fv-adj">${fvAdj(fv)}</div>` : ""}${fvBasis}` : ""}
           ${ask ? `<div class="row"><span>Median ask, ${esc(c.model.name)}</span><span class="num">${money(ask)}</span></div>` : ""}
           ${(m.auction || {}).median_sold_12m ? `<div class="row"><span>Median sold, 12 months</span><span class="num">${money(m.auction.median_sold_12m)}</span></div>` : ""}
           ${ext}
-          <a class="link-more" href="#model-${esc(c.model.id)}">All ${esc(c.model.name)} prices →</a>
+          <a class="link-more" href="${modelLink(c.model.id)}">All ${esc(c.model.name)} prices →</a>
         </div></aside>
         <div class="car-rest">
         <div class="car-sec" style="margin-top:0"><h2>Key specs</h2><div class="specs-grid">${c.specs.map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div></div>
@@ -1922,8 +2193,9 @@ const FRESH = { cache: "no-cache" };
               ${e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">View source ↗</a>` : ""}</div>
               <div style="position:relative">${photo(e.photo, "")}${e.n_photos > 1 ? `<span class="n">${e.n_photos}</span>` : ""}</div>${seen}${changes}</div></li>`;
           }).join("")}</ol></div>
+        ${priceHistory(c)}
         <div class="car-sec"><h2>${esc(c.model.name)} market</h2><div class="legend" style="margin:-4px 0 14px"><span><i class="k me-k"></i>This car</span></div><div id="car-mkt"><p class="flat">Loading the market</p></div></div>
-        ${c.comps.length ? `<div class="car-sec"><h2>Recent ${esc(c.model.name)} sales</h2><div class="lots" data-rows="2" data-min="4">${c.comps.map(x => `<a class="lot" ${carLink({ car: x.id, url: "#" })}>${photo(x.image, x.title, '<span class="chip sold">Sold</span>')}
+        ${c.comps.length ? `<div class="car-sec"><h2>Recent ${esc(c.model.name)} sales</h2><div class="lots" data-rows="2" data-min="4">${c.comps.map(x => `<a class="lot" ${carLink({ car: x.id, url: "#" })}>${photo(x.image, x.title, tag("sold"))}
           <div class="body"><h3>${esc(x.title)}</h3>${salePlace(x, true)}<div class="house">${esc(x.house || "")}</div>${x.mileage ? `<div class="specs">${miles(x.mileage)}</div>` : ""}
           <div class="bid"><div><div class="eyebrow">Sold for</div><b>${money(x.price)}</b></div><span>${dateLong(x.date)}</span></div></div></a>`).join("")}</div></div>` : ""}
       </div></div></section>
@@ -1941,7 +2213,7 @@ const FRESH = { cache: "no-cache" };
     window.scrollTo(0, 0);
     let detail = modelCache[c.model.id];
     if (!detail) { try { detail = modelCache[c.model.id] = await (await fetch(`data/models/${c.model.id}.json`, FRESH)).json(); } catch (e) { detail = null; } }
-    if (location.hash !== "#car-" + id) return;
+    if (curRoute() !== "car-" + id) return;
     const mk = document.getElementById("car-mkt");
     if (detail) marketPanel(mk, detail, byId[c.model.id] || { id: c.model.id, name: c.model.name }, carMark(c));
     else mk.innerHTML = '<p class="flat">Could not load the market for this model.</p>';
@@ -1952,20 +2224,29 @@ const FRESH = { cache: "no-cache" };
     if (!f) return notFound();
     const models = f.models.map(id => byId[id]).filter(Boolean)
       .sort((a, b) => (b.listings - a.listings) || (((b.auction || {}).sold_12m || 0) - ((a.auction || {}).sold_12m || 0)));
+    setTitle(`Ferrari ${f.name} models`);
     const med = models.reduce((a, m) => a + m.listings, 0);
     app.innerHTML = pageHead(esc(f.name), esc(f.name), esc(f.signal) + ".", [[med, "For sale now"], [f.sold_12m || 0, "Auction sales, 12 months"], [models.length, "Models"]])
       + `<section class="block"><div class="wrap">${modelsTable(models)}</div></section>`;
     wireRows(); window.scrollTo(0, 0);
   }
 
-  function viewAuctions() {
+  async function viewAuctions() {
+    if (!D.auctions) {
+      loading();
+      try { await need("auctions"); } catch (e) { app.innerHTML = '<div class="wrap loading">Auctions could not be loaded. Check the connection and reload.</div>'; return; }
+      if (curRoute() !== "auctions") return;
+    }
+    setTitle("Ferrari auctions, live and upcoming");
     const a = D.auctions;
-    const tabs = [["live", "Live", a.live], ["upcoming", "Upcoming", a.upcoming], ["results", "Results, 90 days", a.results]];
+    // lots past their end time wait for their result under their own tab, never under Live
+    const liveNow = a.live.filter(l => !isOver(l)), ended = a.live.filter(isOver);
+    const tabs = [["live", "Live", liveNow], ["upcoming", "Upcoming", a.upcoming], ...(ended.length ? [["ended", "Ended, result pending", ended]] : []), ["results", "Results, 90 days", a.results]];
     const houses = Object.entries(a.houses).sort((x, y) => (y[1].live + y[1].results_30d) - (x[1].live + x[1].results_30d));
     const sold = a.results.filter(r => r.status === "sold"), closed = a.results.filter(r => r.ends_at && r.ends_at.slice(0, 10) > daysAgo(30));
     const rate = closed.length ? Math.round(closed.filter(r => r.status === "sold").length / closed.length * 100) + "%" : "n/a";
-    app.innerHTML = pageHead("Auctions", "Auctions", "Live and recent Ferrari lots from Bring a Trailer, Cars &amp; Bids, PCARMARKET, Sotheby's Motorsport, duPont Registry Live, RM Sotheby's, Gooding Christie's, Bonhams, Broad Arrow and Mecum. Photos link to the original lot. Times are US Eastern.",
-      [[a.live.length, "Live now"], [a.upcoming.length, "Upcoming"], [sold.length, "Sold, 90 days"], [rate, "Sell through, 30 days"]])
+    app.innerHTML = pageHead("Auctions", "Auctions", "Live and recent Ferrari lots from Bring a Trailer, Cars &amp; Bids, PCARMARKET, Sotheby's Motorsport, duPont Registry Live, RM Sotheby's, Gooding Christie's, Bonhams, Broad Arrow and Mecum. Photos link to the original lot. Times are in your own time zone.",
+      [[liveNow.length, "Live now"], [a.upcoming.length, "Upcoming"], [sold.length, "Sold, 90 days"], [rate, "Sell through, 30 days"]])
       + `<section class="block"><div class="wrap">
         <div class="auc-search"><input type="search" id="auc-q" list="auc-models" placeholder="Search by model, e.g. 812 GTS" aria-label="Search auctions by model" autocomplete="off" spellcheck="false">
           <datalist id="auc-models">${[...new Set([...a.live, ...a.upcoming, ...a.results].map(r => (byId[r.model_id] || {}).name).filter(Boolean))].sort().map(n => `<option value="${esc(n)}">`).join("")}</datalist>
@@ -1973,7 +2254,7 @@ const FRESH = { cache: "no-cache" };
         <div class="tabs" role="tablist">${tabs.map(([k, l, arr], i) => `<button type="button" role="tab" id="tab-${k}" aria-selected="${i === 0}" data-tab="${k}">${l} (${arr.length})</button>`).join("")}</div>
         <div id="tab-body"></div></div></section>
         <section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">By auction</div><h2>Where Ferraris are selling</h2></div></div>
-        <div class="tbl-wrap"><table class="sheet"><thead><tr><th>Auction</th><th class="r">Live now</th><th class="r">Results, 30 days</th></tr></thead><tbody>
+        <div class="tbl-wrap"><table class="sheet"><caption class="sr">Ferrari lots by auction site: live now and results in the last 30 days</caption><thead><tr><th>Auction</th><th class="r">Live now</th><th class="r">Results, 30 days</th></tr></thead><tbody>
         ${houses.map(([h, v]) => `<tr><td class="name">${esc(h)}</td><td class="r num">${v.live}</td><td class="r num">${v.results_30d}</td></tr>`).join("")}</tbody></table></div></div></section>`;
     // search: a model's exact name shows only that model, anything else matches words in the lot title
     const norm = x => (x || "").toLowerCase().replace(/ferrari/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
@@ -1997,12 +2278,12 @@ const FRESH = { cache: "no-cache" };
       const total = tabs.reduce((n, t) => n + filtered(t[0]).length, 0);
       document.getElementById("auc-count").textContent = q.trim() ? `${plural(total, "lot")} match` : "";
       const body = document.getElementById("tab-body");
-      const table = items => `<div class="tbl-wrap"><table class="sheet"><thead><tr><th></th><th>Lot</th><th>Sale</th><th>Country</th><th>${k === "results" ? "Closed" : "Ends"}</th><th>Result</th><th class="r">Price</th><th class="r">vs median ask</th></tr></thead><tbody>
-          ${items.map(r => `<tr><td class="thumb">${photo(r.image, "")}</td><td class="name"><a ${carLink(r)}>${esc(r.title)}</a></td><td>${saleLink(r) || esc(r.auction_house)}<div class="flat" style="font-size:12px">${esc(r.auction_house)}</div></td><td>${esc(countryOf(r))}</td><td class="num">${r.ends_at ? dateLong(r.ends_at.slice(0, 10)) : ""}</td>
-          <td>${r.status === "sold" || r.status === "unsold" ? `<span class="chip ${r.status}"${r.status === "sold" ? "" : ' title="Reserve not met"'}>${r.status === "sold" ? "Sold" : "RNM"}</span>` : `<span class="chip">${r.status === "live" ? "Live" : "Upcoming"}</span>`}</td>
-          <td class="r num">${r.status === "upcoming" ? (r.estimate_low_usd ? short(r.estimate_low_usd) + " to " + short(r.estimate_high_usd) : "") : money(r.price_usd)}</td><td class="r">${r.status === "sold" ? chg(r.vs_ask_pct) : ""}</td></tr>`).join("")}</tbody></table></div>`;
+      const table = items => `<div class="tbl-wrap"><table class="sheet"><caption class="sr">${esc(tabs.find(t => t[0] === k)[1])} Ferrari auction lots</caption><thead><tr><th><span class="sr">Photo</span></th><th>Lot</th><th>Sale</th><th>Country</th><th>${k === "results" ? "Closed" : "Ends"}</th><th>Result</th><th class="r">Price</th><th class="r">vs median ask</th></tr></thead><tbody>
+          ${items.map(r => `<tr><td class="thumb">${photo(r.image, "")}</td><td class="name"><a ${carLink(r)}>${esc(r.title)}</a></td><td>${saleLink(r) || esc(r.auction_house)}<div class="flat" style="font-size:12px">${esc(r.auction_house)}</div></td><td>${esc(countryOf(r))}</td><td class="num">${!r.ends_at ? "" : k === "results" ? dateLong(r.ends_at.slice(0, 10)) : k === "live" ? countdown(r.ends_at) + `<div class="flat" style="font-size:12px">${endLocal(r.ends_at)}</div>` : endLocal(r.ends_at)}</td>
+          <td>${r.status === "sold" ? tag("sold") : r.status === "unsold" ? tag("rnm") : isOver(r) ? tag("ended") : r.status === "live" ? '<span class="chip">Live</span>' : tag("upcoming")}${r.special ? " " + tag("special", SPECIALS[r.special]) : ""}</td>
+          <td class="r num">${r.status === "upcoming" ? (r.estimate_low_usd ? short(r.estimate_low_usd) + " to " + short(r.estimate_high_usd) : "") : r.price_usd ? money(r.price_usd) : r.status === "sold" ? "Not published" : r.status === "live" ? "No bids yet" : ""}</td><td class="r">${r.status === "sold" ? chg(r.vs_ask_pct) : ""}</td></tr>`).join("")}</tbody></table></div>`;
       if (!arr.length) body.innerHTML = `<div class="empty">${q.trim() ? `No ${k === "results" ? "results" : k} lots for ${esc(q.trim())}.` : "Nothing here right now."}</div>`;
-      else switchable(body, arr, lotCard, table);
+      else { switchable(body, arr, lotCard, table); body.insertAdjacentHTML("beforeend", legend(k === "results" ? ["sold", "rnm", "special", "manual"] : ["soon", "ended", "noreserve", "upcoming", "manual"])); }
     };
     app.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => show(b.dataset.tab)));
     let tq;
@@ -2016,7 +2297,7 @@ const FRESH = { cache: "no-cache" };
   async function viewValue() {
     app.innerHTML = '<div class="wrap loading">Loading</div>';
     if (!VALUER) { try { VALUER = await (await fetch("data/valuer.json", FRESH)).json(); } catch (e) { VALUER = null; } }
-    if (location.hash !== "#value") return;
+    if (curRoute() !== "value") return;
     if (!VALUER || !VALUER.models.length) { app.innerHTML = pageHead("Value my car", "Value my car", "") + '<section class="block"><div class="wrap"><div class="empty">Valuations are not available right now.</div></div></section>'; return; }
     const V = VALUER, ms = V.models, byM = Object.fromEntries(ms.map(m => [m.id, m]));
     // grouped and ordered as in the Models menu
@@ -2032,6 +2313,7 @@ const FRESH = { cache: "no-cache" };
     try { st = JSON.parse(localStorage.getItem("rm-value") || "{}"); } catch (e) {}
     if (!byM[st.model]) st = { model: (byM["f8-tributo"] || ms[0]).id };
     const colourOpts = [...Object.entries(V.labels), ["other", "Other colour"], ["unsure", "Not sure"]];
+    setTitle("Value my Ferrari");
     app.innerHTML = pageHead("Value my car", "Value my car", "What your Ferrari would sell for today, from its model, year, mileage, colour and gearbox.") + `
       <section class="block"><div class="wrap val">
         <form class="val-form" id="val-form" onsubmit="return false">
@@ -2090,17 +2372,27 @@ const FRESH = { cache: "no-cache" };
         ${parts.map(([k, x]) => `<div class="row"><span>${esc(k)}</span>${chg((Math.exp(x) - 1) * 100)}</div>`).join("")}
         ${a.median_sold_12m ? `<div class="row"><span>Median sold, 12 months</span><span class="num">${money(a.median_sold_12m)}</span></div>` : ""}
         ${mm.median ? `<div class="row"><span>Median ask now</span><span class="num">${money(mm.median)}</span></div>` : ""}
+        ${m.conf ? `<div class="fv-conf"><span class="conf ${m.conf}" title="From the number of sales behind the value and how far it landed from sales it had not seen">${{ high: "High", medium: "Medium", low: "Low" }[m.conf]} confidence</span>
+          <span>${plural(m.sold, "auction sale")} in 3 years${m.miss_pct != null ? `, typically within ${Math.round(m.miss_pct)}%` : ""}.</span></div>` : ""}
+        ${m.ask_gap != null && Math.abs(m.ask_gap) >= 3 ? `<p class="fv-note">This is what the car should sell for at auction. Dealers ask a median ${Math.abs(Math.round(m.ask_gap))}% ${m.ask_gap >= 0 ? "above" : "below"} it for the ${esc(m.name)}, which leaves room for their margin, preparation and negotiation, so cars for sale below will look dearer.</p>` : ""}
         <a class="link-more" href="${modelLink(m.id)}">All ${esc(m.name)} prices →</a>`;
       // the cars for sale most like this one: same gearbox, nearest in year and mileage
       if (likeFor !== m.id + year + mi + gear) {
         likeFor = m.id + year + mi + gear;
         const key = likeFor;
         const d = modelCache[m.id] || await loadModel(m.id);
-        if (key !== likeFor || location.hash !== "#value") return;
+        if (key !== likeFor || curRoute() !== "value") return;
         const near = ((d || {}).listings || []).filter(l => !gear || (l.gearbox || "f1") === gear)
           .map(l => [Math.abs((l.year || year) - year) * 4 + Math.abs(Math.log1p((l.mileage_mi ?? mi) / 1000) - Math.log1p(mi / 1000)) * 3, l])
           .sort((x, y) => x[0] - y[0]).slice(0, 4).map(x => x[1]);
-        document.getElementById("val-like").innerHTML = near.length ? `<h3>Similar cars for sale</h3><div class="lots">${near.map(listingCard).join("")}</div>` : "";
+        // what the estimate rests on: the latest standard sales of this model with this gearbox
+        const sales = ((d || {}).results || []).filter(x => x.status === "sold" && x.price_usd && !x.special && (!gear || (x.gearbox || "f1") === gear))
+          .sort((x, y) => (y.ends_at || "").localeCompare(x.ends_at || "")).slice(0, 4);
+        document.getElementById("val-like").innerHTML =
+          (sales.length ? `<h3>Recent ${esc(m.name)} sales</h3><div class="lots">${sales.map(x => `<a class="lot" ${carLink(x)}>${photo(x.image, x.title, tag("sold"))}
+            <div class="body"><h3>${esc(x.title)}</h3><div class="house">${esc(x.auction_house || "")}</div>${x.mileage_mi != null ? `<div class="specs">${miles_(x.mileage_mi)}</div>` : ""}
+            <div class="bid"><div><div class="eyebrow">Sold for</div><b>${money(x.price_usd)}</b></div><span>${x.ends_at ? dateLong(x.ends_at.slice(0, 10)) : ""}</span></div></div></a>`).join("")}</div>` : "")
+          + (near.length ? `<h3>Similar cars for sale</h3><div class="lots">${near.map(listingCard).join("")}</div>` : "");
       }
     };
     const miles_ = n => Math.round(n).toLocaleString("en-US") + " mi";
@@ -2149,7 +2441,213 @@ const FRESH = { cache: "no-cache" };
     draw();
   }
 
-  function viewNews() {
+  // ------------------------------------------------------------ watchlist and price alerts
+  // Kept in this browser only: no account, nothing sent anywhere. Each entry remembers the price when it was
+  // added and the price last seen here, so the list can say what changed while the visitor was away.
+  const WKEY = "rm-watch";
+  const wGet = () => { try { const w = JSON.parse(localStorage.getItem(WKEY) || "{}"); return { cars: w.cars || {}, models: w.models || {} }; } catch (e) { return { cars: {}, models: {} }; } };
+  const wSet = w => { try { localStorage.setItem(WKEY, JSON.stringify(w)); return true; } catch (e) { return false; } };
+  const WICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 1.5h9v13L8 11.2 3.5 14.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+  function watchBtn(kind, id, name, c) {
+    const on = !!wGet()[kind + "s"][id];
+    const price = kind === "car" ? (c && c.price) || "" : (byId[id] || {}).median || "";
+    return `<button type="button" class="watch" data-watch="${kind}" data-id="${esc(id)}" data-name="${esc(name)}" data-price="${price}" data-status="${esc((c && c.status) || "")}" aria-pressed="${on}">${WICON}<span>${on ? "Watching" : "Watch"}</span></button>`;
+  }
+  document.addEventListener("click", e => {
+    const b = e.target.closest && e.target.closest("[data-watch]");
+    if (!b) return;
+    const w = wGet(), set = w[b.dataset.watch + "s"], id = b.dataset.id;
+    if (set[id]) delete set[id];
+    else { const price = +b.dataset.price || null; set[id] = { name: b.dataset.name, added: D.as_of, price, status: b.dataset.status || null, seen: { price, status: b.dataset.status || null } }; }
+    if (!wSet(w)) { b.querySelector("span").textContent = "Could not save in this browser"; return; }
+    b.setAttribute("aria-pressed", !!set[id]);
+    b.querySelector("span").textContent = set[id] ? "Watching" : "Watch";
+    watchBadge();
+  });
+  // Where every watched car and model stands now. Cars are read from their own files, models from the data already loaded.
+  async function watchState() {
+    const w = wGet();
+    const cars = await Promise.all(Object.entries(w.cars).slice(0, 60).map(async ([id, e]) => {
+      let c = null;
+      try { const r = await fetch(`data/cars/${id}.json`, FRESH); if (r.ok) c = await r.json(); } catch (x) {}
+      return { kind: "car", id, e, c, price: c ? c.price : null, status: c ? c.status : "gone" };
+    }));
+    const models = Object.entries(w.models).map(([id, e]) => ({ kind: "model", id, e, m: byId[id], price: (byId[id] || {}).median ?? null, status: null }));
+    for (const x of [...cars, ...models]) {
+      const seen = x.e.seen || {};
+      x.news = [];
+      if (x.price && seen.price && x.price !== seen.price) x.news.push(`${x.price < seen.price ? "Down" : "Up"} ${Math.abs((x.price / seen.price - 1) * 100).toFixed(1)}% to ${money(x.price)}`);
+      if (x.status && seen.status && x.status !== seen.status) x.news.push(x.status === "gone" ? "No longer in our records" : `Now ${String(STATUS[x.status] || x.status).toLowerCase()}`);
+      x.hit = x.e.target && x.price && x.price <= x.e.target && (x.status == null || ["for_sale", "live"].includes(x.status));
+      if (x.hit && !(seen.price && seen.price <= x.e.target)) x.news.push(`Reached your alert price of ${money(x.e.target)}`);
+    }
+    return { w, cars, models };
+  }
+  async function watchBadge() {
+    const el = document.getElementById("wl-n");
+    const w = wGet();
+    if (!Object.keys(w.cars).length && !Object.keys(w.models).length) { el.hidden = true; return; }
+    const st = await watchState(), n = [...st.cars, ...st.models].filter(x => x.news.length).length;
+    el.hidden = !n; el.textContent = n || "";
+    el.setAttribute("aria-label", n ? `${n} with changes` : "");
+  }
+  async function viewWatchlist() {
+    setTitle("Watchlist");
+    const head = pageHead("Watchlist", "Watchlist", "Cars and models you follow, with what changed since you added them and since your last visit.");
+    const w0 = wGet();
+    if (!Object.keys(w0.cars).length && !Object.keys(w0.models).length) {
+      app.innerHTML = head + `<section class="block"><div class="wrap"><div class="empty"><p><b>Nothing on your watchlist yet.</b></p>
+        <p>Open any car or model and choose Watch. It will appear here with every price change, and you can set a price to be alerted at.</p>
+        <p><a class="link-more" href="#auctions">Browse live auctions →</a> &nbsp; <a class="link-more" href="#find-for sale below fair value">Cars priced below fair value →</a></p></div></div></section>`;
+      window.scrollTo(0, 0); return;
+    }
+    loading();
+    const st = await watchState();
+    if (curRoute() !== "watchlist") return;
+    const news = [...st.cars, ...st.models].filter(x => x.news.length);
+    const since = x => x.e.price && x.price && x.price !== x.e.price ? chg((x.price / x.e.price - 1) * 100) : '<span class="flat">No change</span>';
+    const target = (kind, x) => `<label class="wl-t"><span class="sr">Alert price for ${esc(x.e.name)}</span><span aria-hidden="true">$</span><input type="number" min="0" step="1000" inputmode="numeric" placeholder="Price" value="${x.e.target || ""}" data-wt="${kind}" data-id="${esc(x.id)}"></label>${x.hit ? ' <span class="chip sold" title="The price is at or below your alert price">Reached</span>' : ""}`;
+    const rm = (kind, x) => `<button type="button" class="wl-rm" data-wr="${kind}" data-id="${esc(x.id)}" aria-label="Stop watching ${esc(x.e.name)}">Remove</button>`;
+    app.innerHTML = head + `<section class="block"><div class="wrap">
+      ${news.length ? `<div class="wl-news" role="status"><h2>Since your last visit</h2><ul>${news.map(x => `<li><a href="${x.kind === "car" ? "#car-" + x.id : modelLink(x.id)}">${esc(x.e.name)}</a><span>${x.news.map(esc).join(". ")}.</span></li>`).join("")}</ul></div>` : ""}
+      ${st.cars.length ? `<h2>Cars</h2><div class="tbl-wrap"><table class="sheet wl"><caption class="sr">Watched cars: price when added, price now and your alert price</caption>
+        <thead><tr><th>Car</th><th>Status</th><th class="r">When added</th><th class="r">Now</th><th class="r">Change since added</th><th>Alert at or below</th><th><span class="sr">Remove</span></th></tr></thead><tbody>
+        ${st.cars.map(x => `<tr><td class="name"><a href="#car-${x.id}">${esc(x.c ? x.c.title : x.e.name)}</a><div class="flat">Added ${dateLong(x.e.added)}</div></td>
+          <td>${x.c ? `<span class="status ${x.status}">${STATUS[x.status] || esc(x.status)}</span>` : '<span class="flat">No longer in our records</span>'}</td>
+          <td class="r num">${x.e.price ? money(x.e.price) : ""}</td><td class="r num">${x.price ? money(x.price) : x.c && x.status === "live" ? "No bids yet" : ""}</td><td class="r">${since(x)}</td>
+          <td>${x.c && ["for_sale", "live", "upcoming"].includes(x.status) ? target("car", x) : ""}</td><td class="r">${rm("car", x)}</td></tr>`).join("")}</tbody></table></div>` : ""}
+      ${st.models.length ? `<h2 style="margin-top:36px">Models</h2><div class="tbl-wrap"><table class="sheet wl"><caption class="sr">Watched models: median ask when added, median ask now and your alert price</caption>
+        <thead><tr><th>Model</th><th class="r">For sale</th><th class="r">Median ask when added</th><th class="r">Median ask now</th><th class="r">Change since added</th><th>Alert at or below</th><th><span class="sr">Remove</span></th></tr></thead><tbody>
+        ${st.models.map(x => `<tr><td class="name"><a href="${modelLink(x.id)}">${esc(x.m ? x.m.name : x.e.name)}</a><div class="flat">Added ${dateLong(x.e.added)}</div></td>
+          <td class="r num">${(x.m || {}).listings || 0}</td><td class="r num">${x.e.price ? money(x.e.price) : ""}</td><td class="r num">${x.price ? money(x.price) : ""}</td><td class="r">${since(x)}</td>
+          <td>${target("model", x)}</td><td class="r">${rm("model", x)}</td></tr>`).join("")}</tbody></table></div>` : ""}
+      <p class="flat" style="margin-top:20px;max-width:70ch">Your watchlist is saved in this browser only, so it does not follow you to another device and nothing about it is sent to us. Alerts show here and on the Watchlist link when you come back. Prices update once a day.</p>
+    </div></section>`;
+    // this visit has now seen everything: the next visit reports only what changes after it
+    for (const x of [...st.cars, ...st.models]) x.e.seen = { price: x.price, status: x.status };
+    wSet(st.w);
+    document.getElementById("wl-n").hidden = true;
+    app.querySelectorAll("[data-wt]").forEach(i => i.addEventListener("change", () => {
+      const w = wGet(), e = w[i.dataset.wt + "s"][i.dataset.id];
+      if (!e) return;
+      const v = Math.round(+i.value);
+      if (v > 0) e.target = v; else delete e.target;
+      wSet(w); viewWatchlist();
+    }));
+    app.querySelectorAll("[data-wr]").forEach(b => b.addEventListener("click", () => {
+      const w = wGet(); delete w[b.dataset.wr + "s"][b.dataset.id]; wSet(w); viewWatchlist();
+    }));
+    window.scrollTo(0, 0);
+  }
+
+  // ------------------------------------------------------------ search by spec
+  // "manual F430 under 20k miles", "red 458 in CA", "2015 to 2018 488 below $250k": every part that names a
+  // spec becomes a filter, and whatever is left has to appear in the car's title.
+  let SPEC = null;
+  const loadSpec = () => SPEC || (SPEC = fetch("data/spec.json", FRESH).then(r => r.ok ? r.json() : []).catch(() => { SPEC = null; return []; }));
+  const SP = { id: 0, title: 1, model: 2, year: 3, miles: 4, colour: 5, gear: 6, state: 7, price: 8, status: 9, image: 10, seller: 11, askPct: 12, certified: 13 };
+  const COLOUR_WORDS = { red: "red", rosso: "red", black: "black", nero: "black", white: "white", bianco: "white", grey: "grey", gray: "grey", grigio: "grey", silver: "silver", argento: "silver",
+    blue: "blue", blu: "blue", yellow: "yellow", giallo: "yellow", green: "green", verde: "green", brown: "brown", purple: "purple", orange: "orange" };
+  const STATE_CODES = Object.fromEntries(Object.entries(STATE_NAMES).map(([k, v]) => [v.toLowerCase(), k]));
+  const amount = (n, k) => +n.replace(/,/g, "") * (/m/i.test(k || "") ? 1e6 : /k/i.test(k || "") ? 1e3 : 1);
+  function parseSpec(raw) {
+    let q = " " + raw.trim().replace(/\s+/g, " ") + " ";
+    const f = {}, labels = [];
+    const take = (re, fn) => { q = q.replace(re, (...m) => fn(...m) === false ? m[0] : " "); };
+    take(/ (?:price[sd]? )?(?:below|under) fair value | (?:good )?deals? /gi, () => { f.deal = true; labels.push("Below fair value"); });
+    take(/ (?:under|below|less than|max|<) ?(\d[\d,.]*) ?(k)? ?(?:miles?|mi)\b/gi, (_, n, k) => { f.maxMiles = amount(n, k); labels.push(`Under ${f.maxMiles.toLocaleString("en-US")} miles`); });
+    take(/ (?:over|above|more than|>) ?(\d[\d,.]*) ?(k)? ?(?:miles?|mi)\b/gi, (_, n, k) => { f.minMiles = amount(n, k); labels.push(`Over ${f.minMiles.toLocaleString("en-US")} miles`); });
+    take(/ (?:low|lo) (?:mileage|miles?) | delivery miles? /gi, () => { if (!f.maxMiles) { f.maxMiles = 5000; labels.push("Under 5,000 miles"); } });
+    take(/ (?:under|below|less than|max|<) ?\$? ?(\d[\d,.]*) ?(k|m|million)?\b/gi, (_, n, k) => { const v = amount(n, k); f.maxPrice = v < 5000 ? v * 1000 : v; labels.push(`Under ${short(f.maxPrice)}`); });
+    take(/ (?:over|above|more than|min|>) ?\$? ?(\d[\d,.]*) ?(k|m|million)?\b/gi, (_, n, k) => { const v = amount(n, k); f.minPrice = v < 5000 ? v * 1000 : v; labels.push(`Over ${short(f.minPrice)}`); });
+    take(/ ((?:19|20)\d\d) ?(?:to|through|-) ?((?:19|20)\d\d)\b/g, (_, a, b) => { f.minYear = +a; f.maxYear = +b; labels.push(`${a} to ${b}`); });
+    take(/ (?:after|since|from) ((?:19|20)\d\d)\b/gi, (_, a) => { f.minYear = +a; labels.push(`${a} or newer`); });
+    take(/ (?:before|until|up to) ((?:19|20)\d\d)\b/gi, (_, a) => { f.maxYear = +a; labels.push(`${a} or older`); });
+    take(/ ((?:19[4-9]|20[0-3])\d) (?=.*[a-z])/gi, (_, a) => { if (f.minYear == null && f.maxYear == null) { f.minYear = f.maxYear = +a; labels.push(a); } });
+    take(/ (?:factory )?(?:(?:6|six)[ -]?speed(?: manual)?|manual(?: gearbox| transmission)?|gated(?: manual| shifter)?|stick(?: shift)?|three pedals?) /gi, () => { f.gear = "manual"; labels.push("Manual gearbox"); });
+    take(/ f1(?: gearbox| transmission)? | paddle ?shift(?:er|ers)? /gi, () => { f.gear = "f1"; labels.push("F1 gearbox"); });
+    take(/ (?:ferrari )?approved | certified | cpo /gi, () => { f.certified = true; labels.push("Ferrari Approved"); });
+    take(/ (?:at |live )?auctions? | live /gi, () => { f.status = "auction"; labels.push("At auction"); });
+    take(/ for sale | listed /gi, () => { f.status = "for_sale"; labels.push("For sale"); });
+    // "California" alone is the model: it is the state only after "in"
+    take(new RegExp(` (in )?(${Object.keys(STATE_CODES).join("|")}) `, "gi"), (_, pre, n) => { if (!pre && /^california$/i.test(n)) return false; f.state = STATE_CODES[n.toLowerCase()]; labels.push(n.replace(/\b\w/g, c => c.toUpperCase())); });
+    take(/ in ([A-Za-z]{2}) /g, (_, c) => { f.state = c.toUpperCase(); labels.push(f.state); });
+    take(/ ([A-Z]{2}) $/g, (_, c) => { if (!f.state && !/^(GT|LM|SA|XX|SP|GTB|GTS|TR|TS|BB|M|F)$/.test(c)) { f.state = c; labels.push(c); } else return false; });
+    take(new RegExp(` (${Object.keys(COLOUR_WORDS).join("|")}) `, "gi"), (_, c) => { f.colour = COLOUR_WORDS[c.toLowerCase()]; labels.push(f.colour[0].toUpperCase() + f.colour.slice(1)); });
+    f.words = q.toLowerCase().replace(/\bferraris?\b|\bcars?\b|\bwith\b|\band\b|\bmileage\b|\bmiles\b|,/g, " ").split(/\s+/).filter(Boolean);
+    f.labels = labels;
+    f.spec = labels.length > 0;
+    return f;
+  }
+  const squash = t => t.toLowerCase().replace(/[^a-z0-9]+/g, " ");
+  // Cars built with a manual only: everything before the F1 gearbox arrived in 1997, and the 550 Maranello
+  const manualOnly = r => r[SP.gear] == null && ((r[SP.year] && r[SP.year] < 1997 && !/\b(400|412|gta|automatic|valeo)\b/i.test(r[SP.title])) || /^550\b/.test(r[SP.model]));
+  function specMatch(rows, f) {
+    return rows.filter(r => {
+      if (f.gear === "manual" && r[SP.gear] !== "manual" && !manualOnly(r)) return false;
+      if (f.gear === "f1" && r[SP.gear] !== "f1") return false;
+      if (f.colour && r[SP.colour] !== f.colour) return false;
+      if (f.state && r[SP.state] !== f.state) return false;
+      if (f.certified && !r[SP.certified]) return false;
+      if (f.status === "auction" && r[SP.status] === "for_sale") return false;
+      if (f.status === "for_sale" && r[SP.status] !== "for_sale") return false;
+      if (f.deal && !(r[SP.status] === "for_sale" && r[SP.askPct] != null && r[SP.askPct] <= -5)) return false;
+      if (f.minYear && !(r[SP.year] >= f.minYear)) return false;
+      if (f.maxYear && !(r[SP.year] <= f.maxYear)) return false;
+      if (f.maxMiles != null && !(r[SP.miles] != null && r[SP.miles] <= f.maxMiles)) return false;
+      if (f.minMiles != null && !(r[SP.miles] != null && r[SP.miles] >= f.minMiles)) return false;
+      if (f.maxPrice && !(r[SP.price] && r[SP.price] <= f.maxPrice)) return false;
+      if (f.minPrice && !(r[SP.price] && r[SP.price] >= f.minPrice)) return false;
+      if (f.words.length) { const t = " " + squash(r[SP.title] + " " + r[SP.model]) + " ", tight = t.replace(/ /g, ""); if (!f.words.every(w => t.includes(" " + squash(w).trim() + " ") || (w.length > 2 && tight.includes(squash(w).replace(/ /g, ""))))) return false; }
+      return true;
+    });
+  }
+  function specCard(r) {
+    const auc = r[SP.status] !== "for_sale";
+    const chips = (auc ? tag(r[SP.status] === "live" ? "live" : "upcoming") : "") + (r[SP.certified] ? tag("approved") : "") + (r[SP.gear] === "manual" ? tag("manual") : "");
+    const pct = r[SP.askPct];
+    return `<a class="lot" href="#car-${r[SP.id]}">${photo(r[SP.image], r[SP.title], chips)}
+      <div class="body"><h3>${esc(r[SP.title])}</h3>
+        <div class="specs">${[r[SP.miles] != null ? miles(r[SP.miles]) : "", r[SP.colour] ? r[SP.colour][0].toUpperCase() + r[SP.colour].slice(1) : ""].filter(Boolean).join(" · ")}</div>
+        <div class="house">${esc(r[SP.seller] || "")}${r[SP.state] ? ", " + esc(r[SP.state]) : ""}</div>
+        <div class="bid"><div><div class="eyebrow">${auc ? (r[SP.status] === "live" ? "Current bid" : "Upcoming auction") : "Asking"}</div><b>${r[SP.price] ? money(r[SP.price]) : auc ? (r[SP.status] === "live" ? "No bids yet" : "Not open yet") : "Price on request"}</b></div>
+        ${!auc && pct != null ? `<span class="${fvCls(pct)}">${Math.abs(pct) < 0.5 ? "At fair value" : `${Math.abs(pct).toFixed(1)}% ${pct < 0 ? "below" : "above"} fair value`}</span>` : "<span></span>"}</div>
+      </div></a>`;
+  }
+  async function viewFind(q) {
+    loading();
+    const rows = await loadSpec();
+    if (curRoute() !== "find-" + q) return;
+    const f = parseSpec(q), hit = specMatch(rows, f);
+    setTitle(`${q}: Ferraris that match`);
+    const SORTS = { price: ["Price, low to high", (a, b) => (a[SP.price] || 1e12) - (b[SP.price] || 1e12)], priced: ["Price, high to low", (a, b) => (b[SP.price] || 0) - (a[SP.price] || 0)],
+      miles: ["Mileage, low to high", (a, b) => (a[SP.miles] ?? 1e9) - (b[SP.miles] ?? 1e9)], year: ["Year, newest first", (a, b) => (b[SP.year] || 0) - (a[SP.year] || 0)],
+      deal: ["Furthest below fair value", (a, b) => (a[SP.askPct] ?? 999) - (b[SP.askPct] ?? 999)] };
+    let sort = f.deal ? "deal" : "price", shown = 48;
+    app.innerHTML = pageHead("Search", `${plural(hit.length, "car")} ${hit.length === 1 ? "matches" : "match"}`, `Your search: ${esc(q)}. Cars for sale now and lots live or coming up at auction.`) + `<section class="block"><div class="wrap">
+      <div class="find-bar"><div class="find-tags">${[...f.labels, ...f.words.map(w => `“${w}”`)].map(l => `<span class="chip">${esc(l)}</span>`).join("")}</div>
+        <label>Sort <select id="find-sort">${Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${k === sort ? "selected" : ""}>${v[0]}</option>`).join("")}</select></label></div>
+      <div id="find-out"></div></div></section>`;
+    const out = document.getElementById("find-out");
+    const draw = () => {
+      const list = [...hit].sort(SORTS[sort][1]);
+      out.innerHTML = list.length ? `<div class="lots">${list.slice(0, shown).map(specCard).join("")}</div>${list.length > shown ? `<p style="margin-top:20px"><button type="button" class="more" id="find-more">Show ${Math.min(48, list.length - shown)} more</button></p>` : ""}`
+        : `<div class="empty"><p><b>No car matches all of that right now.</b></p><p>Try fewer words, or one of these: <a href="#find-manual">manual</a>, <a href="#find-red 458 under 10k miles">red 458 under 10k miles</a>, <a href="#find-488 in Florida">488 in Florida</a>.</p></div>`;
+      const more = document.getElementById("find-more");
+      if (more) more.addEventListener("click", () => { shown += 48; draw(); });
+    };
+    document.getElementById("find-sort").addEventListener("change", e => { sort = e.target.value; draw(); });
+    draw();
+    window.scrollTo(0, 0);
+  }
+
+  async function viewNews() {
+    if (!D.news) {
+      loading();
+      try { await need("overview"); } catch (e) { app.innerHTML = '<div class="wrap loading">News could not be loaded. Check the connection and reload.</div>'; return; }
+      if (curRoute() !== "news") return;
+    }
+    setTitle("Ferrari news");
     app.innerHTML = pageHead("News", "News", "Ferrari headlines from the outlets we follow. Every story links to the original.")
       + `<section class="block"><div class="wrap">${newsList(D.news)}</div></section>`;
     window.scrollTo(0, 0);
@@ -2157,6 +2655,7 @@ const FRESH = { cache: "no-cache" };
 
   function viewMethodology() {
     const r = D.rules;
+    setTitle("How we count");
     app.innerHTML = pageHead("Methodology", "How we count", "Where the numbers come from and what each one means.")
       + `<section class="block"><div class="wrap"><div class="prose">
         <h3>Sources</h3>
@@ -2173,6 +2672,10 @@ const FRESH = { cache: "no-cache" };
         <p>Each model page shows what every exterior colour is worth against red. Sites name paint their own way, so every name is first put in a family: Rosso Corsa, Rosso Scuderia and plain Red are all red, Grigio Silverstone is grey. Paint Ferrari makes outside its standard range, which Ferrari Approved lists only as "Extra Sample", is still a colour: such a car takes its colour from another site that lists the same VIN, and what the one off paint adds is measured separately, so it is not credited to the colour. A special order car no site names a colour for is left out. Year and mileage move price far more than paint, and one colour's cars may simply be newer, so we fit each model's prices to year, mileage and colour together and read off what the colour alone adds. The range shown is 90% sure. A colour needs at least three cars in the model, and red at least three, before it is shown. The figure for every model compares cars only within the same model and years, never a 296 against a Roma.</p>
         <h3>Auction results</h3>
         <p>Auction sites report prices differently. Bring a Trailer, Cars &amp; Bids, Sotheby's Motorsport and duPont Registry Live show the winning bid. RM Sotheby's and Mecum include the buyer's premium. Prices in pounds, euros or francs are converted to US dollars at the day's rate. A result far outside the model's asking range is kept on its model page but left out of the headline insights, because it is more often a data error than a real sale.</p>
+        <h3>Specials and small samples</h3>
+        <p>Race cars are not counted as the road car. Manual conversions, one offs, modified cars and sales priced far from the model's other sales stay on the model page with a Special tag, and are left out of its averages, medians and trends. A figure that rests on fewer than eight sales or ten cars carries a Small sample tag and is never used as a headline.</p>
+        <h3>Fair value and dealer asks</h3>
+        <p>Fair value is what a car should sell for at auction, from the model's sales over three years and the car's year, mileage, colour and gearbox. Each value shows how many sales stand behind it and how close it has come to sales it had not seen. Dealers ask more than auction prices: their price covers preparation, a warranty on certified cars, their margin and room to negotiate. Each model shows that gap, so an ask above fair value by about the usual gap is normal for a dealer car.</p>
         <h3>What these numbers are not</h3>
         <p>Asking prices are what sellers hope to get. They are not appraisals or offers, and individual cars vary with mileage, history and specification.</p>
       </div></div></section>`;
@@ -2180,6 +2683,7 @@ const FRESH = { cache: "no-cache" };
   }
 
   function viewPrivacy() {
+    setTitle("Privacy");
     app.innerHTML = pageHead("Privacy", "Privacy", "")
       + `<section class="block"><div class="wrap"><div class="prose">
         <p>Rosso Market does not ask you for an account and does not collect personal information. We do not use advertising or tracking cookies.</p>
@@ -2190,11 +2694,12 @@ const FRESH = { cache: "no-cache" };
   }
 
   function notFound() {
-    app.innerHTML = `<section class="block"><div class="wrap"><h2>Page not found</h2><p><a class="link-more" href="#overview">Back to the overview</a></p></div></section>`;
+    setTitle("Page not found");
+    app.innerHTML = `<section class="block"><div class="wrap"><h1 style="font-size:40px">Page not found</h1><p>That address does not match a page here. The car or model may have been renamed.</p><p><a class="link-more" href="#overview">Back to the overview →</a></p></div></section>`;
   }
 
   function wireRows() {
-    app.querySelectorAll("tr[data-href]").forEach(tr => tr.addEventListener("click", e => { if (!e.target.closest("a")) location.hash = tr.dataset.href.slice(1); }));
+    app.querySelectorAll("tr[data-href]").forEach(tr => tr.addEventListener("click", e => { if (!e.target.closest("a")) go(tr.dataset.href); }));
   }
 
   // ------------------------------------------------------------ chrome
@@ -2208,7 +2713,7 @@ const FRESH = { cache: "no-cache" };
     document.getElementById("menu-grid").innerHTML = D.families.map(f => `<div><h4>${esc(f.name)}</h4>
       ${f.models.map(id => byId[id]).filter(Boolean).map(m => m.gearbox_listings
         ? `<div class="mgroup"><a href="${modelLink(m.id)}" class="mg-main"><span>${esc(m.name)}</span>${cnt(m.listings, m.at_auction)}</a>
-            <div class="mg-sub"><a href="#model-${m.id}--f1"><span>${esc(m.name)}</span>${cnt(m.gearbox_listings.f1, (m.gearbox_auction || {}).f1)}</a><a href="#model-${m.id}--6-speed"><span>${esc(m.name)} 6-Speed</span>${cnt(m.gearbox_listings.manual, (m.gearbox_auction || {}).manual)}</a></div></div>`
+            <div class="mg-sub"><a href="${modelLink(m.id, "f1")}"><span>${esc(m.name)}</span>${cnt(m.gearbox_listings.f1, (m.gearbox_auction || {}).f1)}</a><a href="${modelLink(m.id, "manual")}"><span>${esc(m.name)} 6-Speed</span>${cnt(m.gearbox_listings.manual, (m.gearbox_auction || {}).manual)}</a></div></div>`
         : `<a href="${modelLink(m.id)}"><span>${esc(m.name)}</span>${cnt(m.listings, m.at_auction)}</a>`).join("")}</div>`).join("");
   }
 
@@ -2247,6 +2752,19 @@ const FRESH = { cache: "no-cache" };
     }
     return out.slice(0, 12);
   }
+  // spec search joins in once the words are more than a VIN or a bare model name
+  function specResults(raw, rows) {
+    const q = raw.trim();
+    if (q.length < 3 || !rows.length) return [];
+    const f = parseSpec(q);
+    if (!f.spec && f.words.length < 2) return [];
+    const hit = specMatch(rows, f);
+    if (!hit.length) return [];
+    hit.sort((a, b) => (a[SP.price] || 1e12) - (b[SP.price] || 1e12));
+    return [{ href: "#find-" + q, title: `See all ${plural(hit.length, "car")} that match`, all: true, note: [...f.labels, ...f.words].join(", ") },
+      ...hit.slice(0, 4).map(r => ({ href: "#car-" + r[SP.id], title: r[SP.title], spec: true,
+        note: [r[SP.miles] != null ? miles(r[SP.miles]) : "", r[SP.state] || "", r[SP.price] ? money(r[SP.price]) : ""].filter(Boolean).join(", ") }))];
+  }
   function showResults(list, q) {
     const box = document.getElementById("sres"), input = document.getElementById("q");
     sresItems = list; sresOn = list.length ? 0 : -1;
@@ -2255,8 +2773,9 @@ const FRESH = { cache: "no-cache" };
     box.innerHTML = list.length ? list.map((r, i) => `<a href="${r.href}" role="option" class="${i === sresOn ? "on" : ""}">
         <b>${esc(r.title || "")}</b>
         ${r.model ? `<span>Model page${r.listings ? ", " + plural(r.listings, "car") + " for sale" : ""}</span>`
+                  : r.all || r.spec ? `<span>${esc(r.note)}</span>`
                   : `<span class="vin">${mark(r)}</span><span>${esc(r.status || "")}${r.price ? ", " + money(r.price) : ""}</span>`}</a>`).join("")
-      : `<p>No car with that VIN in our records. Enter at least 4 characters of the VIN or chassis number, or a model name.</p>`;
+      : `<p>Nothing matches. Enter at least 4 characters of a VIN or chassis number, a model name, or a spec such as manual F430 or red 458 under 10k miles.</p>`;
     box.hidden = false; input.setAttribute("aria-expanded", "true");
   }
   function initSearch() {
@@ -2265,7 +2784,16 @@ const FRESH = { cache: "no-cache" };
     input.addEventListener("input", async () => {
       const q = input.value;
       const index = await loadSearch();
-      if (input.value === q) showResults(searchResults(q, index), q);
+      if (input.value !== q) return;
+      const first = searchResults(q, index);
+      showResults(first, q);
+      // a spec needs the list of cars available now: fetched the first time a search reads like one
+      const f = q.trim().length >= 3 ? parseSpec(q) : null;
+      if (!f || (!f.spec && f.words.length < 2)) return;
+      const rows = await loadSpec();
+      if (input.value !== q) return;
+      const spec = specResults(q, rows);
+      if (spec.length) showResults([...first.filter(r => r.model || r.exact), ...spec, ...first.filter(r => !r.model && !r.exact)].slice(0, 12), q);
     });
     input.addEventListener("keydown", e => {
       if (box.hidden) return;
@@ -2274,9 +2802,11 @@ const FRESH = { cache: "no-cache" };
         if (!sresItems.length) return;
         sresOn = (sresOn + (e.key === "ArrowDown" ? 1 : -1) + sresItems.length) % sresItems.length;
         box.querySelectorAll("a").forEach((a, i) => a.classList.toggle("on", i === sresOn));
+      } else if (e.key === "Enter" && sresOn < 0 && input.value.trim().length >= 3) {
+        e.preventDefault(); go("#find-" + input.value.trim()); box.hidden = true; input.blur();
       } else if (e.key === "Enter" && sresOn >= 0) {
         e.preventDefault();
-        location.hash = sresItems[sresOn].href.slice(1);
+        go(sresItems[sresOn].href);
         box.hidden = true; input.blur();
       } else if (e.key === "Escape") { box.hidden = true; }
     });
@@ -2287,18 +2817,28 @@ const FRESH = { cache: "no-cache" };
   function route() {
     cleanupPage();
     setTimeout(() => fitRows(), 0);
-    const h = location.hash.slice(1) || "overview";
+    lastHref = location.href;
+    const h = curRoute();
+    setTitle("");
     document.getElementById("models-menu").open = false;
     document.querySelectorAll("nav.main [data-nav]").forEach(a => a.dataset.nav === h ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
     // the Models menu is the current section on model and family pages (Hypercars has its own link)
     document.querySelector("#models-menu summary").classList.toggle("current", h.startsWith("model-") || (h.startsWith("family-") && h !== "family-hypercars-and-limited-series"));
     if (h === "overview") return viewOverview();
+    // an old "#model-f430" link moves to the model's own address
+    if (BASE && h.startsWith("model-") && location.pathname === BASE.pathname) {
+      const [id, gear] = h.slice(6).split("--");
+      history.replaceState(null, "", new URL(`models/${id}/${gear ? "#" + gear : ""}`, document.baseURI));
+      lastHref = location.href;
+    }
     if (h.startsWith("model-")) return viewModel(h.slice(6));
     if (h.startsWith("car-")) return viewCar(h.slice(4));
     if (h.startsWith("family-")) return viewFamily(h.slice(7));
     if (h === "auctions") return viewAuctions();
     if (h === "news") return viewNews();
     if (h === "value") return viewValue();
+    if (h === "watchlist") return viewWatchlist();
+    if (h.startsWith("find-")) return viewFind(h.slice(5));
     if (h === "methodology") return viewMethodology();
     if (h === "privacy") return viewPrivacy();
     notFound();
@@ -2326,16 +2866,35 @@ const FRESH = { cache: "no-cache" };
   lb().addEventListener("touchstart", e => { sx = e.touches[0].clientX; }, { passive: true });
   lb().addEventListener("touchend", e => { if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 40) showPhoto(LB.i + (dx < 0 ? 1 : -1)); sx = null; });
   window.addEventListener("hashchange", () => { if (!lb().hidden) closePhotos(); });
+  // in page links: move without a reload, whether the address is a hash or a model's real address
+  document.addEventListener("click", e => {
+    const a = e.target.closest && e.target.closest("a[href]");
+    if (!a) return;
+    if (a.id === "skip") { e.preventDefault(); app.focus(); app.scrollIntoView(); return; }
+    if (!BASE || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.target === "_blank") return;
+    const url = new URL(a.getAttribute("href"), document.baseURI);
+    if (url.origin !== location.origin || !url.pathname.startsWith(BASE.pathname)) return;
+    const rel = url.pathname.slice(BASE.pathname.length);
+    if (rel && !/^models\/[^/]+\/?$/.test(rel)) return;          // a file (data, an asset): leave it to the browser
+    e.preventDefault();
+    go(url.href);
+  });
 
   // ask the server whether the data changed, so a new run shows at once rather than after the browser cache expires
   fetch("data/site.json", FRESH).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(data => {
     D = data;
+    document.documentElement.classList.add("app-on");
     D.models.forEach(m => byId[m.id] = m);
     document.getElementById("sample-bar").hidden = !D.sample;
-    buildMenu(); buildFooter(); initSearch();
-    window.addEventListener("hashchange", route);
+    buildMenu(); buildFooter(); initSearch(); watchBadge();
+    const onNav = () => { if (location.href !== lastHref) route(); };
+    window.addEventListener("hashchange", onNav);
+    window.addEventListener("popstate", onNav);
+    setInterval(tick, 1000);
     route();
   }).catch(() => {
+    // the page already carries its figures as plain HTML: show those rather than an error
+    if (document.getElementById("prerender")) { document.documentElement.classList.remove("js"); return; }
     app.innerHTML = '<div class="wrap loading">Market data could not be loaded. Run the pipeline to create data/site.json, then serve this folder over HTTP.</div>';
   });
 })();

@@ -22,7 +22,7 @@ Two parts:
 pip install -r requirements.txt
 playwright install chromium          # only needed for the browser based sources
 
-python -m pytest -q tests            # 151 tests, 23 of them against real responses captured from each site
+python -m pytest -q tests            # 188 tests, 23 of them against real responses captured from each site
 
 # real data (needs normal internet access)
 python -m pipeline.run               # every verified source, today
@@ -30,7 +30,7 @@ python -m pipeline.run               # every verified source, today
 # offline demo (a simulated market, no network)
 python -m pipeline.run --config config/demo.yaml --backfill 120
 
-python scripts/build_site.py         # wraps the page for static hosting into public/
+python scripts/build_site.py --url http://localhost:8000/   # builds the static site into public/
 cd public && python -m http.server 8000   # open http://localhost:8000
 ```
 
@@ -185,11 +185,39 @@ config/sources.yaml        every source, on or off, with its settings
 content/takes/*.md         editorial takes (front matter plus paragraphs)
 pipeline/                  the data pipeline (see above)
 pipeline/sources/          one adapter per kind of source
-site/index.html            the website (fragment, wrapped by scripts/build_site.py)
+site/index.html            the website: one source page, built into public/ by scripts/build_site.py
+site/og.png, favicon.svg   the sharing image and icons
 site/data/                 written by the pipeline
+scripts/build_site.py      the static build (see "The static build")
 tests/                     model matching, parsing, dedupe, mover rule, removal safety, end to end run
 ```
 
+
+## The static build
+
+`scripts/build_site.py` turns the one source page and the exported data into `public/`:
+
+- the styles and the script become `assets/app.<hash>.css` and `assets/app.<hash>.js`, so browsers keep them between visits
+- every model gets a real address, `models/<id>/`, with its own title, description, canonical link, Open Graph tags and structured data. Old `#model-<id>` links still work and move to the new address
+- the overview and every model page carry their figures and listings as plain HTML, so they read without JavaScript. The script replaces that HTML when it starts, and leaves it in place if the data cannot be loaded
+- auctions whose end time has passed are left out when the pages are built, and again in the browser each time a page is drawn
+- `sitemap.xml`, `robots.txt` and a `404.html` that hands unknown addresses to the app
+
+The address the site is served from comes from `settings.site_url` in `config/sources.yaml` (or `--url`).
+
+The data is split by view: `site.json` (models and counts, loaded on every page), `overview.json`, `auctions.json`, `spec.json` (search by spec), `valuer.json`, one file per model and one per car. Each loads only when a view needs it.
+
+Photos are not copied. Every photo is loaded from the dealer or auction site that published it, with a plain "photo unavailable" tile when one fails, because the pictures belong to those sites.
+
+## Specials, outliers and odd asks
+
+Before any average, median or trend is worked out, three kinds of record are set aside (`pipeline/clean.py`, `pipeline/taxonomy.py`):
+
+- race cars and non cars (F430 GTC, Challenge cars, luggage) are not counted as the road model at all
+- specials stay on their model page with a tag but out of its figures: manual conversions, one offs and prototypes, modified cars, and sales whose price is far from the model's other sales (beyond the larger of 2x and 3.5 median absolute deviations, within a model and gearbox with at least six sales in two years)
+- asking prices far outside the model's range (4x from its median, 8x for models sold with two gearboxes) are logged and left out of the daily median
+
+Listings with a placeholder picture lose the picture, and a sale whose price the auction site hides is recorded as sold without a price.
 
 ## Photos, car pages and the market chart
 

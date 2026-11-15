@@ -13,6 +13,7 @@ settings:
   db: data/ferrari.db
   raw_dir: data/raw
   site_dir: site
+  site_url: https://marcusc1209.github.io/rosso-market/   # where the site is served, for links, the sitemap and sharing tags
   content_dir: content
   user_agent: "RossoMarketBot/1.0 (+https://rossomarket.example/bot)"   # put your real site and a contact address here
   min_interval_seconds: 4          # per host, between requests

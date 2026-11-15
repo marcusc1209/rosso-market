@@ -341,6 +341,7 @@ def model_detail(con, model_id: str, day: date, idx=None, paint=None, extra=None
     listings = [dict(r, car=idx.listing(r["vehicle_key"]) if idx else None,
                      country=sales.listing_country(r["country"], r["location"]),
                      state=us_state(r["location"], cities), gearbox=listing_gearbox(gb, r["vehicle_key"]),
+                     colour=colors.family(r["exterior_color"]) if r["exterior_color"] else None,
                      fair=fair.get(r["vehicle_key"])) for r in rows]
     special = clean.special_lots(con, gb)
     skip = clean.implausible_lots(con)
