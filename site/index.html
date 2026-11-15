@@ -673,7 +673,6 @@ footer nav a, .crumbs a, .link-more, .sres a { min-height: 32px; display: inline
 .legend dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 14px; margin: 10px 0 0; align-items: baseline; }
 .legend dt { justify-self: start; } .legend dd { margin: 0; }
 .chip.special { border-style: dashed; }
-.ph-chart { width: 100%; height: auto; display: block; max-width: 720px; }
 .car-tags { display: flex; gap: 6px; flex-wrap: wrap; }
 .car-tags:empty { display: none; }
 .fv-conf { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
@@ -2080,50 +2079,6 @@ const FRESH = { cache: "no-cache" };
     });
   }
 
-  // One car's price over time: every listing, reprice, relisting and auction result we hold for it
-  const TL = { listed: "Listed", relisted: "Relisted", cut: "Price cut", raise: "Price raised", delisted: "Delisted", sold: "Sold at auction",
-    unsold: "Reserve not met", live: "Live at auction", upcoming: "Coming up at auction" };
-  function priceHistory(c) {
-    const t = (c.timeline || []).filter(x => x.date);
-    const priced = t.filter(x => x.price);
-    if (priced.length < 2) return "";
-    const W = innerWidth < 700 ? 360 : 720, H = innerWidth < 700 ? 190 : 220, L = 56, R = 14, T = 14, B = 26;      // drawn at the size it shows, so its labels stay readable on a phone
-    const today = D.as_of, t0 = Date.parse(t[0].date), t1 = Math.max(Date.parse(t[t.length - 1].date), c.status === "for_sale" ? Date.parse(today) : 0) || t0 + 864e5;
-    const ps = priced.map(x => x.price), lo = Math.min(...ps), hi = Math.max(...ps), pad = (hi - lo || hi * 0.1) * 0.15;
-    const x = d => L + (Date.parse(d) - t0) / Math.max(1, t1 - t0) * (W - L - R), y = v => T + (1 - (v - (lo - pad)) / ((hi + pad) - (lo - pad))) * (H - T - B);
-    // asking price as steps, one path per listing period. Auction results as dots.
-    let d = "", open = false, last = null;
-    const dots = [];
-    for (const e of t) {
-      if (["listed", "relisted", "cut", "raise"].includes(e.kind) && e.price) {
-        d += open ? `H${x(e.date).toFixed(1)}V${y(e.price).toFixed(1)}` : `M${x(e.date).toFixed(1)} ${y(e.price).toFixed(1)}`;
-        open = true; last = e;
-        dots.push(`<circle cx="${x(e.date).toFixed(1)}" cy="${y(e.price).toFixed(1)}" r="3.2" fill="var(--ink)"/>`);
-      } else if (e.kind === "delisted") { if (open) d += `H${x(e.date).toFixed(1)}`; open = false; }
-      else if (e.price) dots.push(`<circle cx="${x(e.date).toFixed(1)}" cy="${y(e.price).toFixed(1)}" r="5" fill="${e.kind === "sold" ? "var(--up)" : "var(--surface)"}" stroke="${e.kind === "sold" ? "var(--up)" : "var(--down)"}" stroke-width="2"/>`);
-    }
-    if (open && c.status === "for_sale") d += `H${x(today).toFixed(1)}`;
-    const first = priced[0], latest = priced[priced.length - 1], asks = t.filter(e => ["listed", "relisted", "cut", "raise"].includes(e.kind) && e.price);
-    const total = asks.length > 1 ? (asks[asks.length - 1].price / asks[0].price - 1) * 100 : null;
-    const cuts = t.filter(e => e.kind === "cut").length, relists = t.filter(e => e.kind === "relisted").length;
-    let prev = null;
-    const rows = t.map(e => {
-      const isAsk = ["listed", "relisted", "cut", "raise"].includes(e.kind);
-      const pct = isAsk && prev && e.price && e.kind !== "listed" ? (e.price / prev - 1) * 100 : null;
-      const tiny = pct != null && Math.abs(pct) < 0.05 && e.price !== prev ? `<span class="${e.price < prev ? "down" : "up"} num">${e.price < prev ? "▼" : "▲"} ${money(Math.abs(e.price - prev))}</span>` : "";
-      if (isAsk && e.price) prev = e.price;
-      return `<tr><td class="num">${dateLong(e.date)}</td><td>${TL[e.kind] || esc(e.kind)}</td><td class="r num">${e.price ? money(e.price) : e.estimate ? short(e.estimate[0]) + " to " + short(e.estimate[1]) : ""}</td><td class="r">${pct != null && Math.abs(pct) >= 0.05 ? chg(pct) : tiny}</td><td>${esc(e.where || "")}</td></tr>`;
-    }).reverse();
-    return `<div class="car-sec"><h2>Price history</h2>
-      <p class="flat" style="margin:-6px 0 12px;font-size:14px">${[plural(asks.length, "asking price"), cuts ? plural(cuts, "cut") : "", relists ? plural(relists, "relisting") : "", total != null && Math.abs(total) >= 0.05 ? `${total < 0 ? "down" : "up"} ${Math.abs(total).toFixed(1)}% since first listed` : ""].filter(Boolean).join(", ")}.</p>
-      <svg class="ph-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Price history from ${dateLong(t[0].date)}: ${esc(money(first.price))} to ${esc(money(latest.price))}">
-        ${[lo, hi].map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="var(--line)"/><text x="${L - 8}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end" class="axis">${short(v)}</text>`).join("")}
-        <text x="${L}" y="${H - 6}" class="axis">${dateShort(t[0].date)}</text><text x="${W - R}" y="${H - 6}" text-anchor="end" class="axis">${dateShort(new Date(t1).toISOString().slice(0, 10))}</text>
-        ${d ? `<path d="${d}" fill="none" stroke="var(--ink)" stroke-width="2"/>` : ""}${dots.join("")}</svg>
-      <div class="legend" style="margin:6px 0 12px"><span><i class="k" style="background:var(--ink)"></i>Asking price</span><span><i class="k" style="background:var(--up)"></i>Sold at auction</span><span><i class="k" style="background:var(--surface);border:2px solid var(--down)"></i>Reserve not met</span></div>
-      <div class="tbl-wrap"><table class="sheet"><caption class="sr">Every price recorded for this car, newest first</caption><thead><tr><th>Date</th><th>Event</th><th class="r">Price</th><th class="r">Change</th><th>Where</th></tr></thead><tbody>${rows.join("")}</tbody></table></div></div>`;
-  }
-
   async function viewCar(id) {
     app.innerHTML = '<div class="wrap loading">Loading this car</div>';
     let c;
@@ -2197,7 +2152,6 @@ const FRESH = { cache: "no-cache" };
               ${e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">View source ↗</a>` : ""}</div>
               <div style="position:relative">${photo(e.photo, "")}${e.n_photos > 1 ? `<span class="n">${e.n_photos}</span>` : ""}</div>${seen}${changes}</div></li>`;
           }).join("")}</ol></div>
-        ${priceHistory(c)}
         <div class="car-sec"><h2>${esc(c.model.name)} market</h2><div class="legend" style="margin:-4px 0 14px"><span><i class="k me-k"></i>This car</span></div><div id="car-mkt"><p class="flat">Loading the market</p></div></div>
         ${c.comps.length ? `<div class="car-sec"><h2>Recent ${esc(c.model.name)} sales</h2><div class="lots" data-rows="2" data-min="4">${c.comps.map(x => `<a class="lot" ${carLink({ car: x.id, url: "#" })}>${photo(x.image, x.title, tag("sold"))}
           <div class="body"><h3>${esc(x.title)}</h3>${salePlace(x, true)}<div class="house">${esc(x.house || "")}</div>${x.mileage ? `<div class="specs">${miles(x.mileage)}</div>` : ""}
