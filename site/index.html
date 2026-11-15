@@ -59,7 +59,7 @@ h3 { font: 600 17px/1.3 var(--f-body); }
 .site-head { background: var(--surface); border-bottom: 1px solid var(--line); position: relative; z-index: 20; }
 .head-row { display: flex; align-items: center; gap: 24px; min-height: 64px; flex-wrap: wrap; padding-block: 8px; }
 .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; min-height: 36px; }
-.logo-mark { width: 30px; height: 30px; display: grid; place-items: center; background: var(--giallo); color: #111; font: 800 15px/1 var(--f-display); letter-spacing: .02em; }
+.logo-mark { width: 30px; height: 30px; display: grid; place-items: center; background: #c4161c; color: #fff; border-radius: 5px; font: 800 15px/1 var(--f-display); letter-spacing: .02em; }
 .logo-word { font: 800 21px/1 var(--f-display); letter-spacing: .06em; text-transform: uppercase; }
 .logo-word span { color: var(--rosso); }
 nav.main { display: flex; flex-wrap: wrap; gap: 4px 2px; align-items: center; }
@@ -1188,6 +1188,14 @@ const FRESH = { cache: "no-cache" };
     const mm = D.market_movers || { since: null, all: [] };
     if (mm.since && !mm.all.length && !mm.active) mm.since = null;
     const live = D.auctions.live.filter(l => !isOver(l));       // a lot past its end time is no longer live
+    // Notable: expected to reach $500k, a hypercar, or a model that seldom comes up. With none of those, the lots ending soonest.
+    const hyper = new Set(((D.families.find(f => /hypercar/i.test(f.name)) || {}).models) || []);
+    const expect = l => Math.max(l.price_usd || 0, (l.fair || {}).value || 0, l.estimate_low_usd && l.estimate_high_usd ? (l.estimate_low_usd + l.estimate_high_usd) / 2 : l.estimate_low_usd || 0);
+    const rare = l => { const m = byId[l.model_id]; return !!m && (m.listings || 0) <= 10 && ((m.auction || {}).sold_12m || 0) <= 10; };
+    const soonest = (a, b) => (a.ends_at || "9").localeCompare(b.ends_at || "9");
+    const open = [...live, ...(D.auctions.upcoming || []).filter(l => !isOver(l))];
+    const picked = open.filter(l => expect(l) >= 500000 || hyper.has(l.model_id) || rare(l)).sort(soonest);
+    const notable = (picked.length ? picked : [...live].sort(soonest)).slice(0, 12);
     const ix = D.index || [];
     const cov = D.coverage || {};
     const ins = D.insights.slice(0, D.insights.length >= 6 ? 6 : D.insights.length === 5 ? 4 : D.insights.length);
@@ -1236,7 +1244,7 @@ const FRESH = { cache: "no-cache" };
 
     <section class="block" id="auctions-sec"><div class="wrap">
       <div class="sec-head"><div><div class="eyebrow">Live Auction Watch</div><h2>Notable auctions</h2></div><a class="link-more" href="#auctions">All auctions →</a></div>
-      ${live.length ? `<div class="lots" data-rows="2" data-min="4">${live.slice(0, 16).map(lotCard).join("")}</div>${legend(["soon", "noreserve", "manual"])}` : '<div class="empty">No Ferrari lots are live right now.</div>'}
+      ${notable.length ? `<div class="lots">${notable.map(lotCard).join("")}</div>${legend(["soon", "noreserve", "manual"])}` : '<div class="empty">No Ferrari lots are live right now.</div>'}
     </div></section>
 
     <section class="block" id="insights"><div class="wrap">
