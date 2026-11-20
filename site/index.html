@@ -2085,6 +2085,7 @@ const FRESH = { cache: "no-cache" };
     try { const r = await fetch(`data/cars/${id}.json`, FRESH); if (!r.ok) throw 0; c = await r.json(); }
     catch (e) { return notFound(); }
     if (curRoute() !== "car-" + id) return;
+    if (c.moved) { history.replaceState(null, "", "#car-" + c.moved); lastHref = location.href; return viewCar(c.moved); }   // the car's key was corrected
     const m = byId[c.model.id] || {};
     setTitle(c.title + (c.status === "for_sale" ? " for sale" : c.status === "sold" ? ", sold" : ""));
     const ph = c.photos || [];

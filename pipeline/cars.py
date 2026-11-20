@@ -280,7 +280,7 @@ def _page(key: str, g: dict, prices: dict, comps: dict, stats: dict, today: str)
     ]
     s = stats.get(mid) or {}
     return {
-        "id": car_id(key), "title": row["title"], "year": row["year"],
+        "id": car_id(key), "title": _with_year(row["title"], row["year"]), "year": row["year"],
         "model": {"id": mid, "name": model.name if model else mid, "family": model.family if model else None},
         "vin": vin, "photos": photos[:60], "status": status,
         "price": now["price"], "price_label": now["price_label"], "estimate": now.get("estimate"),
@@ -340,13 +340,29 @@ def search_index(pages: dict[str, dict]) -> list[list]:
     return out
 
 
-def write(pages: dict[str, dict], site_dir: Path) -> int:
+def _with_year(title, year) -> str:
+    """The car's title led by its year: "Ferrari 365 GTC/4" becomes "1971 Ferrari 365 GTC/4", and a title
+    whose leading year disagrees with the one on record (corrected by hand) takes the recorded one."""
+    t = taxonomy.tidy_title(title or "")
+    if not year:
+        return t
+    if re.match(r"^(19|20)\d\d\b", t):
+        return f"{year}{t[4:]}"
+    return t if re.search(r"\b(19|20)\d\d\b", t) else f"{year} {t}"
+
+
+def write(pages: dict[str, dict], site_dir: Path, moves: Optional[dict] = None) -> int:
     d = site_dir / "data" / "cars"
     if d.exists():
         shutil.rmtree(d)            # cars that left the data must not linger
     d.mkdir(parents=True)
     for cid, page in pages.items():
         (d / f"{cid}.json").write_text(json.dumps(page, separators=(",", ":"), default=str), encoding="utf-8")
+    # a car whose key changed (a model or chassis correction) keeps its old address, pointing to the new page
+    for old, new in (moves or {}).items():
+        o, n = car_id(old), car_id(new)
+        if o not in pages and n in pages:
+            (d / f"{o}.json").write_text(json.dumps({"moved": n}), encoding="utf-8")
     (site_dir / "data" / "search.json").write_text(json.dumps(search_index(pages), separators=(",", ":"), default=str),
                                                    encoding="utf-8")
     return len(pages)

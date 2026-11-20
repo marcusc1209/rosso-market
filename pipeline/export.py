@@ -9,7 +9,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from . import analytics as A
-from . import cars, clean, colors, fairvalue, mileage, pulse, sales, taxonomy, weekly
+from . import cars, clean, colors, db, fairvalue, mileage, pulse, sales, taxonomy, weekly
 
 
 def _takes(content_dir: Path) -> list[dict]:
@@ -429,7 +429,7 @@ def write(con, day: date, cfg: dict, health: list[dict]) -> Path:
         cid = idx.lot(uid)
         if cid in pages and pages[cid].get("status") in ("live", "upcoming"):
             pages[cid]["fair_value"] = v
-    cars.write(pages, site_dir)
+    cars.write(pages, site_dir, json.loads(db.kv_get(con, "car_moves") or "{}"))
     # every car available now with its spec, for search by spec ("manual F430", "red 458 under 10k miles")
     cities = city_states(con)
     spec = [[cid, p["title"], p["model"]["id"], p.get("year"), round(p["mileage"]) if p.get("mileage") else None, p.get("colour"),

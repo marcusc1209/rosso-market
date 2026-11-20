@@ -110,7 +110,7 @@ MODELS: list[Model] = [
     M("luce", "Luce", "Four seat GT and SUV", "gt", (2026, None), (r"\bluce\b",), tracked=False),
     M("purosangue", "Purosangue", "Four seat GT and SUV", "suv", (2023, None), (r"purosangue",)),
     M("gtc4lusso-t", "GTC4Lusso T", "Four seat GT and SUV", "gt", (2017, 2020), (r"gtc4 ?lusso t\b",)),
-    M("gtc4lusso", "GTC4Lusso", "Four seat GT and SUV", "gt", (2017, 2020), (r"gtc4 ?lusso", r"gtc4")),
+    M("gtc4lusso", "GTC4Lusso", "Four seat GT and SUV", "gt", (2017, 2020), (r"gtc4 ?lusso", r"(?<!365 )gtc4")),
     M("ff", "FF", "Four seat GT and SUV", "gt", (2012, 2016), (r"\bff\b",)),
     M("612-scaglietti", "612 Scaglietti", "Four seat GT and SUV", "gt", (2005, 2010), (r"\b612\b",)),
     M("456", "456 GT", "Four seat GT and SUV", "gt", (1994, 2003), (r"\b456m?\b",)),
@@ -132,7 +132,7 @@ MODELS: list[Model] = [
     M("daytona", "365 GTB/4 Daytona", "Classics", "coupe", (1968, 1973), (r"365 gt[bs] ?4", r"\bdaytona\b(?! sp3)")),
     M("330-gtc", "330 GTC and GTS", "Classics", "coupe", (1966, 1968), (r"330 gt[cs]",)),
     M("275", "275 GTB and GTS", "Classics", "coupe", (1964, 1968), (r"\b275\b",)),
-    M("365-gt-2-2", "365 GT 2+2 and GTC/4", "Classics", "gt", (1967, 1972), (r"365 gt 2 2", r"365 2 2", r"365 gtc 4", r"365 gtc\b", r"365 gts\b(?! 4)"), tracked=False),
+    M("365-gt-2-2", "365 GT 2+2 and GTC/4", "Classics", "gt", (1967, 1972), (r"365 gt 2 2", r"365 2 2", r"365 gtc ?4", r"365 gtc\b", r"365 gts\b(?! 4)"), tracked=False),
     M("330-gt-2-2", "330 GT 2+2", "Classics", "gt", (1964, 1967), (r"330 gt 2 2", r"330 2 2", r"330 gt\b", r"330 america"), tracked=False),
     M("400-412", "365 GT4 2+2, 400 and 412", "Classics", "gt", (1972, 1989), (r"365 gt4 2 2", r"\b400i?\b", r"\b412\b"), tracked=False),
     M("250", "250 series", "Classics", "coupe", (1953, 1964), (r"\b250\b",), tracked=False),
@@ -263,7 +263,7 @@ def special_kind(title: str, text: str = "") -> "str | None":
 # shown with Ferrari's own spelling, so a model's cars read alike on its page.
 _NAME_FIXES = [(re.compile(p, re.I), r) for p, r in (
     (r"\bFerrari 430\b(?! Scuderia)", "Ferrari F430"), (r"\bF[ -]430\b", "F430"), (r"\bFerrari 355\b", "Ferrari F355"),
-    (r"\bF[ -]355\b", "F355"), (r"\bF12[ -]?Berlinetta\b", "F12berlinetta"), (r"\bF12[ -]?TDF\b", "F12tdf"),
+    (r"\b365 ?GTC ?4\b", "365 GTC/4"), (r"\bF[ -]355\b", "F355"), (r"\bF12[ -]?Berlinetta\b", "F12berlinetta"), (r"\bF12[ -]?TDF\b", "F12tdf"),
     (r"\bLa Ferrari\b", "LaFerrari"), (r"\b12[ -]Cilindri\b", "12Cilindri"), (r"\bGTC4[ -]Lusso\b", "GTC4Lusso"),
     (r"\bGTC 4 ?Lusso\b", "GTC4Lusso"), (r"\bSpyder\b", "Spider"), (r"\bF8[ -]?Tributo\b", "F8 Tributo"),
     (r"\bF8[ -]?Spider\b", "F8 Spider"), (r"\bSF[ -]90\b", "SF90"), (r"\bPuro[ -]sangue\b", "Purosangue"),
@@ -336,6 +336,26 @@ def _load_fixes() -> dict:
 
 
 GEARBOX_FIXES = _load_fixes()
+
+
+def _load_years() -> dict:
+    """config/years.yaml: VIN or chassis number -> model year, set by hand."""
+    try:
+        import yaml
+        d = yaml.safe_load((_FIXES_FILE.parent / "years.yaml").read_text(encoding="utf-8")) or {}
+    except (OSError, ValueError, ImportError):
+        return {}
+    return {str(k).strip().upper().lstrip("0"): int(v) for k, v in d.items() if str(v).strip().isdigit()}
+
+
+YEAR_FIXES = _load_years()
+
+
+def fixed_year(vin_or_key) -> "int | None":
+    """The year set by hand for a car, from its VIN, chassis number or vehicle key."""
+    k = str(vin_or_key or "")
+    k = k.rsplit(":", 1)[1] if k.startswith(("vin:", "chassis:")) else k
+    return YEAR_FIXES.get(k.strip().upper().lstrip("0")) if k else None
 
 
 def fixed_gearbox(vehicle_key) -> "str | None":

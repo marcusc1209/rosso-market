@@ -155,6 +155,22 @@ def extract_vin(*texts) -> Tuple[Optional[str], bool]:
     return None, False
 
 
+def chassis_number(c) -> Optional[str]:
+    """One spelling of a chassis number: "015343" and "15343" are the same car."""
+    c = str(c or "").strip().upper()
+    return (c.lstrip("0") or c) if c[:1].isdigit() else (c or None)
+
+
+_PADDED = re.compile(r"^Z[FS][FG]0{4,}([1-9][0-9]{2,5})$")
+
+
+def padded_chassis(vin) -> Optional[str]:
+    """Some sites fill the VIN field of a pre 1981 car with its chassis number padded with zeros
+    ("ZFF00000000015343" is chassis 15343)."""
+    m = _PADDED.match(str(vin or "").strip().upper())
+    return m.group(1) if m else None
+
+
 _CHASSIS = re.compile(r"chassis\s*(?:no\.?|number|#)?\s*:?\s*([0-9]{3,6}[A-Z]{0,3})\b", re.I)
 
 
@@ -271,7 +287,7 @@ def normalize(raw: RawRecord, fx: dict, min_confidence: float = 0.5) -> Normaliz
     if taxonomy.is_track_car(raw.title or ""):
         raise Reject("track only car")
 
-    year = raw.year or extract_year(raw.title, raw.model_text)
+    year = taxonomy.fixed_year(padded_chassis(raw.vin) or raw.vin) or raw.year or extract_year(raw.title, raw.model_text)
     match = taxonomy.resolve(raw.title or "", year, raw.model_text)
     if match.model is None:
         raise Reject("unknown model")
@@ -314,7 +330,7 @@ def normalize(raw: RawRecord, fx: dict, min_confidence: float = 0.5) -> Normaliz
     vin, vin_ok = (own.upper(), True) if own and len(own) == 17 else extract_vin(own, raw.title, raw.extra.get("description"))
     if vin and raw.vin:
         vin_ok = vin_check_digit_ok(vin) or not vin.startswith("ZFF")
-    chassis = None if vin else (own if own and len(own) < 17 else extract_chassis(raw.title, raw.extra.get("description")))
+    chassis = None if vin else chassis_number(padded_chassis(raw.vin) or (own if own and len(own) < 17 else extract_chassis(raw.title, raw.extra.get("description"))))
 
     m = match.model
     return Normalized(

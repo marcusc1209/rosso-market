@@ -1,0 +1,4 @@
+# Model year corrections, for listings that arrive without a year or with a wrong one.
+#
+#   VIN or chassis number: year
+"015343": 1971    # 365 GTC/4, Ferrari of San Antonio (listed by Ferrari Approved as "365 GTC4" with no year)

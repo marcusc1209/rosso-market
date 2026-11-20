@@ -57,6 +57,7 @@ def purge(con) -> dict:
     counts["outside_us"] = _drop_outside_market(con)
     counts["estimate_as_price"] = _drop_estimate_prices(con)
     counts.update(_apply_auction_policy(con))
+    counts["chassis_rekeyed"] = _one_chassis_spelling(con)
     counts["reclassified"] = _reclassify(con)
     counts["titles_tidied"] = _tidy_titles(con)
     counts["placeholder_photos"] = _drop_placeholder_photos(con)
@@ -159,15 +160,86 @@ def _apply_auction_policy(con) -> dict:
     return out
 
 
+def _remember_moves(con, moved: dict) -> None:
+    """Old vehicle key -> new one, kept so a link to a car's old page still finds it (cars.write)."""
+    if not moved:
+        return
+    from . import db
+    old = json.loads(db.kv_get(con, "car_moves") or "{}")
+    old.update(moved)
+    for k, v in list(old.items()):          # a car that moved twice points straight at its latest key
+        seen = set()
+        while v in old and v not in seen:
+            seen.add(v); v = old[v]
+        old[k] = v
+    db.kv_set(con, "car_moves", json.dumps(old, separators=(",", ":")))
+
+
+def _one_chassis_spelling(con) -> int:
+    """Stored keys use one spelling of each chassis number, so a car listed as "015343" on one site and
+    "15343" (or a padded "ZFF00000000015343") on another is one car. The asking price history follows."""
+    from .normalize import chassis_number, padded_chassis
+    n = 0
+    moved: dict[str, tuple[str, str]] = {}                 # old key -> (new key, model)
+    for table in ("lots", "sightings"):
+        rows = con.execute(f"""SELECT uid, vehicle_key, model_id, raw FROM {table} WHERE vehicle_key LIKE 'chassis:%:0%'
+                               OR vehicle_key LIKE 'vin:Z__0000%' OR (vehicle_key LIKE 'fp:%' AND raw LIKE '%"vin": "Z__0000%')""").fetchall()
+        for uid, vk, model, raw in rows:
+            if vk.startswith("chassis:"):
+                new = f"{vk.rsplit(':', 1)[0]}:{chassis_number(vk.rsplit(':', 1)[1])}"
+            else:
+                c = padded_chassis(vk[4:] if vk.startswith("vin:") else (json.loads(raw or "{}").get("vin") if raw else None))
+                new = f"chassis:{model}:{c}" if c else vk
+            if new != vk:
+                con.execute(f"UPDATE {table} SET vehicle_key=? WHERE uid=?", (new, uid))
+                moved[vk] = (new, model)
+                n += 1
+    # price history kept under a padded VIN that no current record uses any more
+    for (vk,) in con.execute("SELECT DISTINCT vehicle_key FROM daily_asks WHERE vehicle_key LIKE 'vin:Z__0000%'").fetchall():
+        c = padded_chassis(vk[4:])
+        if not c or vk in moved:
+            continue
+        hit = con.execute("SELECT vehicle_key, model_id FROM sightings WHERE vehicle_key LIKE ? UNION ALL "
+                          "SELECT vehicle_key, model_id FROM lots WHERE vehicle_key LIKE ? LIMIT 1",
+                          (f"chassis:%:{c}", f"chassis:%:{c}")).fetchone()
+        if hit:
+            moved[vk] = (hit[0], hit[1])
+    for old, (new, model) in moved.items():
+        con.execute("UPDATE OR REPLACE daily_asks SET vehicle_key=?, model_id=? WHERE vehicle_key=?", (new, model, old))
+    _remember_moves(con, {old: new for old, (new, _) in moved.items()})
+    return n
+
+
 def _reclassify(con) -> int:
-    """Cars parked in the catch all bucket that the current taxonomy can now name."""
+    """Stored cars the current taxonomy names differently: those parked in the catch all bucket, and those
+    whose title names a model of another family altogether ("365 GTC4" once read as a GTC4Lusso). A change
+    within one family is left alone, because the listing's own model field may have settled it."""
     n = 0
     for table in ("lots", "sightings"):
-        for r in con.execute(f"SELECT uid, title, year FROM {table} WHERE model_id='classic-other'").fetchall():
-            m = taxonomy.resolve(r["title"] or "", r["year"] or extract_year(r["title"]))
-            if m.model and m.model.id != "classic-other" and m.confidence >= 0.5:
-                con.execute(f"UPDATE {table} SET model_id=? WHERE uid=?", (m.model.id, r["uid"]))
-                n += 1
+        for r in con.execute(f"SELECT uid, title, year, model_id, vehicle_key FROM {table}").fetchall():
+            year = taxonomy.fixed_year(r["vehicle_key"]) or r["year"]
+            m = taxonomy.resolve(r["title"] or "", year or extract_year(r["title"]))
+            if not m.model or m.model.id == r["model_id"]:
+                if year and year != r["year"]:
+                    con.execute(f"UPDATE {table} SET year=? WHERE uid=?", (year, r["uid"]))
+                continue
+            old = taxonomy.BY_ID.get(r["model_id"])
+            if r["model_id"] == "classic-other" and m.model.id != "classic-other" and m.confidence >= 0.5:
+                pass
+            elif not (old and m.model.family != old.family and m.confidence >= 1.0):
+                continue
+            vk = r["vehicle_key"] or ""
+            if vk.startswith("chassis:"):
+                vk = f"chassis:{m.model.id}:{vk.rsplit(':', 1)[1]}"     # a chassis key carries the model
+            con.execute(f"UPDATE {table} SET model_id=?, vehicle_key=?, year=? WHERE uid=?",
+                        (m.model.id, vk or r["vehicle_key"], year or r["year"], r["uid"]))
+            if vk and vk != r["vehicle_key"]:
+                _remember_moves(con, {r["vehicle_key"]: vk})
+            n += 1
+            if table == "sightings" and r["vehicle_key"]:
+                # the asking price history moves with the car, out of the old model's medians
+                con.execute("UPDATE OR REPLACE daily_asks SET model_id=?, vehicle_key=? WHERE vehicle_key=?",
+                            (m.model.id, vk or r["vehicle_key"], r["vehicle_key"]))
     return n
 
 
