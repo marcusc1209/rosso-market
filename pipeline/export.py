@@ -70,7 +70,20 @@ def build(con, day: date, cfg: dict, health: list[dict]) -> dict:
                      median_30d_ago=None, change_30d=None, same_cars=0, cut_7d=0, raised_7d=0, new_7d=0, days_on_market=None)
         hist = A.history(con, m.id, day, 90)
         models.append(dict(s, spark=[p["median"] for p in hist[::3]][-30:], history=_weekly(hist, "median"),
-                           sell_through=auc["sell_through"].get(m.id), auction=a or {}))
+                           sell_through=auc["sell_through"].get(m.id), auction=a or {},
+                           **({"line": taxonomy.LINE_ID[m.line]} if m.line else {})))
+
+    # model lines (classics, grouped as Classic.com groups them): one page per line, listing its versions
+    have = {x["id"] for x in models}
+    lines = []
+    for name, ids in taxonomy.LINES.items():
+        # versions in order of first year, the "version not stated" bucket last
+        vs = sorted((i for i in ids if i in have), key=lambda i: (taxonomy.is_catch_all(i), taxonomy.BY_ID[i].years[0], ids.index(i)))
+        if vs:
+            fam = taxonomy.BY_ID[ids[0]].family
+            lines.append({"id": taxonomy.LINE_ID[name], "name": name, "family": fam, "models": vs,
+                          "years": [min(taxonomy.BY_ID[i].years[0] for i in ids if not taxonomy.BY_ID[i].years[0] < 1940),
+                                    max(min(taxonomy.BY_ID[i].years[1] or 2100, 2030) for i in ids if not taxonomy.is_catch_all(i))]})
 
     families = []
     for fam in taxonomy.FAMILY_ORDER:
@@ -120,6 +133,8 @@ def build(con, day: date, cfg: dict, health: list[dict]) -> dict:
         "covers": covers,
         "models": models,
         "families": families,
+        "lines": lines,
+        "aliases": taxonomy.ALIASES,
         "index": [[p["day"], p["index"]] for p in index],
         "insights": ins,
         "auctions": {
@@ -181,7 +196,7 @@ VARIANT_GROUPS = [
     ["12cilindri", "12cilindri-spider"], ["812-superfast", "812-gts", "812-competizione", "812-competizione-a"],
     ["f12berlinetta", "f12tdf"], ["599-gtb", "599-gto", "sa-aperta"], ["550-maranello", "550-barchetta", "575m"],
     ["roma", "roma-spider"], ["portofino", "portofino-m"], ["california", "california-t"], ["ff", "gtc4lusso", "gtc4lusso-t"],
-    ["f355", "f355-spider"], ["testarossa", "512-tr", "f512m"], ["laferrari", "laferrari-aperta"], ["monza-sp1", "monza-sp2"],
+    ["testarossa", "512-tr", "f512m"], ["laferrari", "laferrari-aperta"], ["monza-sp1", "monza-sp2"],
 ]
 US_STATES = {"Alabama": "AL", "Alaska": "AK", "Arizona": "AZ", "Arkansas": "AR", "California": "CA", "Colorado": "CO", "Connecticut": "CT",
     "Delaware": "DE", "Florida": "FL", "Georgia": "GA", "Hawaii": "HI", "Idaho": "ID", "Illinois": "IL", "Indiana": "IN", "Iowa": "IA",
@@ -250,6 +265,9 @@ def us_state(location, cities: dict):
 
 
 def variant_ids(model_id: str, models: list) -> list:
+    m = taxonomy.BY_ID.get(model_id)
+    if m and m.line:                                   # a classic version: the other versions of its line
+        return [i for i in taxonomy.LINES[m.line] if any(x["id"] == i for x in models)]
     for g in VARIANT_GROUPS:
         if model_id in g:
             return [m for m in g if any(x["id"] == m for x in models)]

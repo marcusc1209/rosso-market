@@ -151,6 +151,23 @@ def model_summary(m: dict) -> str:
     return ". ".join(bits) or "Auction results and asking prices"
 
 
+def line_html(line: dict, by_id: dict) -> str:
+    """A classic model line: its versions and their figures."""
+    rows = []
+    for i in line["models"]:
+        m = by_id.get(i)
+        if not m:
+            continue
+        a = m.get("auction") or {}
+        rows.append([f'<a href="models/{esc(i)}/">Ferrari {esc(m["name"])}</a>', str(m.get("listings") or ""), money(m.get("median")),
+                     str(a.get("sold_12m") or ""), money(a.get("median_sold_12m"))])
+    return (f'<div class="page-head"><div class="wrap"><div class="crumbs"><a href="./">Overview</a> / {esc(line["family"])}</div>'
+            f'<h1>Ferrari {esc(line["name"])}</h1><p class="flat" style="margin:12px 0 0">{line["years"][0]} to {line["years"][1]}.</p></div></div>'
+            '<section class="block"><div class="wrap">' + NOSCRIPT + "<h2>Versions</h2>" + table(
+                f'Ferrari {line["name"]} versions', ["Version", ">For sale", ">Median ask", ">Sold, 12 months", ">Median sold, 12 months"], rows)
+            + "</div></section>")
+
+
 def model_html(m: dict, d: dict, family: str, now: datetime) -> str:
     a = m.get("auction") or {}
     kpis = []
@@ -293,6 +310,33 @@ def main() -> None:
             **common, prerender=model_html(m, d, family.get(m["id"], m.get("family") or ""), now), url=url, title=title, description=desc, ld=ld),
             encoding="utf-8")
         pages.append(url)
+
+    for line in site.get("lines", []):
+        url = f'{site_url}models/{line["id"]}/'
+        n = sum((by_id.get(i) or {}).get("listings") or 0 for i in line["models"])
+        title = f'Ferrari {line["name"]} prices, every version | {SITE_NAME}'
+        desc = (f'Every version of the Ferrari {line["name"]} ({line["years"][0]} to {line["years"][1]}): '
+                f'{n} for sale now, auction results and asking prices for each, updated daily.')
+        ld = [{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": SITE_NAME, "item": site_url},
+            {"@type": "ListItem", "position": 2, "name": f'Ferrari {line["name"]}', "item": url}]}]
+        page = out / "models" / line["id"]
+        page.mkdir(parents=True, exist_ok=True)
+        (page / "index.html").write_text(document(**common, prerender=line_html(line, by_id), url=url, title=title,
+                                                  description=desc, ld=ld), encoding="utf-8")
+        pages.append(url)
+
+    # model pages that moved when the classics were regrouped forward to their new address
+    for old, new in (site.get("aliases") or {}).items():
+        if (out / "models" / old).exists():
+            continue
+        target = f"{site_url}models/{new}/"
+        page = out / "models" / old
+        page.mkdir(parents=True, exist_ok=True)
+        (page / "index.html").write_text(
+            f'<!doctype html><meta charset="utf-8"><title>Moved | {SITE_NAME}</title><link rel="canonical" href="{esc(target)}">'
+            f'<meta http-equiv="refresh" content="0; url={esc(target)}"><meta name="robots" content="noindex">'
+            f'<p><a href="{esc(target)}">This page has moved</a></p>', encoding="utf-8")
 
     # unknown addresses still open the app, which shows its own "not found" (or a car, for an old link)
     (out / "404.html").write_text(document(

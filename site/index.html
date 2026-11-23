@@ -753,6 +753,10 @@ const FRESH = { cache: "no-cache" };
   let D = null;
   const modelCache = {};
   const byId = {};
+  const LINES = {};                        // classic model lines ("308"): their versions, as Classic.com groups them
+  const isCatchAll = id => /-other$/.test(id);
+  // the family, then the model line, as links above a page's title
+  const famCrumb = m => `<a href="#family-${slug(m.family)}">${esc(m.family)}</a>${m.line && LINES[m.line] ? ` / <a href="${modelLink(m.line)}">${esc(LINES[m.line].name)}</a>` : ""}`;
 
   // ------------------------------------------------------------ formatting
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -1349,7 +1353,7 @@ const FRESH = { cache: "no-cache" };
     kpis.push([a.median_sold_12m ? money(a.median_sold_12m) : "n/a", "Median sold, 12 months"], [a.sold_12m ?? 0, "Sold at auction, 12 months"],
       ['<span id="kpi-1y">n/a</span>', "Sale prices, 1 year"], [a.sell_through_12m != null ? a.sell_through_12m + "%" : "n/a", "Sell through, 12 months"]);
     if (a.last_sold) kpis.push([money(a.last_sold.price), "Last sale, " + dateLong(a.last_sold.day)]);
-    app.innerHTML = pageHead(`<a href="#family-${slug(m.family)}">${esc(m.family)}</a>`, esc(m.name),
+    app.innerHTML = pageHead(famCrumb(m), esc(m.name),
       `Auction results for the Ferrari ${esc(m.name)} from every auction we track, with asking prices from dealers ${m.family === "Hypercars and limited series" ? "anywhere in the world, since so few exist that the world is one market for them" : "in the US"} as they come in.${m.gearbox_listings ? ` Both gearboxes together: see <a href="${modelLink(id, "manual")}">${esc(m.name)} 6-Speed</a> or <a href="${modelLink(id, "f1")}">${esc(m.name)} F1</a> on its own.` : ""}`, kpis, watchBtn("model", id, m.name))
       + `<section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Sales and asking prices</div><h2>Market</h2></div></div>
          <div id="m-auc"><p class="flat">Loading results</p></div></div></section>
@@ -1410,7 +1414,7 @@ const FRESH = { cache: "no-cache" };
       [s12.length + u12.length ? Math.round(s12.length / (s12.length + u12.length) * 100) + "%" : "n/a", "Sell through, 12 months"]];
     if (lastS) kpis.push([money(lastS[1]), "Last sale, " + dateLong(lastS[0])]);
     const other = gear === "manual" ? [modelLink(id, "f1"), `${m.name} F1`] : [modelLink(id, "manual"), `${m.name} 6-Speed`];
-    app.innerHTML = pageHead(`<a href="#family-${slug(m.family)}">${esc(m.family)}</a> / <a href="${modelLink(id)}">${esc(m.name)}</a>`, esc(name),
+    app.innerHTML = pageHead(`${famCrumb(m)} / <a href="${modelLink(id)}">${esc(m.name)}</a>`, esc(name),
       `${gear === "manual" ? "Factory six speed manual cars only." : "F1 gearbox cars only, manual conversions included."} See <a href="${other[0]}">${esc(other[1])}</a> or <a href="${modelLink(id)}">both together</a>.`, kpis)
       + modelSections();
     modelBody(m, d);
@@ -1664,7 +1668,7 @@ const FRESH = { cache: "no-cache" };
         ["Median sale", prices.length ? money(medianOf(prices)) : "n/a"], 
         ["Dollar volume", prices.length ? money(sum) : "n/a"], ["Lowest sale", prices.length ? money(prices[0]) : "n/a"],
         ["Top sale", prices.length ? money(prices[prices.length - 1]) : "n/a"], 
-        ["Median ask now", st.gear !== "all" || detail.fixedGear ? ((D2.listings || []).length ? money(medianOf(D2.listings.map(l => l.price_usd).filter(Boolean))) : "n/a") : ask.length ? money(ask[ask.length - 1][1]) : "n/a"], ["For sale now", (D2.listings || []).length]]
+        ["Median ask now", st.gear !== "all" || detail.fixedGear ? ((D2.listings || []).length ? money(medianOf(D2.listings.map(l => l.price_usd).filter(Boolean))) : "n/a") : ask.length ? money(ask[ask.length - 1][1]) : (D2.listings || []).length ? money(medianOf(D2.listings.map(l => l.price_usd).filter(Boolean))) : "n/a"], ["For sale now", (D2.listings || []).length]]
         .map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join("");
       const t = st.tab;
       // the sale figures belong to the views of sales. Mileage, listings and colours carry their own.
@@ -2107,7 +2111,7 @@ const FRESH = { cache: "no-cache" };
       ${c.status === "for_sale" && fv.ask_gap != null ? `<p class="fv-note">Fair value is what the car should sell for at auction. Dealers ask a median ${Math.abs(Math.round(fv.ask_gap))}% ${fv.ask_gap >= 0 ? "above" : "below"} it for the ${esc(c.model.name)}, which leaves room for their margin, preparation and negotiation.</p>` : ""}`;
     const vsAsk = ask && c.price && c.status !== "upcoming" ? chg((c.price / ask - 1) * 100) : "";
     app.innerHTML = `<div class="page-head" style="padding-block:24px 0;border-bottom:0"><div class="wrap">
-        <div class="crumbs"><a href="#overview">Overview</a> / ${m.family ? `<a href="#family-${slug(m.family)}">${esc(m.family)}</a> / ` : ""}<a href="${modelLink(c.model.id)}">${esc(c.model.name)}</a></div>
+        <div class="crumbs"><a href="#overview">Overview</a> / ${m.family ? famCrumb(m) + " / " : ""}<a href="${modelLink(c.model.id)}">${esc(c.model.name)}</a></div>
         ${gal}</div></div>
       <section class="block" style="padding-top:0"><div class="wrap car-layout">
         <div class="car-head">
@@ -2176,6 +2180,21 @@ const FRESH = { cache: "no-cache" };
     const mk = document.getElementById("car-mkt");
     if (detail) marketPanel(mk, detail, byId[c.model.id] || { id: c.model.id, name: c.model.name }, carMark(c));
     else mk.innerHTML = '<p class="flat">Could not load the market for this model.</p>';
+  }
+
+  // a classic model line: every version with its figures, as Classic.com lists them
+  function viewLine(id) {
+    const l = LINES[id];
+    const models = l.models.map(i => byId[i]).filter(Boolean);
+    const sum = f => models.reduce((a, m) => a + (f(m) || 0), 0);
+    setTitle(`Ferrari ${l.name} prices, every version`);
+    const sold = sum(m => (m.auction || {}).sold_12m), sale = sum(m => m.listings), auc = sum(m => m.at_auction);
+    const listed = models;
+    app.innerHTML = pageHead(`<a href="#family-${slug(l.family)}">${esc(l.family)}</a>`, esc(/^\d/.test(l.name) ? "Ferrari " + l.name : l.name),
+      `${l.years[0]} to ${l.years[1]}. ${plural(listed.filter(m => !isCatchAll(m.id)).length, "version")}.`,
+      [[sale, "For sale now"], [auc, "At auction now"], [sold, "Auction sales, 12 months"]])
+      + `<section class="block"><div class="wrap"><div class="sec-head"><div><div class="eyebrow">Every version</div><h2>Versions</h2></div></div>${modelsTable(listed, { caption: l.name + " versions" })}</div></section>`;
+    wireRows(); window.scrollTo(0, 0);
   }
 
   function viewFamily(s) {
@@ -2258,7 +2277,7 @@ const FRESH = { cache: "no-cache" };
     if (!VALUER) { try { VALUER = await (await fetch("data/valuer.json", FRESH)).json(); } catch (e) { VALUER = null; } }
     if (curRoute() !== "value") return;
     if (!VALUER || !VALUER.models.length) { app.innerHTML = pageHead("Value my car", "Value my car", "") + '<section class="block"><div class="wrap"><div class="empty">Valuations are not available right now.</div></div></section>'; return; }
-    const V = VALUER, ms = V.models, byM = Object.fromEntries(ms.map(m => [m.id, m]));
+    const V = VALUER, ms = V.models.filter(m => !isCatchAll(m.id)), byM = Object.fromEntries(ms.map(m => [m.id, m]));
     // grouped and ordered as in the Models menu
     const seen = new Set(), groups = [];
     for (const fam of D.families) {
@@ -2669,11 +2688,29 @@ const FRESH = { cache: "no-cache" };
       const tip = n ? `${sale || 0} for sale${auc ? `, ${auc} at auction` : ""}` : "None available now";
       return `<span class="num" title="${tip}">${n || ""}</span>`;
     };
-    document.getElementById("menu-grid").innerHTML = D.families.map(f => `<div><h4>${esc(f.name)}</h4>
-      ${f.models.map(id => byId[id]).filter(Boolean).map(m => m.gearbox_listings
-        ? `<div class="mgroup"><a href="${modelLink(m.id)}" class="mg-main"><span>${esc(m.name)}</span>${cnt(m.listings, m.at_auction)}</a>
-            <div class="mg-sub"><a href="${modelLink(m.id, "f1")}"><span>${esc(m.name)}</span>${cnt(m.gearbox_listings.f1, (m.gearbox_auction || {}).f1)}</a><a href="${modelLink(m.id, "manual")}"><span>${esc(m.name)} 6-Speed</span>${cnt(m.gearbox_listings.manual, (m.gearbox_auction || {}).manual)}</a></div></div>`
-        : `<a href="${modelLink(m.id)}"><span>${esc(m.name)}</span>${cnt(m.listings, m.at_auction)}</a>`).join("")}</div>`).join("");
+    const one = m => m.gearbox_listings
+      ? `<div class="mgroup"><a href="${modelLink(m.id)}" class="mg-main"><span>${esc(m.name)}</span>${cnt(m.listings, m.at_auction)}</a>
+          <div class="mg-sub"><a href="${modelLink(m.id, "f1")}"><span>${esc(m.name)}</span>${cnt(m.gearbox_listings.f1, (m.gearbox_auction || {}).f1)}</a><a href="${modelLink(m.id, "manual")}"><span>${esc(m.name)} 6-Speed</span>${cnt(m.gearbox_listings.manual, (m.gearbox_auction || {}).manual)}</a></div></div>`
+      : `<a href="${modelLink(m.id)}"><span>${esc(m.name)}</span>${cnt(m.listings, m.at_auction)}</a>`;
+    // a model line shows once, with its versions under it on hover
+    const line = (l, ms) => {
+      const vs = ms.filter(m => !isCatchAll(m.id));
+      const sale = ms.reduce((a, m) => a + (m.listings || 0), 0), auc = ms.reduce((a, m) => a + (m.at_auction || 0), 0);
+      return `<div class="mgroup"><a href="${modelLink(l.id)}" class="mg-main"><span>${esc(l.name)}</span>${cnt(sale, auc)}</a>
+        <div class="mg-sub">${vs.map(m => `<a href="${modelLink(m.id)}"><span>${esc(m.name)}</span>${cnt(m.listings, m.at_auction)}</a>`).join("")}</div></div>`;
+    };
+    document.getElementById("menu-grid").innerHTML = D.families.map(f => {
+      const ms = f.models.map(id => byId[id]).filter(Boolean), done = new Set(), out = [];
+      for (const m of ms) {
+        if (m.line && LINES[m.line]) {
+          if (done.has(m.line)) continue;
+          done.add(m.line);
+          const lm = LINES[m.line].models.map(i => byId[i]).filter(Boolean);
+          out.push(lm.length > 1 ? line(LINES[m.line], lm) : one(lm[0]));
+        } else out.push(one(m));
+      }
+      return `<div><h4>${esc(f.name)}</h4>${out.join("")}</div>`;
+    }).join("");
   }
 
   function buildFooter() {
@@ -2708,6 +2745,8 @@ const FRESH = { cache: "no-cache" };
     if (words.length >= 2) {
       D.models.filter(m => m.name.toLowerCase().includes(words) || m.id.includes(words.replace(/\s+/g, "-")))
         .slice(0, 6).forEach(m => out.push({ href: modelLink(m.id), title: m.name, model: true, listings: m.listings }));
+      Object.values(LINES).filter(l => l.name.toLowerCase().includes(words)).slice(0, 2)
+        .forEach(l => out.unshift({ href: modelLink(l.id), title: `${l.name}, every version`, model: true, listings: l.models.reduce((a, i) => a + ((byId[i] || {}).listings || 0), 0) }));
     }
     return out.slice(0, 12);
   }
@@ -2790,7 +2829,13 @@ const FRESH = { cache: "no-cache" };
       history.replaceState(null, "", new URL(`models/${id}/${gear ? "#" + gear : ""}`, document.baseURI));
       lastHref = location.href;
     }
-    if (h.startsWith("model-")) return viewModel(h.slice(6));
+    if (h.startsWith("model-")) {
+      const id = h.slice(6).split("--")[0];
+      if (LINES[id]) return viewLine(id);
+      const to = (D.aliases || {})[id];
+      if (to && !byId[id]) { go(modelLink(to)); return; }
+      return viewModel(h.slice(6));
+    }
     if (h.startsWith("car-")) return viewCar(h.slice(4));
     if (h.startsWith("family-")) return viewFamily(h.slice(7));
     if (h === "auctions") return viewAuctions();
@@ -2851,6 +2896,7 @@ const FRESH = { cache: "no-cache" };
     D = data;
     document.documentElement.classList.add("app-on");
     D.models.forEach(m => byId[m.id] = m);
+    (D.lines || []).forEach(l => LINES[l.id] = l);
     document.getElementById("sample-bar").hidden = !D.sample;
     buildMenu(); buildFooter(); initSearch(); watchBadge();
     const onNav = () => { if (location.href !== lastHref) route(); };

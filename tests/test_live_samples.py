@@ -53,10 +53,10 @@ def test_bat_results_status_price_currency():
     (125567676, ("f430", 191000.0, 14000.0)),          # "14k-Mile 2006 Ferrari F430"
     (123233577, ("812-gts", 767000.0, 578.0)),
     (124909567, ("f355-spider", 153000.0, 29826.0)),   # 48k kilometers
-    (124937358, ("456", 95000.0, 12000.0)),            # 456M GTA
+    (124937358, ("456m-gta", 95000.0, 12000.0)),       # 456M GTA
     (122251628, ("599-gtb", 280000.0, 11000.0)),
-    (125195874, ("328", 101311.0, None)),
-    (124648484, ("400-412", 40000.0, None)),
+    (125195874, ("328-gts", 101311.0, None)),
+    (124648484, ("400i-manual", 40000.0, None)),
 ])
 def test_bat_cars_resolve(bat_id, expected):
     assert outcome(bat_completed()[bat_id]) == expected
@@ -75,7 +75,7 @@ def test_bat_live():
     assert outcome(recs[124706331]) == ("f12berlinetta", 760000.0, 1200.0)
     assert outcome(recs[123929277])[0] == "f8-spider" and outcome(recs[123929277])[2] == 3107.0
     assert outcome(recs[125172952])[0] == "365-gt-2-2"
-    assert outcome(recs[124932135])[0] == "348"
+    assert outcome(recs[124932135])[0] == "348-ts"
     for junk in (125581346, 125881747, 125787948, 125194712):
         assert outcome(recs[junk])[0] == "REJECT", recs[junk].title
 
@@ -152,7 +152,7 @@ def test_somo_sold():
     got = [outcome(r)[0] for r in recs]
     assert all(r.status == "sold" for r in recs)
     assert got.count("REJECT") == 0, [(r.title, outcome(r)) for r in recs if outcome(r)[0] == "REJECT"]
-    assert "430-scuderia" in got and "512-tr" in got and "gtc4lusso" in got and "308" in got
+    assert "430-scuderia" in got and "512-tr" in got and "gtc4lusso" in got and "308-gtsi" in got
     assert outcome(recs[14]) == ("550-maranello", 477500.0, 11000.0)   # "550 Maranello — 11k Miles"
 
 
@@ -182,7 +182,7 @@ def test_mecum():
     # "bid goes on": unsold, and the number shown is never used as a price
     s458 = recs["2015 Ferrari 458 Spider"]
     assert s458.status == "unsold" and s458.price is None and s458.extra["bid_goes_on_figure"] == 600000
-    assert outcome(recs["1965 Ferrari 330 2+2"])[0] == "330-gt-2-2"
+    assert outcome(recs["1965 Ferrari 330 2+2"])[0] == "330-gt-s1"
     assert outcome(recs["2014 Ferrari F12 Berlinetta"])[0] == "f12berlinetta"
     assert outcome(recs["2024 Ferrari 812 Competizione Aperta"])[0] == "812-competizione-a"
     assert recs["2025 Ferrari SF90 XX Stradale"].status == "upcoming"

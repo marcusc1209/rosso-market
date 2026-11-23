@@ -211,22 +211,34 @@ def _one_chassis_spelling(con) -> int:
 
 
 def _reclassify(con) -> int:
-    """Stored cars the current taxonomy names differently: those parked in the catch all bucket, and those
-    whose title names a model of another family altogether ("365 GTC4" once read as a GTC4Lusso). A change
-    within one family is left alone, because the listing's own model field may have settled it."""
-    n = 0
+    """Stored cars the current taxonomy names differently:
+      * those parked in the catch all bucket that now have a model
+      * those whose title names a model of another family altogether ("365 GTC4" once read as a GTC4Lusso)
+      * classic versions: a car of a model line (the 308s, the Dinos) is placed by its title and year every
+        run, so a change to the classic rules reaches the cars already stored
+      * cars whose model no longer exists
+    Any other change within one family is left alone, because the listing's own model field may have settled it."""
+    n, moves = 0, {}
     for table in ("lots", "sightings"):
-        for r in con.execute(f"SELECT uid, title, year, model_id, vehicle_key FROM {table}").fetchall():
+        for r in con.execute(f"SELECT uid, title, year, model_id, vehicle_key, raw FROM {table}").fetchall():
             year = taxonomy.fixed_year(r["vehicle_key"]) or r["year"]
-            m = taxonomy.resolve(r["title"] or "", year or extract_year(r["title"]))
+            old = taxonomy.BY_ID.get(r["model_id"])
+            hint = None
+            if (old is None or old.line) and r["raw"]:
+                try:
+                    hint = json.loads(r["raw"]).get("model_text")
+                except ValueError:
+                    pass
+            m = taxonomy.resolve(r["title"] or "", year or extract_year(r["title"]), hint)
             if not m.model or m.model.id == r["model_id"]:
                 if year and year != r["year"]:
                     con.execute(f"UPDATE {table} SET year=? WHERE uid=?", (year, r["uid"]))
                 continue
-            old = taxonomy.BY_ID.get(r["model_id"])
-            if r["model_id"] == "classic-other" and m.model.id != "classic-other" and m.confidence >= 0.5:
+            if old is None or (old.line or m.model.line):
                 pass
-            elif not (old and m.model.family != old.family and m.confidence >= 1.0):
+            elif r["model_id"] == "classic-other" and m.model.id != "classic-other" and m.confidence >= 0.5:
+                pass
+            elif not (m.model.family != old.family and m.confidence >= 1.0):
                 continue
             vk = r["vehicle_key"] or ""
             if vk.startswith("chassis:"):
@@ -234,12 +246,23 @@ def _reclassify(con) -> int:
             con.execute(f"UPDATE {table} SET model_id=?, vehicle_key=?, year=? WHERE uid=?",
                         (m.model.id, vk or r["vehicle_key"], year or r["year"], r["uid"]))
             if vk and vk != r["vehicle_key"]:
-                _remember_moves(con, {r["vehicle_key"]: vk})
+                moves[r["vehicle_key"]] = vk
             n += 1
             if table == "sightings" and r["vehicle_key"]:
                 # the asking price history moves with the car, out of the old model's medians
                 con.execute("UPDATE OR REPLACE daily_asks SET model_id=?, vehicle_key=? WHERE vehicle_key=?",
                             (m.model.id, vk or r["vehicle_key"], r["vehicle_key"]))
+    _remember_moves(con, moves)
+    # price history under a model that no longer exists follows its car, or goes if the car is gone
+    known = set(taxonomy.BY_ID)
+    for vk, mid in con.execute("SELECT DISTINCT vehicle_key, model_id FROM daily_asks").fetchall():
+        if mid in known:
+            continue
+        car = con.execute("SELECT model_id FROM sightings WHERE vehicle_key=? LIMIT 1", (vk,)).fetchone()
+        if car and car[0] in known:
+            con.execute("UPDATE daily_asks SET model_id=? WHERE vehicle_key=?", (car[0], vk))
+        else:
+            con.execute("DELETE FROM daily_asks WHERE vehicle_key=? AND model_id=?", (vk, mid))
     return n
 
 

@@ -8,6 +8,7 @@ before 488 GTB). Add new models by appending a Model row in the right place.
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -22,6 +23,7 @@ class Model:
     patterns: tuple      # regexes matched against the cleaned title
     pair: Optional[str] = None   # coupe <-> spider partner, for body style premiums
     tracked: bool = True         # include in movers / medians
+    line: Optional[str] = None   # the model line a version belongs to ("308" for the 308 GTSi), for classics
 
 
 FAMILY_ORDER = [
@@ -32,6 +34,7 @@ FAMILY_ORDER = [
     "Four seat GT and SUV",
     "Hypercars and limited series",
     "Classics",
+    "Classic racing cars",
 ]
 
 M = Model
@@ -43,6 +46,7 @@ MODELS: list[Model] = [
     M("enzo", "Enzo", "Hypercars and limited series", "coupe", (2002, 2004), (r"\benzo\b",)),
     M("f50", "F50", "Hypercars and limited series", "spider", (1995, 1997), (r"\bf50\b",)),
     M("288-gto", "288 GTO", "Hypercars and limited series", "coupe", (1984, 1987), (r"288 gto",)),
+    M("f40-lm", "F40 LM", "Hypercars and limited series", "coupe", (1989, 1994), (r"f40 (lm|competizione|gte)\b",), tracked=False),
     M("f40", "F40", "Hypercars and limited series", "coupe", (1987, 1992), (r"\bf40\b",)),
     M("fxx-k", "FXX K", "Hypercars and limited series", "coupe", (2015, 2017), (r"fxx ?k\b",), tracked=False),
     M("fxx", "FXX", "Hypercars and limited series", "coupe", (2005, 2007), (r"\bfxx\b",), tracked=False),
@@ -53,7 +57,7 @@ MODELS: list[Model] = [
     M("812-competizione", "812 Competizione", "Hypercars and limited series", "coupe", (2021, 2024), (r"812 compet\w*", r"812 comp\b"), "812-competizione-a"),
     M("sf90-xx-spider", "SF90 XX Spider", "Hypercars and limited series", "spider", (2024, None), (r"sf90 xx spider", r"sf90 xx spyder"), "sf90-xx-stradale"),
     M("sf90-xx-stradale", "SF90 XX Stradale", "Hypercars and limited series", "coupe", (2024, None), (r"sf90 xx",), "sf90-xx-spider"),
-    M("f12tdf", "F12tdf", "Hypercars and limited series", "coupe", (2016, 2017), (r"f12 ?tdf", r"tour de france")),
+    M("f12tdf", "F12tdf", "Hypercars and limited series", "coupe", (2016, 2017), (r"f12 ?tdf", r"(?<!250 gt )(?<!250 )(?<!berlinetta )tour de france")),
     M("599-gto", "599 GTO", "Hypercars and limited series", "coupe", (2010, 2012), (r"599 gto",)),
     M("sa-aperta", "SA Aperta", "Hypercars and limited series", "spider", (2010, 2011), (r"sa aperta",)),
     M("16m", "Scuderia Spider 16M", "Hypercars and limited series", "spider", (2009, 2009), (r"16m\b", r"scuderia spider")),
@@ -93,7 +97,7 @@ MODELS: list[Model] = [
     M("812-superfast", "812 Superfast", "Front engine V12", "coupe", (2018, 2023), (r"812 superfast", r"\b812\b"), "812-gts"),
     M("f12berlinetta", "F12berlinetta", "Front engine V12", "coupe", (2013, 2017), (r"f12 ?berlinetta", r"\bf12\b")),
     M("599-gtb", "599 GTB Fiorano", "Front engine V12", "coupe", (2007, 2012), (r"599 gtb", r"\b599\b")),
-    M("575m", "575M Maranello", "Front engine V12", "coupe", (2002, 2006), (r"\b575m?\b", r"superamerica")),
+    M("575m", "575M Maranello", "Front engine V12", "coupe", (2002, 2006), (r"\b575m?\b", r"(?<!400 )(?<!410 )super ?america")),
     M("550-barchetta", "550 Barchetta", "Front engine V12", "spider", (2001, 2001), (r"550 barchetta",)),
     M("550-maranello", "550 Maranello", "Front engine V12", "coupe", (1997, 2001), (r"\b550\b",)),
 
@@ -104,7 +108,7 @@ MODELS: list[Model] = [
     M("portofino-m", "Portofino M", "Front engine V8 GT", "spider", (2021, 2024), (r"portofino m\b",)),
     M("portofino", "Portofino", "Front engine V8 GT", "spider", (2018, 2020), (r"portofino",)),
     M("california-t", "California T", "Front engine V8 GT", "spider", (2015, 2017), (r"california t\b", r"california turbo")),
-    M("california", "California", "Front engine V8 GT", "spider", (2009, 2014), (r"\bcalifornia\b(?! spider| spyder)",)),
+    M("california", "California", "Front engine V8 GT", "spider", (2009, 2014), (r"(?<!250 gt )(?<!250 )(?<!365 )\bcalifornia\b(?! spider| spyder)",)),
 
     # Four seat GT and SUV
     M("luce", "Luce", "Four seat GT and SUV", "gt", (2026, None), (r"\bluce\b",), tracked=False),
@@ -113,34 +117,181 @@ MODELS: list[Model] = [
     M("gtc4lusso", "GTC4Lusso", "Four seat GT and SUV", "gt", (2017, 2020), (r"gtc4 ?lusso", r"(?<!365 )gtc4")),
     M("ff", "FF", "Four seat GT and SUV", "gt", (2012, 2016), (r"\bff\b",)),
     M("612-scaglietti", "612 Scaglietti", "Four seat GT and SUV", "gt", (2005, 2010), (r"\b612\b",)),
-    M("456", "456 GT", "Four seat GT and SUV", "gt", (1994, 2003), (r"\b456m?\b",)),
+    M("456m-gta", "456M GTA", "Four seat GT and SUV", "gt", (2000, 2003), (r"456 ?m ?gt ?a\b", r"456 ?m .*\bgta\b", r"(?#y)456 .*\bgta\b", r"(?#y)456 gta\b"), line="456"),
+    M("456m-gt", "456M GT", "Four seat GT and SUV", "gt", (2000, 2003), (r"456 ?m\b", r"(?#y)456 gt\b", r"(?#y)\b456\b"), line="456"),
+    M("456-gta", "456 GTA", "Four seat GT and SUV", "gt", (1996, 1998), (r"456 .*\bgta\b", r"456 gta\b"), line="456"),
+    M("456-gt", "456 GT", "Four seat GT and SUV", "gt", (1993, 1998), (r"456 gt\b", r"\b456\b"), line="456"),
 
-    # Classics
-    M("f355-spider", "F355 Spider", "Classics", "spider", (1995, 1999), (r"355 spider", r"355 spyder"), "f355"),
-    M("f355", "F355", "Classics", "coupe", (1995, 1999), (r"\b(f ?)?355\b",), "f355-spider"),
-    M("348", "348", "Classics", "coupe", (1990, 1995), (r"\b348\b", r"\b348 ?(ts|tb|gts|gtb|spider)\b")),
-    M("328", "328 GTB and GTS", "Classics", "targa", (1986, 1989), (r"\b328\b",)),
-    M("308", "308 GTB and GTS", "Classics", "targa", (1975, 1985), (r"\b308 gt[bs]",  r"\b308 gtsi", r"\b308 qv", r"\b308\b(?! gt4)")),
-    M("208-turbo", "208 GTB and GTS", "Classics", "targa", (1980, 1989), (r"\b208\b(?! gt4)", r"\bgt[bs] turbo\b")),
-    M("dino-308-gt4", "Dino 208 and 308 GT4", "Classics", "coupe", (1974, 1980), (r"308 gt4", r"\b208 gt4", r"^\d{4} ferrari dino$")),
-    M("dino-246", "Dino 246", "Classics", "coupe", (1969, 1974), (r"dino 246", r"246 gt", r"dino 206")),
-    M("f512m", "F512 M", "Classics", "coupe", (1995, 1996), (r"f ?512 ?m\b",)),
-    M("512-tr", "512 TR", "Classics", "coupe", (1992, 1994), (r"512 ?tr\b",)),
+    # Classic racing cars: each its own model, so none of them counts toward a road car's prices
+    M("375-mm", "375 MM", "Classic racing cars", "spider", (1953, 1955), (r"375 mm\b",), tracked=False),
+    M("375-plus", "375 Plus", "Classic racing cars", "spider", (1954, 1955), (r"375 plus\b",), tracked=False),
+    M("500-mondial", "500 Mondial", "Classic racing cars", "spider", (1954, 1955), (r"500 mondial\b",), tracked=False),
+    M("750-monza", "750 Monza", "Classic racing cars", "spider", (1954, 1955), (r"750 monza\b",), tracked=False),
+    M("735-lm", "735 LM", "Classic racing cars", "spider", (1955, 1955), (r"\b(735|121|118) lm\b",), tracked=False),
+    M("410-s", "410 S", "Classic racing cars", "spider", (1955, 1956), (r"410 (s|sport)\b",), tracked=False),
+    M("290-mm", "290 MM", "Classic racing cars", "spider", (1956, 1956), (r"290 mm\b",), tracked=False),
+    M("500-trc", "500 TRC", "Classic racing cars", "spider", (1956, 1957), (r"500 trc?\b",), tracked=False),
+    M("335-s", "335 S", "Classic racing cars", "spider", (1957, 1958), (r"335 (s|sport)\b",), tracked=False),
+    M("dino-sp", "Dino SP", "Classic racing cars", "spider", (1961, 1962), (r"\b(196|246|248|268|286) sp\b", r"dino sp\b"), tracked=False),
+    M("412-p", "412 P", "Classic racing cars", "coupe", (1966, 1967), (r"412 p\b",), tracked=False),
+    M("312-pb", "312 PB", "Classic racing cars", "spider", (1971, 1973), (r"312 (pb|p)\b",), tracked=False),
+
+    # Classics, grouped as Classic.com groups them: a model line ("308") and its versions ("308 GTSi").
+    # Within a line the explicit names come first, then the year decides: a model whose years are far
+    # from the car's is skipped, so a "1984 308 GTS" falls through to the Quattrovalvole.
+    M("166-mm", "166 MM", "Classics", "spider", (1948, 1953), (r"166 mm\b",), tracked=False, line="166"),
+    M("166-s", "166 S", "Classics", "coupe", (1948, 1953), (r"166 (s|sc|sport)\b",), tracked=False, line="166"),
+    M("166-inter", "166 Inter", "Classics", "coupe", (1948, 1950), (r"166 inter\b", r"\b166\b"), tracked=False, line="166"),
+    M("195-inter", "195 Inter", "Classics", "coupe", (1950, 1951), (r"\b195\b",), tracked=False),
+    M("212-export", "212 Export", "Classics", "spider", (1951, 1952), (r"212 (export|e)\b",), tracked=False, line="212"),
+    M("212-europa", "212 Europa", "Classics", "coupe", (1952, 1953), (r"212 europa\b",), tracked=False, line="212"),
+    M("212-inter", "212 Inter", "Classics", "coupe", (1951, 1953), (r"212 inter\b", r"\b212\b"), tracked=False, line="212"),
+    M("225-s", "225 S", "Classics", "spider", (1952, 1952), (r"\b225\b",), tracked=False),
+    M("340-mm", "340 MM", "Classics", "spider", (1953, 1953), (r"340 mm\b",), tracked=False, line="America"),
+    M("340-america", "340 America", "Classics", "coupe", (1950, 1952), (r"\b340\b",), tracked=False, line="America"),
+    M("342-america", "342 America", "Classics", "coupe", (1952, 1952), (r"\b342\b",), tracked=False, line="America"),
+    M("375-america", "375 America", "Classics", "coupe", (1953, 1954), (r"375 america\b",), tracked=False, line="America"),
+    M("410-superamerica", "410 Superamerica", "Classics", "coupe", (1955, 1959), (r"410 (super ?america|sa)\b",), tracked=False, line="America"),
+    M("400-superamerica", "400 Superamerica", "Classics", "coupe", (1960, 1964), (r"400 (super ?america|sa)\b",), tracked=False, line="America"),
+    M("500-superfast", "500 Superfast", "Classics", "coupe", (1964, 1966), (r"500 superfast\b",), tracked=False, line="America"),
+
+    M("250-recreation", "250 Re-creation", "Classics", "coupe", (1952, 2030), (r"\b250 .*\b(re ?creation|continuation)\b", r"\b(re ?creation|continuation)\b.*\b250\b"), tracked=False, line="250"),
+    M("250-replica", "250 Replica", "Classics", "coupe", (1952, 2030), (r"\b250 .*\b(replica|tribute|evocation|homage)\b", r"\b(replica|tribute|evocation|homage)\b.*\b250\b"), tracked=False, line="250"),
+    M("250-gto", "250 GTO", "Classics", "coupe", (1962, 1964), (r"250 gto\b",), tracked=False, line="250"),
+    M("250-lm", "250 LM", "Classics", "coupe", (1964, 1965), (r"250 lm\b",), tracked=False, line="250"),
+    M("250-testa-rossa", "250 Testa Rossa", "Classics", "spider", (1957, 1961), (r"250 (tr\w*|testa ?rossa)\b",), tracked=False, line="250"),
+    M("250-california-lwb", "250 GT California Spider LWB", "Classics", "spider", (1957, 1959), (r"\b250 (?!.*\bswb\b).*\bcalifornia\b",), tracked=False, line="250"),
+    M("250-california-swb", "250 GT California Spider SWB", "Classics", "spider", (1960, 1963), (r"\b250 .*\bcalifornia\b",), tracked=False, line="250"),
+    M("250-swb", "250 GT Berlinetta SWB", "Classics", "coupe", (1959, 1963), (r"\b250 .*\bswb\b", r"passo corto", r"250 gt sef\b", r"\b250 .*\bshort wheelbase\b", r"(?#y)\b250 gt berlinetta\b"), tracked=False, line="250"),
+    M("250-lusso", "250 GT Berlinetta Lusso", "Classics", "coupe", (1962, 1964), (r"250 gt ?l\b", r"\b250 .*\blusso\b", r"\blusso berlinetta\b"), tracked=False, line="250"),
+    M("250-gte", "250 GT/E 2+2", "Classics", "gt", (1960, 1963), (r"250 gt ?e\b", r"250 gt 2 ?2\b", r"250 2 ?2\b"), tracked=False, line="250"),
+    M("250-cabriolet-s1", "250 GT Cabriolet Pinin Farina Series I", "Classics", "spider", (1957, 1958), (r"\b250 .*\bcabriolet\b.*\bseri\w* (i|1)\b", r"(?#y)\b250 (?!.*\bseri\w* (ii|2)\b).*\bcabriolet\b"), tracked=False, line="250"),
+    M("250-cabriolet-s2", "250 GT Cabriolet Pinin Farina Series II", "Classics", "spider", (1959, 1962), (r"\b250 .*\bcabriolet\b",), tracked=False, line="250"),
+    M("250-pf-speciale", "250 GT Coupe PF Speciale", "Classics", "coupe", (1956, 1958), (r"\b250 .*\b(pf|pinin ?farina) speciale\b", r"\b250 .*\bcoupe speciale\b"), tracked=False, line="250"),
+    M("250-boano-ellena", "250 GT Coupe Boano and Ellena", "Classics", "coupe", (1956, 1957), (r"\b250 .*\b(boano|ellena)", r"(?#y)\b250 gt (alloy |low roof )?coupe\b"), tracked=False, line="250"),
+    M("250-tdf", "250 GT Berlinetta Tour de France", "Classics", "coupe", (1955, 1959), (r"\b250 .*\b(tour de france|tdf)\b", r"250 gt (lwb )?berlinetta (lwb|scaglietti)\b", r"250 gt lwb\b", r"(?#y)\b250 gt berlinetta\b"), tracked=False, line="250"),
+    M("250-pf-coupe", "250 GT Coupe Pinin Farina", "Classics", "coupe", (1958, 1960), (r"\b250 .*\b(pinin ?farina|pf)\b.*\bcoupe\b", r"\b250 gt (pf |alloy |low roof )?coupe\b", r"\b250 gt .*\bseries (i|ii|1|2) coupe\b", r"\b250 gt (series (i|ii|1|2) )?(pinin ?farina )?coupe\b", r"\b250 gt pf\b"), tracked=False, line="250"),
+    M("250-competizione", "250 GT Berlinetta Competizione", "Classics", "coupe", (1955, 1955), (r"250 gt berlinetta competizione\b",), tracked=False, line="250"),
+    M("250-monza", "250 Monza", "Classics", "spider", (1954, 1954), (r"250 monza\b",), tracked=False, line="250"),
+    M("250-mm", "250 MM", "Classics", "coupe", (1953, 1954), (r"250 (mm|mille miglia)\b",), tracked=False, line="250"),
+    M("250-europa-gt", "250 Europa GT", "Classics", "coupe", (1954, 1956), (r"250 (gt )?europa gt\b", r"250 gt europa\b", r"\beuropa gt\b"), tracked=False, line="250"),
+    M("250-europa", "250 Europa", "Classics", "coupe", (1953, 1954), (r"250 europa\b",), tracked=False, line="250"),
+    M("250-other", "250, version not stated", "Classics", "coupe", (1952, 1964), (r"\b250\b(?! p\b| ?gtb? ?4)",), tracked=False, line="250"),
+
+    M("275-gtb-c-speciale", "275 GTB Competizione Speciale", "Classics", "coupe", (1964, 1965), (r"275 gtb ?c speciale\b", r"\b275 .*\bcompetizione speciale\b"), tracked=False, line="275"),
+    M("275-gtb-c", "275 GTB/C", "Classics", "coupe", (1966, 1966), (r"275 gtb ?c\b", r"275 gtb competizione\b"), tracked=False, line="275"),
+    M("275-nart", "275 GTS/4 NART Spider", "Classics", "spider", (1967, 1968), (r"\b275 .*\bn ?a ?r ?t\b",), tracked=False, line="275"),
+    M("275-gtb4", "275 GTB/4", "Classics", "coupe", (1966, 1968), (r"275 gtb ?4\b",), tracked=False, line="275"),
+    M("275-gts", "275 GTS", "Classics", "spider", (1964, 1966), (r"275 gts\b",), tracked=False, line="275"),
+    M("275", "275 GTB", "Classics", "coupe", (1964, 1966), (r"275 gtb\b", r"\b275\b(?! p\b)"), line="275"),
+
+    M("330-america", "330 America", "Classics", "gt", (1963, 1964), (r"330 america\b",), tracked=False, line="330"),
+    M("330-gtc", "330 GTC", "Classics", "coupe", (1966, 1968), (r"330 gtc\b",), line="330"),
+    M("330-gts", "330 GTS", "Classics", "spider", (1966, 1968), (r"330 gts\b",), tracked=False, line="330"),
+    M("330-gt-s1", "330 GT 2+2 Series I", "Classics", "gt", (1964, 1965), (r"\b330 gt.*\bseri\w* (i|1)\b", r"\binterim\b", r"\b330 (gt )?2 ?2\b(?!.*\bseri\w* (ii|2)\b)", r"\b330 gt\b(?!.*\bseri\w* (ii|2)\b)"), tracked=False, line="330"),
+    M("330-gt-s2", "330 GT 2+2 Series II", "Classics", "gt", (1966, 1967), (r"\b330 (gt )?2 ?2\b", r"\b330 gt\b"), tracked=False, line="330"),
+    M("330-other", "330, version not stated", "Classics", "gt", (1963, 1968), (r"\b330\b(?! p\b| p ?\d| tri\b| lm\b)",), tracked=False, line="330"),
+
+    M("365-california", "365 California", "Classics", "spider", (1966, 1967), (r"365 california\b",), tracked=False, line="365"),
+    M("365-gtc4", "365 GTC/4", "Classics", "coupe", (1971, 1972), (r"365 gtc ?4\b",), tracked=False, line="365"),
+    M("365-gtc", "365 GTC", "Classics", "coupe", (1968, 1970), (r"365 gtc\b",), tracked=False, line="365"),
+    M("365-gts", "365 GTS", "Classics", "spider", (1968, 1970), (r"365 gts\b(?! ?4)",), tracked=False, line="365"),
+    M("365-gt-2-2", "365 GT 2+2", "Classics", "gt", (1967, 1971), (r"365 gt 2 ?2\b", r"365 2 ?2\b", r"365 gt\b(?! ?4)"), tracked=False, line="365"),
+
+    M("daytona-replica", "Daytona Replica", "Classics", "spider", (1969, 2030), (r"\bdaytona\b.*\b(replica|recreation|tribute|conversion|converted)\b", r"\b365 gt[bs] ?4\b.*\b(replica|recreation|conversion|converted)\b"), tracked=False, line="Daytona"),
+    M("daytona-competizione", "Daytona Competizione", "Classics", "coupe", (1969, 1973), (r"\bdaytona competizione\b", r"365 gtb ?4 (competizione|c)\b", r"\bdaytona group 4\b"), tracked=False, line="Daytona"),
+    M("daytona-gts4", "365 GTS/4 Daytona Spider", "Classics", "spider", (1971, 1973), (r"365 gts ?4\b", r"\bdaytona spider\b"), line="Daytona"),
+    M("daytona", "365 GTB/4 Daytona", "Classics", "coupe", (1968, 1973), (r"365 gtb ?4\b", r"\bdaytona\b(?! sp3)"), line="Daytona"),
+
+    M("dino-206-s", "Dino 206 S", "Classics", "spider", (1966, 1967), (r"\b206 (s|sp)\b",), tracked=False, line="Dino"),
+    M("dino-206-gt", "Dino 206 GT", "Classics", "coupe", (1967, 1969), (r"\b206 gt\b", r"\bdino 206\b", r"\b206 dino\b"), tracked=False, line="Dino"),
+    M("dino-246-gts", "Dino 246 GTS", "Classics", "targa", (1972, 1974), (r"\b246 gts\b",), line="Dino"),
+    M("dino-246-gt", "Dino 246 GT", "Classics", "coupe", (1969, 1974), (r"\b246 gtb?\b", r"\bdino 246\b", r"\b246 dino\b", r"^(dino )?\d{4} (ferrari )?dino$"), line="Dino"),
+    M("dino-308-gt4", "Dino 308 GT4", "Classics", "coupe", (1974, 1980), (r"308 gt ?4\b", r"\bdino 308\b", r"^(dino )?\d{4} (ferrari )?dino$"), line="Dino"),
+    M("dino-208-gt4", "Dino 208 GT4", "Classics", "coupe", (1975, 1980), (r"208 gt ?4\b",), tracked=False, line="Dino"),
+
+    M("365-gt4-2-2", "365 GT4 2+2", "Classics", "gt", (1972, 1976), (r"365 gt ?4 2 ?2\b", r"365 gt ?4 2 ?plus ?2\b"), tracked=False, line="365 GT4 2+2, 400 and 412"),
+    M("meera-s", "Meera S", "Classics", "gt", (1983, 1983), (r"\bmeera\b",), tracked=False, line="365 GT4 2+2, 400 and 412"),
+    M("412-automatic", "412 Automatic", "Classics", "gt", (1985, 1989), (r"\b412i? .*\b(a|automatic|auto)\b",), tracked=False, line="365 GT4 2+2, 400 and 412"),
+    M("412-manual", "412 Manual", "Classics", "gt", (1985, 1989), (r"\b412i?\b(?! p\b| t\b| s\b)",), tracked=False, line="365 GT4 2+2, 400 and 412"),
+    M("400-automatic", "400 Automatic", "Classics", "gt", (1976, 1978), (r"\b400 (gt ?)?(a|automatic|auto)\b", r"\b400 gta\b"), tracked=False, line="365 GT4 2+2, 400 and 412"),
+    M("400i-automatic", "400i Automatic", "Classics", "gt", (1980, 1985), (r"\b400 ?i\b.*\b(a|automatic|auto)\b", r"\b400 ?i ?a\b", r"\b400\b.*\b(automatic|auto)\b", r"\b400 gta\b"), tracked=False, line="365 GT4 2+2, 400 and 412"),
+    M("400-manual", "400 Manual", "Classics", "gt", (1976, 1978), (r"\b400\b(?! ?i\b| super| sa\b| ?gta\b)",), tracked=False, line="365 GT4 2+2, 400 and 412"),
+    M("400i-manual", "400i Manual", "Classics", "gt", (1980, 1985), (r"\b400 ?i\b", r"\b400\b(?! super| sa\b)"), tracked=False, line="365 GT4 2+2, 400 and 412"),
+
+    M("365-gt4-bb", "365 GT4 BB", "Classics", "coupe", (1973, 1976), (r"365 gt ?4 ?bb\b", r"\b365 bb\b", r"365 berlinetta boxer\b", r"(?#y)\bberlinetta boxer\b", r"(?#y)(?<!512 )\bbb\b(?! ?512| ?lm| ?i\b)"), line="Berlinetta Boxer"),
+    M("512-bblm", "512 BB/LM", "Classics", "coupe", (1978, 1982), (r"512 ?bb ?lm\b", r"\bbb ?lm\b"), tracked=False, line="Berlinetta Boxer"),
+    M("512-bb", "BB 512", "Classics", "coupe", (1976, 1980), (r"512 ?bb\b", r"\bbb 512\b", r"\bberlinetta boxer\b", r"\bboxer\b"), line="Berlinetta Boxer"),
+    M("512-bbi", "BB 512i", "Classics", "coupe", (1981, 1984), (r"512 ?bb ?i\b", r"\bbb 512 ?i\b", r"512 ?bb\b", r"\bbb 512\b", r"\bberlinetta boxer\b", r"\bboxer\b"), line="Berlinetta Boxer"),
+
+    M("308-gtb-vetroresina", "308 GTB Vetroresina", "Classics", "coupe", (1975, 1977), (r"\b308 .*\b(vetroresina|fib(er|re) ?glass)\b", r"\bvetroresina\b"), line="308"),
+    M("308-gtb-qv", "308 GTB Quattrovalvole", "Classics", "coupe", (1984, 1985), (r"308 gtb ?i? .*\b(qv|quattro ?valvole)\b", r"308 gtb ?i? ?qv\b", r"(?#y)308 gtb\b", r"(?#y)308 gtb ?i\b"), line="308"),
+    M("308-gts-qv", "308 GTS Quattrovalvole", "Classics", "targa", (1984, 1985), (r"308 gts ?i? .*\b(qv|quattro ?valvole)\b", r"308 gts ?i? ?qv\b", r"(?#y)308 gts\b", r"(?#y)308 gts ?i\b"), line="308"),
+    M("308-gtbi", "308 GTBi", "Classics", "coupe", (1981, 1981), (r"308 gtb ?i\b", r"(?#y)308 gtb\b"), line="308"),
+    M("308-gtsi", "308 GTSi", "Classics", "targa", (1981, 1981), (r"308 gts ?i\b", r"(?#y)308 gts\b"), line="308"),
+    M("308-gtb", "308 GTB", "Classics", "coupe", (1975, 1979), (r"308 gtb\b",), line="308"),
+    M("308-gts", "308 GTS", "Classics", "targa", (1977, 1979), (r"308 gts\b",), line="308"),
+    M("308-other", "308, version not stated", "Classics", "targa", (1975, 1985), (r"\b308\b(?! ?gt ?4| gt ?m\b)",), tracked=False, line="308"),
+    M("208-turbo", "208 and GTB/GTS Turbo", "Classics", "targa", (1980, 1989), (r"\b208\b(?! ?gt ?4)", r"\bgt[bs] turbo\b")),
+
+    M("328-gtb", "328 GTB", "Classics", "coupe", (1986, 1989), (r"328 gtb\b",), line="328"),
+    M("328-gts", "328 GTS", "Classics", "targa", (1986, 1989), (r"328 gts ?i?\b",), line="328"),
+    M("328-other", "328, version not stated", "Classics", "targa", (1985, 1989), (r"\b328\b",), tracked=False, line="328"),
+
+    M("mondial-8", "Mondial 8", "Classics", "gt", (1980, 1981), (r"\bmondial 8\b", r"(?#y)\bmondial\b(?!.*\b(t|3 ?2|qv|quattro ?valvole|cab\w*|convertible|spider)\b)"), tracked=False, line="Mondial"),
+    M("mondial-qv-cabriolet", "Mondial QV Cabriolet", "Classics", "spider", (1983, 1984), (r"\bmondial (qv|quattro ?valvole) (cab\w*|convertible|spider)\b", r"\bmondial (cab\w*|convertible|spider) (qv|quattro ?valvole)\b", r"(?#y)\bmondial\b.*\b(cab\w*|convertible|spider)\b"), tracked=False, line="Mondial"),
+    M("mondial-qv-coupe", "Mondial QV Coupe", "Classics", "gt", (1983, 1984), (r"\bmondial (qv|quattro ?valvole)\b", r"(?#y)\bmondial\b.*\bcoupe\b"), tracked=False, line="Mondial"),
+    M("mondial-32-cabriolet", "Mondial 3.2 Cabriolet", "Classics", "spider", (1986, 1987), (r"\bmondial 3 ?2 (cab\w*|convertible|spider)\b", r"\bmondial (cab\w*|convertible|spider) 3 ?2\b", r"(?#y)\bmondial\b.*\b(cab\w*|convertible|spider)\b"), tracked=False, line="Mondial"),
+    M("mondial-32-coupe", "Mondial 3.2 Coupe", "Classics", "gt", (1986, 1987), (r"\bmondial 3 ?2\b", r"(?#y)\bmondial\b.*\bcoupe\b"), tracked=False, line="Mondial"),
+    M("mondial-t-cabriolet", "Mondial t Cabriolet", "Classics", "spider", (1990, 1993), (r"\bmondial t (cab\w*|convertible|spider)\b", r"\bmondial (cab\w*|convertible|spider) t\b", r"\bmondial\b.*\b(cab\w*|convertible|spider)\b"), tracked=False, line="Mondial"),
+    M("mondial-t-coupe", "Mondial t Coupe", "Classics", "gt", (1990, 1993), (r"\bmondial t\b", r"\bmondial\b.*\bcoupe\b"), tracked=False, line="Mondial"),
+    M("mondial-other", "Mondial, version not stated", "Classics", "gt", (1980, 1993), (r"\bmondial\b",), tracked=False, line="Mondial"),
+
     M("testarossa", "Testarossa", "Classics", "coupe", (1985, 1991), (r"testarossa", r"\btesta rossa\b")),
-    M("512-bb", "365 GT4 BB and 512 BB", "Classics", "coupe", (1973, 1984), (r"512 ?bbi?\b", r"berlinetta boxer", r"365 gt4 ?bb", r"\bbb 512")),
-    M("mondial", "Mondial", "Classics", "gt", (1980, 1993), (r"mondial",), tracked=False),
-    M("daytona", "365 GTB/4 Daytona", "Classics", "coupe", (1968, 1973), (r"365 gt[bs] ?4", r"\bdaytona\b(?! sp3)")),
-    M("330-gtc", "330 GTC and GTS", "Classics", "coupe", (1966, 1968), (r"330 gt[cs]",)),
-    M("275", "275 GTB and GTS", "Classics", "coupe", (1964, 1968), (r"\b275\b",)),
-    M("365-gt-2-2", "365 GT 2+2 and GTC/4", "Classics", "gt", (1967, 1972), (r"365 gt 2 2", r"365 2 2", r"365 gtc ?4", r"365 gtc\b", r"365 gts\b(?! 4)"), tracked=False),
-    M("330-gt-2-2", "330 GT 2+2", "Classics", "gt", (1964, 1967), (r"330 gt 2 2", r"330 2 2", r"330 gt\b", r"330 america"), tracked=False),
-    M("400-412", "365 GT4 2+2, 400 and 412", "Classics", "gt", (1972, 1989), (r"365 gt4 2 2", r"\b400i?\b", r"\b412\b"), tracked=False),
-    M("250", "250 series", "Classics", "coupe", (1953, 1964), (r"\b250\b",), tracked=False),
-    M("classic-other", "Other classics before 1975", "Classics", "coupe", (1947, 1975), (r"\b(166|195|212|225|340|342|375|410|500 (trc|mondial|superfast)|625|750 monza|860 monza|290 mm|315 s|335 s|330 p|365 p|206 s|196 s|246 s)\b",), tracked=False),
+    M("512-tr", "512 TR", "Classics", "coupe", (1992, 1994), (r"512 ?tr\b",)),
+    M("f512m", "F512 M", "Classics", "coupe", (1995, 1996), (r"f ?512 ?m\b",)),
+
+    M("348-zagato", "348 Zagato Elaborazione", "Classics", "coupe", (1990, 1992), (r"\b348 .*\b(zagato|elaborazione)\b",), tracked=False, line="348"),
+    M("348-serie-speciale", "348 Serie Speciale", "Classics", "coupe", (1992, 1993), (r"\b348 .*\b(serie speciale|ss|speciale)\b",), tracked=False, line="348"),
+    M("348-gt-competizione", "348 GT Competizione", "Classics", "coupe", (1993, 1994), (r"348 gt ?(competizione|c)\b", r"\b348 .*\bcompetizione\b", r"\b348 lm\b"), tracked=False, line="348"),
+    M("348-spider", "348 Spider", "Classics", "spider", (1993, 1995), (r"348 ?(spider|convertible)\b",), line="348"),
+    M("348-gtb", "348 GTB", "Classics", "coupe", (1994, 1995), (r"348 ?gtb\b",), tracked=False, line="348"),
+    M("348-gts", "348 GTS", "Classics", "targa", (1994, 1995), (r"348 ?gts\b",), tracked=False, line="348"),
+    M("348-tb", "348 tb", "Classics", "coupe", (1989, 1993), (r"348 ?tb\b", r"348 ?gtb\b"), line="348"),
+    M("348-ts", "348 ts", "Classics", "targa", (1989, 1993), (r"348 ?ts\b", r"348 ?gts\b"), line="348"),
+    M("348-other", "348, version not stated", "Classics", "targa", (1989, 1995), (r"\b348",), tracked=False, line="348"),
+
+    M("f355-serie-fiorano", "F355 Spider Serie Fiorano", "Classics", "spider", (1999, 1999), (r"355 .*\bserie fiorano\b", r"355 spider fiorano\b"), tracked=False, line="F355"),
+    M("f355-spider", "F355 Spider", "Classics", "spider", (1995, 1999), (r"355 (f1 )?spider",), "f355", line="F355"),
+    M("f355-gts", "F355 GTS", "Classics", "targa", (1995, 1999), (r"355 (f1 )?gts\b",), "f355", line="F355"),
+    M("f355", "F355 Berlinetta", "Classics", "coupe", (1995, 1999), (r"355 (berlinetta|gtb)\b", r"\b(f ?)?355\b"), "f355-spider", line="F355"),
+    M("classic-other", "Other classics before 1975", "Classics", "coupe", (1947, 1975), (r"\b(330 tri|412 s|857 s|860 monza|625|860 monza|315 s|330 p ?\d?|365 p ?\d?|196 s|246 s|250 p|275 p|512 [sm]|312 p|212 mm)\b",), tracked=False),
 ]
 
 _COMPILED = [(m, [re.compile(p) for p in m.patterns]) for m in MODELS]
 BY_ID = {m.id: m for m in MODELS}
+YEAR_ONLY = "(?#y)"      # a pattern that names no version, so it decides only together with the year
+
+
+def _slug(name: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", name.lower().replace("+", " ")).strip("-")
+
+
+# model lines: line name -> its versions, in taxonomy order. A line's id never equals a model's id.
+LINES: dict[str, list[str]] = {}
+for _m in MODELS:
+    if _m.line:
+        LINES.setdefault(_m.line, []).append(_m.id)
+LINE_ID = {n: (_slug(n) if _slug(n) not in BY_ID else _slug(n) + "-models") for n in LINES}
+
+
+# model pages that became a line page or another model when the classics were regrouped
+ALIASES = {"dino-246": LINE_ID["Dino"], "330-gt-2-2": LINE_ID["330"], "400-412": LINE_ID["365 GT4 2+2, 400 and 412"]}
+
+
+def is_catch_all(model_id: str) -> bool:
+    """A line's "version not stated" bucket."""
+    return model_id.endswith("-other")
 
 _STRIP = re.compile(r"[^a-z0-9 ]+")
 _MILE_PHRASE = re.compile(r"\b\d[\d ]*k? ?(mile|miles|km|kilometers|kilometres)\b")
@@ -148,9 +299,11 @@ _SPACES = re.compile(r"\s+")
 
 
 def clean_title(text: str) -> str:
-    t = (text or "").lower()
+    t = unicodedata.normalize("NFKD", (text or "").lower())
+    t = "".join(c for c in t if not unicodedata.combining(c))       # "coupé" is "coupe"
     t = t.replace("/", " ").replace("-", " ").replace("_", " ")
     t = t.replace("spyder", "spider")
+    t = re.sub(r"\b(\d{3})([a-z])", r"\1 \2", t)                   # "250GT", "348tb", "246GTS"
     t = _STRIP.sub(" ", t)
     return _SPACES.sub(" ", t).strip()
 
@@ -169,6 +322,8 @@ def resolve(title: str, year: Optional[int] = None, model_hint: Optional[str] = 
     first_conflict = None
     for model, patterns in _COMPILED:
         for p in patterns:
+            if year is None and p.pattern.startswith(YEAR_ONLY):
+                continue
             if p.search(text):
                 conf = 1.0
                 reasons = [f"matched {p.pattern}"]
@@ -280,7 +435,7 @@ def tidy_title(title: str) -> str:
 # ---------------------------------------------------------------- gearbox: factory manual or F1
 # Models Ferrari sold with both a gated six speed manual and the F1 paddle gearbox. Their manual
 # cars trade at a clear premium, so they are counted as their own submarket.
-DUAL_GEARBOX = {"f355", "f355-spider", "360-modena", "360-spider", "f430", "f430-spider",
+DUAL_GEARBOX = {"f355", "f355-spider", "f355-gts", "360-modena", "360-spider", "f430", "f430-spider",
                 "575m", "599-gtb", "612-scaglietti"}
 _CONVERSION = re.compile(
     r"(?:6|six)[- ]?speed conversion|manual conversion|conver(?:ted|sion) to (?:a )?(?:gated )?(?:six[- ]speed |6[- ]speed )?manual"

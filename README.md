@@ -209,6 +209,14 @@ The data is split by view: `site.json` (models and counts, loaded on every page)
 
 Photos are not copied. Every photo is loaded from the dealer or auction site that published it, with a plain "photo unavailable" tile when one fails, because the pictures belong to those sites.
 
+## Classics: model lines and versions
+
+Every model before the 360 is grouped as Classic.com groups it: a model line (308, Dino, 250, Berlinetta Boxer) and its versions (308 GTB Vetroresina, 308 GTSi, 308 GTS Quattrovalvole). Each version is a model of its own, with its own prices and page, and each line has a page at `models/<line>/` listing its versions. The Models menu shows each line once, with its versions on hover.
+
+A title that names the version decides it. Otherwise the year does: a "1984 Ferrari 308 GTS" can only be a Quattrovalvole, a "1960 Ferrari 250 GT Berlinetta" is a SWB. Patterns that only work together with a year start with `(?#y)` and are skipped when a listing has no year. Titles that name the line but not the version ("1984 Ferrari 308") go to the line's "version not stated" bucket. Classic racing cars (375 MM, 290 MM, 312 PB and the rest) are models of their own, so none counts toward a road car's figures. Modern race cars (Formula 1 cars, 333 SP, Challenge and XX cars) are still left out.
+
+Stored records are placed again on every run, so a change to these rules reaches every car already on record. Old model addresses (`models/dino-246/`) forward to the new pages.
+
 ## Specials, outliers and odd asks
 
 Before any average, median or trend is worked out, three kinds of record are set aside (`pipeline/clean.py`, `pipeline/taxonomy.py`):

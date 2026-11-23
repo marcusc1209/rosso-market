@@ -31,8 +31,8 @@ BASE = {
     "california": 95e3, "california-t": 125e3, "purosangue": 610e3, "812-superfast": 360e3, "812-gts": 470e3,
     "812-competizione": 1.2e6, "f12berlinetta": 230e3, "f12tdf": 950e3, "599-gtb": 170e3, "599-gto": 820e3,
     "gtc4lusso": 200e3, "ff": 130e3, "612-scaglietti": 88e3, "550-maranello": 150e3, "575m": 165e3,
-    "f355": 135e3, "f355-spider": 120e3, "348": 88e3, "328": 112e3, "308": 86e3, "testarossa": 145e3,
-    "512-tr": 235e3, "f512m": 410e3, "daytona": 760e3, "dino-246": 460e3, "f40": 3.0e6, "f50": 5.1e6,
+    "f355": 135e3, "f355-spider": 120e3, "348-ts": 88e3, "328-gts": 112e3, "308-gts": 86e3, "testarossa": 145e3,
+    "512-tr": 235e3, "f512m": 410e3, "daytona": 760e3, "dino-246-gt": 460e3, "f40": 3.0e6, "f50": 5.1e6,
     "enzo": 4.6e6, "laferrari": 4.1e6, "laferrari-aperta": 6.2e6, "monza-sp1": 2.3e6, "daytona-sp3": 3.9e6,
     "12cilindri": 520e3,
 }
@@ -42,10 +42,10 @@ WEIGHT = {"488-gtb": 6, "488-spider": 9, "458-italia": 6, "458-spider": 5, "f8-t
           "sf90-spider": 4, "296-gtb": 6, "296-gts": 5, "812-superfast": 5, "812-gts": 4, "purosangue": 4,
           "f12berlinetta": 4, "gtc4lusso": 4, "f430": 4, "f430-spider": 3, "360-modena": 3, "360-spider": 3,
           "488-pista": 2, "599-gtb": 2, "ff": 2, "612-scaglietti": 1.5, "roma-spider": 2, "f355": 1.5,
-          "testarossa": 1.5, "328": 1.2, "308": 1.5, "348": 1, "550-maranello": 1, "575m": 0.8, "458-speciale": 1,
+          "testarossa": 1.5, "328-gts": 1.2, "308-gts": 1.5, "348-ts": 1, "550-maranello": 1, "575m": 0.8, "458-speciale": 1,
           "12cilindri": 1.2, "488-pista-spider": 0.8, "812-competizione": 0.5, "430-scuderia": 0.6, "16m": 0.3,
           "f12tdf": 0.4, "laferrari": 0.4, "enzo": 0.15, "f40": 0.3, "f50": 0.1, "daytona-sp3": 0.3,
-          "monza-sp1": 0.2, "dino-246": 0.6, "daytona": 0.3, "512-tr": 0.6, "f512m": 0.2, "599-gto": 0.2,
+          "monza-sp1": 0.2, "dino-246-gt": 0.6, "daytona": 0.3, "512-tr": 0.6, "f512m": 0.2, "599-gto": 0.2,
           "458-speciale-a": 0.3, "laferrari-aperta": 0.1, "360-challenge-stradale": 0.4}
 # monthly price drift per model; a few models soften late in the window so the movers logic has work to do
 DRIFT = {"458-spider": -0.018, "812-gts": -0.02, "488-spider": -0.012, "sf90-stradale": -0.01, "roma": -0.008,
