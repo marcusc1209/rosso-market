@@ -19,6 +19,7 @@ permissions:
   issues: write       # open an issue when a source breaks
   pages: write
   id-token: write
+  actions: read       # see that the site upload is listed before deploying it
 
 concurrency: { group: market-cloud, cancel-in-progress: false }
 
@@ -28,7 +29,7 @@ jobs:
     timeout-minutes: 120
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment_retry.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -102,5 +103,25 @@ jobs:
       - run: python scripts/build_site.py
       - uses: actions/upload-pages-artifact@v3
         with: { path: public }
+      # GitHub lists a run's uploads a moment after they finish. A deploy that asks too soon finds nothing
+      # ("No artifacts named github-pages") and fails the run, so wait until the upload is listed, and if the
+      # deploy still fails, wait a minute and try once more.
+      - name: Wait for the site upload to be listed
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          for i in $(seq 1 30); do
+            n=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
+                  --jq '[.artifacts[] | select(.name == "github-pages")] | length' 2>/dev/null || echo 0)
+            if [ "${n:-0}" -gt 0 ]; then echo "listed after $i check(s)"; exit 0; fi
+            sleep 5
+          done
+          echo "::warning::The site upload was not listed after 150 seconds. Deploying anyway."
       - id: deployment
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: Wait before trying the deploy again
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 60
+      - id: deployment_retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v4
